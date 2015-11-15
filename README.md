@@ -34,6 +34,8 @@
   each invocation, ACME figures out which certificates satisfy which targets
   and obtains certificates as necessary.
 
+  [Details on the state directory format.](https://github.com/hlandau/acme/blob/master/SCHEMA.md)
+
 - Contains an ACME client library which can be used independently.
 
 ## Licence
