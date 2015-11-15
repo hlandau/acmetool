@@ -8,6 +8,8 @@ and keys to other system services as required.
 
 This specification relates to the use of ACME but has no official endorsement.
 
+This specification is intended for use on POSIX-like systems.
+
 Synopsis
 --------
 
@@ -251,6 +253,24 @@ directory, those permissions MUST be verified before moving any file into that
 directory. Note that because all files begin in the "tmp" directory, their
 permissions MUST be strictly as strict or stricter than the permissions of any
 direct or indirect parent directory, at least until the move is completed.
+
+### Permissions (POSIX)
+
+The following permissions on a State Directory MUST be enforced:
+
+  - The "accounts", "keys" and "tmp" directories and all subdirectories within
+    them MUST have mode 0770 or stricter. All files directly or ultimately
+    within these directories MUST have mode 0660 or stricter, except for files
+    in "tmp", which MUST have the permissions appropriate for their ultimate
+    location before they are moved to that location.
+ 
+  - For all other files and directories, appropriate permissions MUST be
+    enforced as determined by the implementation. Generally this will mean
+    directories having mode 0755 and files having mode 0644. Files and
+    directories MUST NOT be world writable.
+
+The ownership of a State Directory and all files and directories directly or
+ultimately within it SHOULD be verified and enforced.
 
 Notification Hooks
 ------------------
