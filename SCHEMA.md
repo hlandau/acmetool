@@ -272,6 +272,14 @@ The following permissions on a State Directory MUST be enforced:
 The ownership of a State Directory and all files and directories directly or
 ultimately within it SHOULD be verified and enforced.
 
+### Use of Symlinks
+
+All symlinks used within the State Directory MUST be unbroken, MUST point to
+locations within the State Directory and MUST be relatively expressed (i.e.,
+they MUST NOT break if the State Directory were to be moved). Implementations
+SHOULD verify these properties for any symlinks they encounter in the State
+Directory.
+
 Notification Hooks
 ------------------
 
@@ -322,35 +330,59 @@ Operations
 
 ### Conform
 
-To conform a state directory means to evaluate everything in it and delete any
-account subdirectory, certificate subdirectory, key subdirectory or symlink
-inside the live directory which is not valid as described above.
+To conform a State Directory means to examine everything in the directory for
+consistency and validity. Permissions are changed as necessary to ensure they
+match the implementation's policy.  The implementation verifies that all
+symlinks are unbroken, relative and point to locations within the State
+Directory. Remnant temporary files are deleted. Errors are indicated for any
+malformed directory (e.g. account directory with no private key, etc.)
 
-Delete any files in the "tmp" directory.
+This operation is idempotent.
 
 ### Reconcile
 
-To perform the Reconcile operation, first perform the Conform operation.
+The reconcile operation is the actual act of “building” the State Directory.
+Certificates are requested and obtained as necessary to satisfy the targets expressed.
 
-From the "desired" hostname/service label set, form clusters. Determine a list of
-clusters which doesn't have retrieved, CA-signed certificates with known private keys
-expiring in more than 30 days or 33% of the validity period, whichever is lower.
-During this process, download any undownloaded certificates.
+Always perform the Conform operation before performing this operation. If any
+certificates were requested, the Conform operation must be performed afterwards
+as well.
 
-For all such clusters, attempt to obtain certificates using the appropriate policy:
+If there are any uncached certificates (certificate directories containing only
+an "url" file), cache them, waiting for them to become available if necessary.
 
-  The endpoint URL is specified by the policy or inherited from defaults.  If
-  there is no account key for that URL, create a new account key. Ensure the
-  registration exists.
+Update the symlinks in the "live" directory to point to the most preferred
+certificate for each hostname. If there is no certificate which satisfies a
+hostname, do not modify any existing link in the "live" directory for that
+hostname.
 
-  Obtain authorizations for every hostname required. Where an unexpired
-  authorization is listed as being present under the account directory, this can
-  be skipped, but if issuance fails due to the absence of an authorization, that
-  authorization directory is deleted and an authorization is obtained.
+In some cases there may be multiple satisfactory certificates which support a
+given hostname. In this case the "priority" field in each target description
+file, which defaults to zero, should be used to determine which certificate is
+preferred for a given hostname. Higher priority values are preferred.
 
-  Form a CSR containing all SANs required by the cluster and submit the CSR.
-  Save the certificate URL.
-  
+Use the set of targets to determine what certificates will be necessary, and
+determine what targets are unsatisfied by currently available certificates.
+
+A target is satisfied by a certificate if the hostnames required by the target
+are a subset of the hostnames for which the certificate is valid; if the
+certificate is not expired nor is near expiry; and if the private key for the
+certificate is available within the State Directory.
+
+The meaning of “near expiry” is implementation-dependent. The RECOMMENDED
+definition of “near expiry” is any certificate expiring in less than 30 days or
+33% of the validity period, whichever is lower.
+
+If there are unsatisfied targets, for each unsatisfied target:
+
+  - Obtain any necessary authorizations, using the authorization information
+    stored for the account to be used in the State Directory to determine which
+    authorizations definitely do not need to be acquired.
+
+  - Having successfully acquired all authorizations, form an appropriate CSR
+    containing the requested SANs and request a certificate. Write the certificate
+    URL to the State Directory.
+
 If any certificates were requested, perform the Reconcile operation again.
 
 Identifiers
