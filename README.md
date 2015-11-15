@@ -10,7 +10,7 @@
   `# acmetool want example.com`
 
   If successfully acquired, the certificate will be placed in
-  /var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}.
+  `/var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}`.
 
   Running `acmetool` as root on a cronjob will allow it to automatically
   reacquire certificates before they expire. The certificate data in
@@ -19,6 +19,20 @@
   changed certificates if you need to reload a webserver.
 
 - Works with Let's Encrypt.
+
+- acmetool is designed to work like `make`. A filesystem-based certificate
+  repository expresses target domain names, and whenever acmetool is invoked,
+  it ensures that valid certificates are available to meet those names.
+  Certificates which will expire soon are renewed. The certificate matching
+  each target is symlinked into `/var/lib/acme/live/DOMAIN`, so the right
+  certificate for a given domain is always at `/var/lib/acme/live/DOMAIN`.
+
+  acmetool is thus idempotent and it minimises the use of state. All state is
+  explicitly kept in the certificate repository. There are essentially no
+  proprietary file formats or configuration or state files; only a repository
+  of certificates, a repository of ACME account keys and a set of targets.  On
+  each invocation, ACME figures out which certificates satisfy which targets
+  and obtains certificates as necessary.
 
 - Contains an ACME client library which can be used independently.
 
