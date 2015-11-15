@@ -1,4 +1,4 @@
-% ACME Client Utilities
+# ACME Client Utilities
 
 **Experimental - Under Development**
 
@@ -22,8 +22,7 @@
 
 - Contains an ACME client library which can be used independently.
 
-Licence
--------
+## Licence
 
     © 2015 Hugo Landau <hlandau@devever.net>    MIT License
 
