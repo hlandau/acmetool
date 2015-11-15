@@ -11,6 +11,7 @@ import "encoding/base32"
 import "github.com/hlandau/acme/acmeapi"
 import "github.com/hlandau/acme/solver"
 import "github.com/hlandau/acme/fdb"
+import "github.com/hlandau/acme/notify"
 import "io"
 import "crypto/rsa"
 import "crypto/rand"
@@ -669,6 +670,9 @@ func (s *Store) linkTargets() error {
 			if err != nil {
 				return err
 			}
+
+			err = notify.Notify("", s.path, name) // ignore error
+			log.Errore(err, "failed to call notify hooks")
 		}
 	}
 
