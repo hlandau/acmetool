@@ -102,9 +102,9 @@ issued. For example, creating two empty files, `example.com` and
 `example.com` with the following contents would result in one certificate with
 both names:
 
-  names:
-    - example.com
-    - www.example.com
+    names:
+      - example.com
+      - www.example.com
 
 ### accounts
 
