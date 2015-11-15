@@ -6,6 +6,8 @@ state information in a directory on the local system in a way that facilitates
 its own access to and mutation of its state and the exposure of certificates
 and keys to other system services as required.
 
+This specification relates to the use of ACME but has no official endorsement.
+
 Synopsis
 --------
 
