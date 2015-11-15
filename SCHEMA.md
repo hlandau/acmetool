@@ -345,9 +345,9 @@ of the subjectPublicKeyInfo constructed from the private key.
 **Account ID:** Take the Directory URL for the ACME server. Take the hostname,
 port (if applicable) and path, stripping the scheme, which must be HTTPS (e.g.
 "example.com/directory"). If the path is "/", strip it ("example.com/" becomes
-"example.com"). URL-encode this string so that any slashes are percent-encoded.
-Take this string and append "/" followed by the string formed by calculating a
-Key ID using the account's private key.
+"example.com"). URL-encode this string so that any slashes are percent-encoded
+using lowercase hexadecimal. Take this string and append "/" followed by the
+string formed by calculating a Key ID using the account's private key.
 
   e.g. "example.com%2fdirectory/irq7564p5siu3zngnc2caqygp3v53dfmh6idwtpyfkxojssqglta"
 
