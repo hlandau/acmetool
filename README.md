@@ -7,7 +7,7 @@
 
 - Acquiring a certificate is as simple as this:
 
-    # acmetool want example.com
+  `# acmetool want example.com`
 
   If successfully acquired, the certificate will be placed in
   /var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}.
