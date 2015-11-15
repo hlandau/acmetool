@@ -12,10 +12,10 @@
   If successfully acquired, the certificate will be placed in
   `/var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}`.
 
-  Running `acmetool` as root on a cronjob will allow it to automatically
-  reacquire certificates before they expire. The certificate data in
-  `/var/lib/acme/live/example.com` will be updated automatically with the new
-  certificate. acmetool can optionally invoke a shell script after having
+  Running `acmetool --batch` as root on a cronjob will allow it to
+  automatically reacquire certificates before they expire. The certificate data
+  in `/var/lib/acme/live/example.com` will be updated automatically with the
+  new certificate. acmetool can optionally invoke a shell script after having
   changed certificates if you need to reload a webserver.
 
 - Works with Let's Encrypt.

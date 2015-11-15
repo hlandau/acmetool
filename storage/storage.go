@@ -20,6 +20,7 @@ import "time"
 import "gopkg.in/yaml.v2"
 import "regexp"
 import "golang.org/x/net/context"
+import "github.com/satori/go.uuid"
 
 var log, Log = xlog.New("acme.storage")
 
@@ -70,7 +71,7 @@ func (a *Authorization) IsValid() bool {
 type Target struct {
 	// N. List of SANs to place on any obtained certificate. May include
 	// hostnames (and maybe one day SRV-IDs). May include wildcard hostnames.
-	Names []string
+	Names []string `yaml:"names"`
 
 	// N. If this is a substring of a known account ID, that account is used.
 	// Otherwise, if this is the URL of an ACME server, or the first part of an
@@ -84,13 +85,13 @@ type Target struct {
 	//   "acme-staging.letsencrypt.org%2fdirectory/asl39"
 	//   "acme-staging.letsencrypt.org%2fdirectory"
 	//   "acme-staging"
-	Provider string
+	Provider string `yaml:"provider,omitempty"`
 
 	// D. Account to use, determined via Provider string.
-	Account *Account
+	Account *Account `yaml:"-"`
 
 	// N. Priority as a symlink target.
-	Priority int
+	Priority int `yaml:"priority,omitempty"`
 }
 
 // Represents stored certificate information.
@@ -1046,4 +1047,73 @@ func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
 	}
 
 	return neededs, nil
+}
+
+func (s *Store) AddTarget(tgt Target) error {
+	if len(tgt.Names) == 0 {
+		return nil
+	}
+
+	for _, n := range tgt.Names {
+		if !validHostname(n) {
+			return fmt.Errorf("invalid hostname: %v", n)
+		}
+	}
+
+	t := s.findTargetWithAllNames(tgt.Names)
+	if t != nil {
+		return nil
+	}
+
+	b, err := yaml.Marshal(&tgt)
+	if err != nil {
+		return err
+	}
+
+	c := s.db.Collection("desired")
+	if c == nil {
+		return fmt.Errorf("cannot get desired collection")
+	}
+
+	fn := s.makeUniqueTargetName(&tgt)
+	return fdb.WriteBytes(c, fn, b)
+}
+
+func (s *Store) findTargetWithAllNames(names []string) *Target {
+T:
+	for _, t := range s.targets {
+		for _, n := range names {
+			if !containsName(t.Names, n) {
+				continue T
+			}
+		}
+
+		return t
+	}
+	return nil
+}
+
+func containsName(names []string, name string) bool {
+	for _, n := range names {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Store) makeUniqueTargetName(tgt *Target) string {
+	// Unfortunately we can't really check if the first hostname exists as a filename
+	// and use another name instead as this would create all sorts of race conditions.
+	// We have to use a random name.
+
+	nprefix := ""
+	if len(tgt.Names) > 0 {
+		nprefix = tgt.Names[0] + "-"
+	}
+
+	b := uuid.NewV4().Bytes()
+	str := strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
+
+	return nprefix + str
 }

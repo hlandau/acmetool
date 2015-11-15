@@ -17,7 +17,7 @@ import "github.com/hlandau/xlog"
 import denet "github.com/hlandau/degoutils/net"
 import "golang.org/x/net/context"
 
-var log, Log = xlog.New("acme.api")
+var log, Log = xlog.NewQuiet("acme.api")
 
 var DefaultBaseURL = "https://acme-staging.api.letsencrypt.org/directory"
 
@@ -257,7 +257,9 @@ func (c *Client) doReq(method, url string, v, r interface{}) (*http.Response, er
 		cl = http.DefaultClient
 	}
 
+	log.Debugf("request: %s", url)
 	res, err := cl.Do(req)
+	log.Debugf("response: %v %v", res, err)
 	if err != nil {
 		return nil, err
 	}
