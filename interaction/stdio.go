@@ -4,6 +4,7 @@ import "fmt"
 import "os"
 import "bufio"
 import "strings"
+import "strconv"
 
 func Stdio(c *Challenge) (*Response, error) {
 	switch c.ResponseType {
@@ -13,6 +14,8 @@ func Stdio(c *Challenge) (*Response, error) {
 		return stdioYesNo(c)
 	case RTLineString:
 		return stdioLineString(c)
+	case RTSelect:
+		return stdioSelect(c)
 	default:
 		return nil, fmt.Errorf("unsupported challenge type")
 	}
@@ -61,6 +64,36 @@ func stdioLineString(c *Challenge) (*Response, error) {
 
 	v := waitLine()
 	return &Response{Value: v}, nil
+}
+
+func stdioSelect(c *Challenge) (*Response, error) {
+
+	p := c.Prompt
+	if p == "" {
+		p = ">"
+	}
+
+	fmt.Fprintf(os.Stderr, `%s
+%s
+
+`, titleLine(c.Title), c.Body)
+
+	for i, o := range c.Options {
+		t := o.Title
+		if t == "" {
+			t = o.Value
+		}
+		fmt.Fprintf(os.Stderr, "  %v) %s\n", i+1, t)
+	}
+
+	fmt.Fprintf(os.Stderr, "%s ", p)
+	v := strings.TrimSpace(waitLine())
+	n, err := strconv.ParseUint(v, 10, 31)
+	if err != nil || n == 0 || int(n-1) >= len(c.Options) {
+		return stdioSelect(c)
+	}
+
+	return &Response{Value: c.Options[int(n-1)].Value}, nil
 }
 
 func waitReturn() {

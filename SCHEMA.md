@@ -52,6 +52,18 @@ that shown below is used.
               expiry        ; File containing RFC 3336 expiry timestamp
               url           ; URL of the authorization (optional)
 
+      conf/                 ; Configuration data
+        target              ; This has the same format as a target expression file
+                            ; and is used to specify defaults. It is used to specify
+                            ; a default provider URL. Not all values which are valid
+                            ; in a target expression file may be used.
+
+        webroot-path        ; Contains the path to a directory where challenge files
+                            ; may be placed in order to potentially expose them over
+                            ; HTTP. A string, no newlines or whitespace. May be empty.
+
+                            ; Other, implementation-specific files may be placed in conf.
+
       tmp/                  ; (used for writing files only)
 
 Preferred Location

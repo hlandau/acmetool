@@ -16,6 +16,9 @@ const (
 	// Require user to enter a single-line string, returned as the Value of the
 	// Response.
 	RTLineString
+
+	// Require user to select from a number of options.
+	RTSelect
 )
 
 // A challenge prompt to be shown to the user.
@@ -42,6 +45,18 @@ type Challenge struct {
 	// Challenge type unique identifier. This identifies the meaning of the dialog
 	// and can be used to respond automatically to known dialogs.
 	UniqueID string
+
+	// Specifies the options for RTSelect.
+	Options []Option
+}
+
+// An option in an RTSelect challenge.
+type Option struct {
+	// Option title.
+	Title string
+
+	// Internal value that the option represents.
+	Value string
 }
 
 type Response struct {

@@ -45,6 +45,13 @@ type Config struct {
 
 	// "tls-sni-01": Number of iterations.
 	N int
+
+	// The hostname being verified. May be used for pre-initiation self-testing. Optional.
+	Hostname string
+
+	// The http responder may attempt to place challenges here and perform
+	// self-testing if it is unable to listen on port 80. Optional.
+	WebPath string
 }
 
 var responderTypes = map[string]func(Config) (Responder, error){}

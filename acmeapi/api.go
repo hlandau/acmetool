@@ -19,7 +19,10 @@ import "golang.org/x/net/context"
 
 var log, Log = xlog.NewQuiet("acme.api")
 
-var DefaultBaseURL = "https://acme-staging.api.letsencrypt.org/directory"
+const LEStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
+const LELiveURL = "https://acme-v01.api.letsencrypt.org/directory"
+
+var DefaultBaseURL = LEStagingURL
 
 type directoryInfo struct {
 	NewReg     string `json:"new-reg"`
@@ -286,6 +289,10 @@ func (c *Client) doReq(method, url string, v, r interface{}) (*http.Response, er
 	}
 
 	return res, nil
+}
+
+func ValidURL(u string) bool {
+	return validURL(u)
 }
 
 func validURL(u string) bool {

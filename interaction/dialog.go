@@ -12,11 +12,15 @@ func Dialog(c *Challenge) (*Response, error) {
 		return nil, fmt.Errorf("cannot find whiptail or dialog binary in path")
 	}
 
+	width := "78"
+	height := "45"
 	yesLabelArg := "--yes-label"
 	noLabelArg := "--no-label"
+	noTagsArg := "--no-tags"
 	if cmdType == "whiptail" {
 		yesLabelArg = "--yes-button"
 		noLabelArg = "--no-button"
+		noTagsArg = "--notags"
 	}
 
 	var opts []string
@@ -30,7 +34,7 @@ func Dialog(c *Challenge) (*Response, error) {
 
 	switch c.ResponseType {
 	case RTAcknowledge:
-		opts = append(opts, "--msgbox", c.Body, "20", "70")
+		opts = append(opts, "--msgbox", c.Body, height, width)
 	case RTYesNo:
 		yesLabel := c.YesLabel
 		if yesLabel == "" {
@@ -40,7 +44,7 @@ func Dialog(c *Challenge) (*Response, error) {
 		if noLabel == "" {
 			noLabel = "No"
 		}
-		opts = append(opts, yesLabelArg, yesLabel, noLabelArg, noLabel, "--yesno", c.Body, "20", "70")
+		opts = append(opts, yesLabelArg, yesLabel, noLabelArg, noLabel, "--yesno", c.Body, height, width)
 	case RTLineString:
 		pipeR, pipeW, err = os.Pipe()
 		if err != nil {
@@ -49,7 +53,19 @@ func Dialog(c *Challenge) (*Response, error) {
 
 		defer pipeR.Close()
 		defer pipeW.Close()
-		opts = append(opts, "--output-fd", "3", "--inputbox", c.Body, "20", "70")
+		opts = append(opts, "--output-fd", "3", "--inputbox", c.Body, height, width)
+	case RTSelect:
+		pipeR, pipeW, err = os.Pipe()
+		if err != nil {
+			return nil, err
+		}
+
+		defer pipeR.Close()
+		defer pipeW.Close()
+		opts = append(opts, "--output-fd", "3", noTagsArg, "--menu", c.Body, height, width, "5")
+		for _, o := range c.Options {
+			opts = append(opts, o.Value, o.Title)
+		}
 	}
 
 	cmd := exec.Command(cmdName, opts...)
@@ -72,7 +88,7 @@ func Dialog(c *Challenge) (*Response, error) {
 	}
 
 	switch c.ResponseType {
-	case RTLineString:
+	case RTLineString, RTSelect:
 		b, err := ioutil.ReadAll(pipeR)
 		if err != nil {
 			return nil, err

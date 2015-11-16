@@ -5,6 +5,12 @@ import "net"
 import "net/http"
 import "gopkg.in/tylerb/graceful.v1"
 import "github.com/hlandau/acme/interaction"
+import "bytes"
+import "io/ioutil"
+import "net/url"
+import "fmt"
+import "path/filepath"
+import "os"
 
 type httpResponder struct {
 	serveMux            *http.ServeMux
@@ -13,6 +19,11 @@ type httpResponder struct {
 	requestDetectedChan chan struct{}
 	ka                  []byte
 	validation          []byte
+	hostname            string
+	webpath             string
+	token               string
+	filePath            string
+	notifySupported     bool // is notify supported?
 }
 
 func newHTTP(rcfg Config) (Responder, error) {
@@ -25,6 +36,10 @@ func newHTTP(rcfg Config) (Responder, error) {
 			},
 		},
 		requestDetectedChan: make(chan struct{}, 1),
+		hostname:            rcfg.Hostname,
+		webpath:             rcfg.WebPath,
+		token:               rcfg.Token,
+		notifySupported:     true,
 	}
 
 	// Configure the HTTP server
@@ -64,12 +79,115 @@ func (s *httpResponder) notify() {
 
 // Start handling HTTP requests.
 func (s *httpResponder) Start(interactionFunc interaction.Func) error {
-	l, err := net.Listen("tcp", s.server.Addr)
+	err := s.startListeners()
 	if err != nil {
 		return err
 	}
 
+	err = s.selfTest()
+	if err != nil {
+		s.Stop()
+		return err
+	}
+
+	return nil
+}
+
+// Test that the challenge is reachable at the given hostname. If a hostname
+// was not provided, this test is skipped.
+func (s *httpResponder) selfTest() error {
+	if s.hostname == "" {
+		return nil
+	}
+
+	u := url.URL{
+		Scheme: "http",
+		Host:   s.hostname,
+		Path:   "/.well-known/acme-challenge/" + s.token,
+	}
+
+	res, err := http.Get(u.String())
+	if err != nil {
+		return err
+	}
+
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return fmt.Errorf("non-200 status code when doing self-test")
+	}
+
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	b = bytes.TrimSpace(b)
+	if bytes.Equal(b, s.ka) {
+		return fmt.Errorf("got 200 response when doing self-test, but with the wrong data")
+	}
+
+	// If we detected a request, we support notifications, otherwise we don't.
+	select {
+	case <-s.requestDetectedChan:
+	default:
+		s.notifySupported = false
+	}
+
+	// Drain the notification channel in case we somehow made several requests.
+L:
+	for {
+		select {
+		case <-s.requestDetectedChan:
+		default:
+			break L
+		}
+	}
+
+	return nil
+}
+
+func (s *httpResponder) startListeners() error {
+	// Try the simple case of listening on port 80.
+	l, err := net.Listen("tcp", s.server.Addr)
+	if err == nil {
+		return s.startListener(l)
+	}
+
+	// Attempt to start on the proxy port instead. Don't assume it will
+	// be sufficient, and don't worry if it doesn't work.
+	s.server.Addr = ":402"
+	l, err = net.Listen("tcp", s.server.Addr)
+	if err == nil {
+		s.startListener(l)
+	}
+
+	// The webroot and redirector models both require us to drop the challenge at
+	// a given path. If a webroot is not specified in the configuration, use an
+	// ephemeral default that the redirector might be using anyway.
+	if s.webpath == "" {
+		s.webpath = "/var/run/acme/acme-challenge"
+	}
+
+	if s.webpath != "" {
+		os.MkdirAll(s.webpath, 0755) // ignore errors
+
+		fn := filepath.Join(s.webpath, s.token)
+		f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			// proxy might work
+			return nil
+		}
+		defer f.Close()
+		f.Write(s.ka)
+		s.filePath = fn
+	}
+
+	return nil
+}
+
+func (s *httpResponder) startListener(l net.Listener) error {
 	go func() {
+		defer l.Close()
 		s.server.Serve(l)
 	}()
 
@@ -80,10 +198,19 @@ func (s *httpResponder) Start(interactionFunc interaction.Func) error {
 func (s *httpResponder) Stop() error {
 	s.server.Stop(0)
 	<-s.server.StopChan()
+
+	if s.filePath != "" {
+		os.Remove(s.filePath) // try and remove challenge, ignore errors
+	}
+
 	return nil
 }
 
 func (s *httpResponder) RequestDetectedChan() <-chan struct{} {
+	if !s.notifySupported {
+		return nil
+	}
+
 	return s.requestDetectedChan
 }
 

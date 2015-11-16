@@ -51,6 +51,11 @@ func (a *Account) ID() string {
 	return u + "/" + keyID
 }
 
+// Returns true iff the account is for a given provider URL.
+func (a *Account) MatchesURL(p string) bool {
+	return p == a.BaseURL
+}
+
 // Represents an authorization.
 type Authorization struct {
 	// N. The authorized hostname.
@@ -71,7 +76,7 @@ func (a *Authorization) IsValid() bool {
 type Target struct {
 	// N. List of SANs to place on any obtained certificate. May include
 	// hostnames (and maybe one day SRV-IDs). May include wildcard hostnames.
-	Names []string `yaml:"names"`
+	Names []string `yaml:"names,omitempty"`
 
 	// N. If this is a substring of a known account ID, that account is used.
 	// Otherwise, if this is the URL of an ACME server, or the first part of an
@@ -137,7 +142,9 @@ type Store struct {
 	accounts        map[string]*Account
 	keys            map[string]*Key
 	targets         map[string]*Target
+	defaultTarget   *Target // from conf
 	defaultBaseURL  string
+	webrootPath     string
 }
 
 const RecommendedPath = "/var/lib/acme"
@@ -149,7 +156,6 @@ var storePermissions = []fdb.Permission{
 	{Path: "live", DirMode: 0755, FileMode: 0644},
 	{Path: "certs", DirMode: 0755, FileMode: 0644},
 	{Path: "keys", DirMode: 0700, FileMode: 0600},
-	//{Path: "policy/default", DirMode: 0755, FileMode: 0644},
 	{Path: "conf", DirMode: 0755, FileMode: 0644},
 	{Path: "tmp", DirMode: 0700, FileMode: 0600},
 }
@@ -206,6 +212,14 @@ func (s *Store) load() error {
 	if err != nil {
 		return err
 	}
+
+	confc := s.db.Collection("conf")
+	if confc == nil {
+		return fmt.Errorf("cannot open conf collection")
+	}
+
+	s.webrootPath, _ = fdb.String(confc.Open("webroot-path"))
+	// ignore errors
 
 	return nil
 }
@@ -498,9 +512,52 @@ func getCertID(url string) string {
 	return strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 }
 
+func (s *Store) SetDefaultProvider(providerURL string) error {
+	if !validURI(providerURL) {
+		return fmt.Errorf("invalid provider URL")
+	}
+
+	s.defaultTarget.Provider = providerURL
+	return s.saveDefaultTarget()
+}
+
+func (s *Store) saveDefaultTarget() error {
+	confc := s.db.Collection("conf")
+	if confc == nil {
+		return fmt.Errorf("cannot open conf collection")
+	}
+
+	b, err := yaml.Marshal(s.defaultTarget)
+	if err != nil {
+		return err
+	}
+
+	err = fdb.WriteBytes(confc, "target", b)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Store) loadTargets() error {
 	s.targets = map[string]*Target{}
 
+	// default target
+	confc := s.db.Collection("conf")
+	if confc == nil {
+		return fmt.Errorf("cannot open conf collection")
+	}
+
+	dtgt, err := s.validateTargetInner("target", confc)
+	if err == nil {
+		dtgt.Names = nil
+		s.defaultTarget = dtgt
+	} else {
+		s.defaultTarget = &Target{}
+	}
+
+	// targets
 	c := s.db.Collection("desired")
 	if c == nil {
 		return fmt.Errorf("cannot open desired collection")
@@ -522,15 +579,25 @@ func (s *Store) loadTargets() error {
 }
 
 func (s *Store) validateTarget(desiredKey string, c *fdb.Collection) error {
-	b, err := fdb.Bytes(c.Open(desiredKey))
+	tgt, err := s.validateTargetInner(desiredKey, c)
 	if err != nil {
 		return err
+	}
+
+	s.targets[desiredKey] = tgt
+	return nil
+}
+
+func (s *Store) validateTargetInner(desiredKey string, c *fdb.Collection) (*Target, error) {
+	b, err := fdb.Bytes(c.Open(desiredKey))
+	if err != nil {
+		return nil, err
 	}
 
 	tgt := &Target{}
 	err = yaml.Unmarshal(b, tgt)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if len(tgt.Names) == 0 {
@@ -541,19 +608,17 @@ func (s *Store) validateTarget(desiredKey string, c *fdb.Collection) error {
 		n = strings.ToLower(n)
 		n = strings.TrimSuffix(n, ".")
 		if !validHostname(n) {
-			return fmt.Errorf("invalid hostname in target %s: %s", desiredKey, n)
+			return nil, fmt.Errorf("invalid hostname in target %s: %s", desiredKey, n)
 		}
 	}
 
 	tgt.Account, err = s.getAccountByProviderString(tgt.Provider)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	//tgt.Priority
-	s.targets[desiredKey] = tgt
-
-	return nil
+	// TODO: tgt.Priority
+	return tgt, nil
 }
 
 var re_hostname = regexp.MustCompilePOSIX(`^([a-z0-9_-]+\.)*[a-z0-9_-]+$`)
@@ -562,15 +627,36 @@ func validHostname(name string) bool {
 	return re_hostname.MatchString(name)
 }
 
+func (s *Store) EnsureRegistration() error {
+	a, err := s.getAccountByProviderString("")
+	if err != nil {
+		return err
+	}
+
+	cl := s.getAccountClient(a)
+	return solver.AssistedUpsertRegistration(cl, nil)
+}
+
 func (s *Store) getAccountByProviderString(p string) (*Account, error) {
-	// TODO
-	if len(s.accounts) > 0 {
-		for _, a := range s.accounts {
+	if p == "" && s.defaultTarget != nil {
+		p = s.defaultTarget.Provider
+	}
+
+	if p == "" {
+		p = acmeapi.DefaultBaseURL
+	}
+
+	if !validURI(p) {
+		return nil, fmt.Errorf("provider URI is not a valid HTTPS URL")
+	}
+
+	for _, a := range s.accounts {
+		if a.MatchesURL(p) {
 			return a, nil
 		}
 	}
 
-	return s.createNewAccount(acmeapi.DefaultBaseURL)
+	return s.createNewAccount(p)
 }
 
 func (s *Store) createNewAccount(baseURL string) (*Account, error) {
@@ -917,7 +1003,7 @@ func (s *Store) getAccountClient(a *Account) *acmeapi.Client {
 func (s *Store) obtainAuthorization(name string, a *Account) error {
 	cl := s.getAccountClient(a)
 
-	az, err := solver.Authorize(cl, name, nil, context.TODO())
+	az, err := solver.Authorize(cl, name, s.webrootPath, nil, context.TODO())
 	if err != nil {
 		return err
 	}
@@ -1116,4 +1202,23 @@ func (s *Store) makeUniqueTargetName(tgt *Target) string {
 	str := strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 
 	return nprefix + str
+}
+
+func (s *Store) WebrootPath() string {
+	return s.webrootPath
+}
+
+func (s *Store) SetWebrootPath(path string) error {
+	confc := s.db.Collection("conf")
+	if confc == nil {
+		return fmt.Errorf("cannot open collection")
+	}
+
+	err := fdb.WriteBytes(confc, "webroot-path", []byte(path))
+	if err != nil {
+		return err
+	}
+
+	s.webrootPath = path
+	return nil
 }
