@@ -155,7 +155,7 @@ func (s *httpResponder) startListeners() error {
 
 	// Attempt to start on the proxy port instead. Don't assume it will
 	// be sufficient, and don't worry if it doesn't work.
-	s.server.Addr = ":402"
+	s.server.Addr = "127.0.0.1:402"
 	l, err = net.Listen("tcp", s.server.Addr)
 	if err == nil {
 		s.startListener(l)
