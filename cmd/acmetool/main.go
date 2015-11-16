@@ -317,13 +317,11 @@ func promptGettingStarted() {
 		Title: "Quickstart Complete",
 		Body: `The quickstart process is complete.
 
-Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation.
+Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation: https://github.com/hlandau/acme.t/blob/master/doc/WSCONFIG.md
 
 To request a certificate, run:
     
 $ sudo acmetool want example.com www.example.com
-
-You'll be asked to agree to the terms of service and to provide an e. mail address.
 
 If the certificate is successfully obtained, it will be placed in /var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}.`,
 	})
@@ -360,6 +358,11 @@ LISTEN: Directly listen on port 80 or 443, whichever is available, in order to c
 		},
 	})
 	log.Fatale(err, "interaction")
+
+  if r.Cancelled {
+    os.Exit(1)
+    return ""
+  }
 
 	return r.Value
 }
