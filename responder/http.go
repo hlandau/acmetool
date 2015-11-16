@@ -78,7 +78,7 @@ func (s *httpResponder) notify() {
 }
 
 // Start handling HTTP requests.
-func (s *httpResponder) Start(interactionFunc interaction.Func) error {
+func (s *httpResponder) Start(interactor interaction.Interactor) error {
 	err := s.startListeners()
 	if err != nil {
 		return err

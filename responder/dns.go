@@ -29,12 +29,12 @@ func newDNSResponder(rcfg Config) (Responder, error) {
 }
 
 // Start is a no-op for the DNS method.
-func (s *dnsResponder) Start(interactionFunc interaction.Func) error {
-	if interactionFunc == nil {
+func (s *dnsResponder) Start(interactor interaction.Interactor) error {
+	if interactor == nil {
 		return fmt.Errorf("interaction func not provided but required")
 	}
 
-	_, err := interactionFunc(&interaction.Challenge{
+	_, err := interactor.Prompt(&interaction.Challenge{
 		Title: "Verification DNS Record",
 		Prompt: fmt.Sprintf(`You must place the verification DNS record at
 

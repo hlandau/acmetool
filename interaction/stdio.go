@@ -5,8 +5,98 @@ import "os"
 import "bufio"
 import "strings"
 import "strconv"
+import "sync"
+import "github.com/cheggaaa/pb"
 
-func Stdio(c *Challenge) (*Response, error) {
+type stdioInteractor struct{}
+
+var Stdio Interactor = stdioInteractor{}
+
+type stdioStatusSink struct {
+	closeChan  chan struct{}
+	closeOnce  sync.Once
+	closedChan chan struct{}
+	updateChan chan struct{}
+	infoMutex  sync.Mutex
+	statusLine string
+	progress   int
+}
+
+func (ss *stdioStatusSink) Close() error {
+	ss.closeOnce.Do(func() {
+		close(ss.closeChan)
+	})
+	<-ss.closedChan
+	return nil
+}
+
+func (ss *stdioStatusSink) SetProgress(n, ofM int) {
+	ss.infoMutex.Lock()
+	defer ss.infoMutex.Unlock()
+	ss.progress = int((float64(n) / float64(ofM)) * 100)
+	ss.notify()
+}
+
+func (ss *stdioStatusSink) SetStatusLine(status string) {
+	ss.infoMutex.Lock()
+	defer ss.infoMutex.Unlock()
+	ss.statusLine = status
+	ss.notify()
+}
+
+func (ss *stdioStatusSink) notify() {
+	select {
+	case ss.updateChan <- struct{}{}:
+	default:
+	}
+}
+
+func (ss *stdioStatusSink) loop() {
+	bar := pb.StartNew(100)
+	bar.ShowSpeed = false
+	bar.ShowCounters = false
+	bar.ShowTimeLeft = false
+	bar.SetMaxWidth(80)
+
+A:
+	for {
+		select {
+		case <-ss.closeChan:
+			break A
+		case <-ss.updateChan:
+			ss.infoMutex.Lock()
+			statusLine := ss.statusLine
+			idx := strings.IndexByte(statusLine, '\n')
+			if idx >= 0 {
+				statusLine = statusLine[0:idx]
+			}
+			progress := ss.progress
+			ss.infoMutex.Unlock()
+
+			bar.Set(progress)
+			bar.Postfix("  " + statusLine)
+		}
+	}
+
+	//bar.Update()
+	bar.Finish()
+	close(ss.closedChan)
+}
+
+func (stdioInteractor) Status(c *StatusInfo) (StatusSink, error) {
+	ss := &stdioStatusSink{
+		closeChan:  make(chan struct{}),
+		closedChan: make(chan struct{}),
+		updateChan: make(chan struct{}, 10),
+		statusLine: c.StatusLine,
+	}
+
+	ss.updateChan <- struct{}{}
+	go ss.loop()
+	return ss, nil
+}
+
+func (stdioInteractor) Prompt(c *Challenge) (*Response, error) {
 	switch c.ResponseType {
 	case RTAcknowledge:
 		return stdioAcknowledge(c)

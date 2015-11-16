@@ -5,8 +5,8 @@ import "github.com/hlandau/acme/interaction"
 import "fmt"
 import "net/mail"
 
-func AssistedUpsertRegistration(cl *acmeapi.Client, interactionFunc interaction.Func) error {
-	interactionFunc = defaultInteraction(interactionFunc)
+func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Interactor) error {
+	interactor = defaultInteraction(interactor)
 
 	email := ""
 
@@ -14,7 +14,7 @@ func AssistedUpsertRegistration(cl *acmeapi.Client, interactionFunc interaction.
 		err := cl.UpsertRegistration()
 		if err != nil {
 			if e, ok := err.(*acmeapi.AgreementError); ok {
-				res, err := interactionFunc(&interaction.Challenge{
+				res, err := interactor.Prompt(&interaction.Challenge{
 					Title:        "Terms of Service Agreement Required",
 					YesLabel:     "I Agree",
 					NoLabel:      "Cancel",
@@ -32,7 +32,7 @@ Do you agree to the terms of service set out in the above document?`, e.URI),
 				}
 				if !res.Cancelled {
 					if email == "" {
-						email, err = getEmail(interactionFunc)
+						email, err = getEmail(interactor)
 						if err != nil {
 							return err
 						}
@@ -55,9 +55,9 @@ Do you agree to the terms of service set out in the above document?`, e.URI),
 	}
 }
 
-func getEmail(interactionFunc interaction.Func) (string, error) {
+func getEmail(interactor interaction.Interactor) (string, error) {
 	for {
-		res, err := interactionFunc(&interaction.Challenge{
+		res, err := interactor.Prompt(&interaction.Challenge{
 			Title:        "E. Mail Address Required",
 			ResponseType: interaction.RTLineString,
 			Prompt:       "E. mail address: ",
@@ -81,9 +81,9 @@ func getEmail(interactionFunc interaction.Func) (string, error) {
 	}
 }
 
-func defaultInteraction(interactionFunc interaction.Func) interaction.Func {
-	if interactionFunc == nil {
+func defaultInteraction(interactor interaction.Interactor) interaction.Interactor {
+	if interactor == nil {
 		return interaction.Auto
 	}
-	return interactionFunc
+	return interactor
 }

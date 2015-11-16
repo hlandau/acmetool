@@ -143,8 +143,17 @@ func quickstart() {
 	err = s.SetWebrootPath(webroot)
 	log.Fatale(err, "set webroot path")
 
+	prog, err := interaction.Auto.Status(&interaction.StatusInfo{
+		Title: "Registering account...",
+	})
+	log.Fatale(err, "status")
+	prog.SetProgress(0, 1)
+
 	err = s.EnsureRegistration()
 	log.Fatale(err, "couldn't complete registration")
+
+	prog.SetProgress(1, 1)
+	prog.Close()
 
 	if method == "redirector" {
 		promptSystemd()
@@ -178,7 +187,7 @@ func promptSystemd() {
 		return
 	}
 
-	r, err := interaction.Auto(&interaction.Challenge{
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Install Redirector as systemd Service?",
 		Body: `Would you like acmetool to automatically install the redirector as a systemd service?
 
@@ -233,7 +242,7 @@ The service name will be acmetool-redirector.`,
 		resultStr = "The acmetool-redirector service WAS NOT successfully started. You may have a web server listening on port 80. You will need to troubleshoot this yourself."
 	}
 
-	_, err = interaction.Auto(&interaction.Challenge{
+	_, err = interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "systemd Service Installation Complete",
 		Body: fmt.Sprintf(`acmetool-redirector has been installed as a systemd service.
     
@@ -256,7 +265,7 @@ func determineAppropriateUsername() (string, error) {
 }
 
 func promptWebrootDir() string {
-	r, err := interaction.Auto(&interaction.Challenge{
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Enter Webroot Path",
 		Body: `Please enter the path at which challenges should be stored.
 
@@ -277,7 +286,7 @@ Webroot paths vary by OS; please consult your web server configuration.
 	path := r.Value
 	path = strings.TrimRight(strings.TrimSpace(path), "/")
 	if !filepath.IsAbs(path) {
-		interaction.Auto(&interaction.Challenge{
+		interaction.Auto.Prompt(&interaction.Challenge{
 			Title: "Invalid Webroot Path",
 			Body:  "The webroot path must be an absolute path.",
 		})
@@ -285,7 +294,7 @@ Webroot paths vary by OS; please consult your web server configuration.
 	}
 
 	if !strings.HasSuffix(path, "/.well-known/acme-challenge") {
-		r, err = interaction.Auto(&interaction.Challenge{
+		r, err = interaction.Auto.Prompt(&interaction.Challenge{
 			Title: "Are you sure?",
 			Body: `The webroot path you have entered does not end in "/.well-known/acme-challenge". This path will only work if you have specially configured your webserver to map requests for that path to the specified directory.
 
@@ -304,7 +313,7 @@ Do you want to continue? To enter a different webroot path, select No.`,
 }
 
 func promptGettingStarted() {
-	_, err := interaction.Auto(&interaction.Challenge{
+	_, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Quickstart Complete",
 		Body: `The quickstart process is complete.
 
@@ -322,7 +331,7 @@ If the certificate is successfully obtained, it will be placed in /var/lib/acme/
 }
 
 func promptHookMethod() string {
-	r, err := interaction.Auto(&interaction.Challenge{
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Select Challenge Conveyance Method",
 		Body: `acmetool needs to be able to convey challenge responses to the ACME server in order to prove its control of the domains for which you issue certificates. These authorizations expire rapidly, as do ACME-issued certificates (Let's Encrypt certificates have a 90 day lifetime), thus it is essential that the completion of these challenges is a) automated and b) functioning properly. There are several options by which challenges can be facilitated:
 
@@ -356,7 +365,7 @@ LISTEN: Directly listen on port 80 or 443, whichever is available, in order to c
 }
 
 func promptServerURL() string {
-	r, err := interaction.Auto(&interaction.Challenge{
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Select ACME Server",
 		Body: `Please choose an ACME server from which to request certificates. Your principal choices are the Let's Encrypt Live Server, and the Let's Encrypt Staging Server.
 
@@ -388,7 +397,7 @@ The Let's Encrypt Staging Server can be used by anyone but does not issue public
 
 	if r.Value == "url" {
 		for {
-			r, err = interaction.Auto(&interaction.Challenge{
+			r, err = interaction.Auto.Prompt(&interaction.Challenge{
 				Title:        "Select ACME Server",
 				Body:         `Please enter the "Directory URL" of an ACME server. This must be an HTTPS URL pointing to the ACME directory for the server.`,
 				ResponseType: interaction.RTLineString,
@@ -404,7 +413,7 @@ The Let's Encrypt Staging Server can be used by anyone but does not issue public
 				break
 			}
 
-			interaction.Auto(&interaction.Challenge{
+			interaction.Auto.Prompt(&interaction.Challenge{
 				Title:        "Invalid ACME URL",
 				Body:         "That was not a valid ACME Directory URL. An ACME Directory URL must be a valid HTTPS URL.",
 				ResponseType: interaction.RTAcknowledge,

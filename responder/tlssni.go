@@ -106,7 +106,7 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 	return r, nil
 }
 
-func (r *tlssniResponder) Start(interactionFunc interaction.Func) error {
+func (r *tlssniResponder) Start(interactor interaction.Interactor) error {
 	l, err := tls.Listen("tcp", ":443", r.cfg)
 	if err != nil {
 		return err

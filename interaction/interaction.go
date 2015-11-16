@@ -1,7 +1,5 @@
 package interaction
 
-import "fmt"
-
 type ResponseType int
 
 const (
@@ -61,16 +59,36 @@ type Option struct {
 
 type Response struct {
 	// Set this to true if the user cancelled the challenge.
-	// Will short circuit with ErrCancelled.
 	Cancelled bool
 
 	// Value the user entered, if applicable.
 	Value string
 }
 
-var ErrCancelled = fmt.Errorf("user cancelled responder challenge")
+// Specifies the initial parameters for a status dialog.
+type StatusInfo struct {
+	// Title to be used for the status dialog.
+	Title string
 
-// An Func is called by a responder when it needs to receive some sort
-// of user input or acknowledgement. An Response is returned. Errors
-// short circuit through the responder's Start function.
-type Func func(*Challenge) (*Response, error)
+	// The status line. This may contain multiple lines if desired.
+	StatusLine string
+}
+
+// Used to control a status dialog.
+type StatusSink interface {
+	// Close the dialog and wait for it to terminate.
+	Close() error
+
+	// Set progress = (n/ofM)%.
+	SetProgress(n, ofM int)
+
+	// Set the status line(s). You cannot specify a number of lines that exceeds
+	// the number of lines specified in the initial StatusLine.
+	SetStatusLine(status string)
+}
+
+// An Interactor facilitates interaction with the user.
+type Interactor interface {
+	Prompt(*Challenge) (*Response, error)
+	Status(*StatusInfo) (StatusSink, error)
+}

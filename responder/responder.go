@@ -16,7 +16,7 @@ var log, Log = xlog.New("acme.responder")
 // A Responder implements a challenge type.
 type Responder interface {
 	// Become ready to be interrogated by the ACME server.
-	Start(interactionFunc interaction.Func) error
+	Start(interactor interaction.Interactor) error
 
 	// Stop responding to any queries by the ACME server.
 	Stop() error
