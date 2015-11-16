@@ -1,3 +1,5 @@
 # ACME Client Utilities
 
-## [Click here for build instructions](https://github.com/hlandau/acme.t)
+Command line tools for obtaining certificates from an ACME server.
+
+## [Click here for introduction, README and build instructions](https://github.com/hlandau/acme.t)
