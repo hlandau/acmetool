@@ -1,3 +1,4 @@
+// Package responder implements the various ACME challenge types.
 package responder
 
 import "strings"

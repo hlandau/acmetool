@@ -1,3 +1,4 @@
+// Package acmeapi provides an API for accessing ACME servers.
 package acmeapi
 
 import "fmt"

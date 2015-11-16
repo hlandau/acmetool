@@ -1,3 +1,5 @@
+// Package storage implements the state directory specification and operations
+// upon it.
 package storage
 
 import "fmt"

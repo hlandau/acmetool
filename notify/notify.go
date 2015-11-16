@@ -1,3 +1,5 @@
+// Package notify provides a function to execute a directory of executable
+// hooks, used when a certificate has been updated.
 package notify
 
 import "os"

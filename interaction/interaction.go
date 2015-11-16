@@ -1,3 +1,5 @@
+// Package interaction provides facilities for asking the user questions, via
+// dialogs or stdio.
 package interaction
 
 type ResponseType int

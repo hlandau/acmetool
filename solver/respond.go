@@ -1,3 +1,5 @@
+// Package solver figures out how to complete authorizations and completes them
+// by instantiating responders.
 package solver
 
 import "github.com/hlandau/acme/acmeapi"

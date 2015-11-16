@@ -359,10 +359,10 @@ LISTEN: Directly listen on port 80 or 443, whichever is available, in order to c
 	})
 	log.Fatale(err, "interaction")
 
-  if r.Cancelled {
-    os.Exit(1)
-    return ""
-  }
+	if r.Cancelled {
+		os.Exit(1)
+		return ""
+	}
 
 	return r.Value
 }
