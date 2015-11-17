@@ -5,6 +5,7 @@ import "github.com/hlandau/acme/storage"
 import "github.com/hlandau/acme/interaction"
 import "github.com/hlandau/acme/acmeapi"
 import "github.com/hlandau/acme/redirector"
+import "github.com/hlandau/acme/notify"
 import "gopkg.in/hlandau/svcutils.v1/exepath"
 import "gopkg.in/hlandau/service.v2"
 import "gopkg.in/hlandau/service.v2/passwd"
@@ -159,7 +160,51 @@ func quickstart() {
 		promptSystemd()
 	}
 
+	installDefaultHooks()
 	promptGettingStarted()
+}
+
+const reloadHookFile = `#!/bin/sh
+##!standard-reload-hook:1!##
+set -e
+SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4"
+[ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
+[ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
+
+if $(which systemctl &>/dev/null); then
+  for x in $SERVICES; do
+    [ -e "/lib/systemd/system/$x.service" -o -e "/etc/systemd/system/$x.service" ] && systemctl reload "$x.service" &>/dev/null || true
+  done
+  exit 0
+fi
+
+if $(which service &>/dev/null); then
+  for x in $SERVICES; do
+    service "$x" reload &>/dev/null || true
+  done
+  exit 0
+fi
+
+if [ -e "/etc/init.d" ]; then
+  for x in $SERVICES; do
+    /etc/init.d/$x &>/dev/null || true
+  done
+  exit 0
+fi`
+
+func installDefaultHooks() {
+	path := notify.DefaultHookPath
+
+	err := os.MkdirAll(path, 0755)
+	log.Fatale(err, "couldn't create hooks path")
+
+	f, err := os.OpenFile(filepath.Join(path, "reload"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
+	if err != nil {
+		return
+	}
+
+	defer f.Close()
+	f.Write([]byte(reloadHookFile))
 }
 
 func promptSystemd() {
