@@ -23,6 +23,7 @@ import sdunit "github.com/coreos/go-systemd/unit"
 import sdutil "github.com/coreos/go-systemd/util"
 import "fmt"
 import "github.com/square/go-jose"
+import "crypto/rand"
 
 var log, Log = xlog.New("acmetool")
 
@@ -187,6 +188,8 @@ func quickstart() {
 	}
 
 	installDefaultHooks()
+
+	promptCron()
 	promptGettingStarted()
 }
 
@@ -231,6 +234,96 @@ func installDefaultHooks() {
 
 	defer f.Close()
 	f.Write([]byte(reloadHookFile))
+}
+
+var errStop = fmt.Errorf("stop")
+
+func isCronjobInstalled() bool {
+	ms, err := filepath.Glob("/etc/cron.*/*acmetool*")
+	log.Fatale(err, "glob")
+	if len(ms) > 0 {
+		return true
+	}
+
+	installed := false
+	filepath.Walk("/var/spool/cron", func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if (fi.Mode() & os.ModeType) != 0 {
+			return nil
+		}
+
+		if strings.Index(fi.Name(), "acmetool") >= 0 {
+			installed = true
+			return errStop
+		}
+
+		f, err := os.Open(p)
+		if err != nil {
+			return nil
+		}
+		defer f.Close()
+
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			return nil
+		}
+
+		if bytes.Index(b, []byte("acmetool")) >= 0 {
+			installed = true
+			return errStop
+		}
+
+		return nil
+	})
+
+	return installed
+}
+
+func formulateCron() string {
+	// Randomise cron time to avoid hammering the ACME server.
+	var b [2]byte
+	_, err := rand.Read(b[:])
+	log.Panice(err)
+
+	m := b[0] % 60
+	h := b[1] % 24
+	return fmt.Sprintf("SHELL=/bin/sh\nPATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin\nMAILTO=root\n%d %d * * * root %s --batch reconcile\n", m, h, exepath.Abs)
+}
+
+func promptCron() {
+	if isCronjobInstalled() {
+		return
+	}
+
+	cronString := formulateCron()
+
+	_, err := os.Stat("/etc/cron.d")
+	if err != nil {
+		log.Warnf("Don't know how to install a cron job on this system, please install the following job:\n%s\n", cronString)
+	}
+
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
+		Title:        "Install auto-renewal cronjob?",
+		Body:         "Would you like to install a cronjob to renew certificates automatically? This is recommended.",
+		ResponseType: interaction.RTYesNo,
+	})
+	log.Fatale(err, "interaction")
+
+	if r.Cancelled {
+		return
+	}
+
+	f, err := os.OpenFile("/etc/cron.d/acmetool", os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
+	if err != nil {
+		log.Errore(err, "failed to install cron job at /etc/cron.d/acmetool (does the file already exist?)")
+		return
+	}
+
+	defer f.Close()
+	f.Write([]byte(cronString))
 }
 
 func promptSystemd() {
