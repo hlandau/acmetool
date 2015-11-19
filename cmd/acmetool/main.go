@@ -22,6 +22,7 @@ import sddbus "github.com/coreos/go-systemd/dbus"
 import sdunit "github.com/coreos/go-systemd/unit"
 import sdutil "github.com/coreos/go-systemd/util"
 import "fmt"
+import "github.com/square/go-jose"
 
 var log, Log = xlog.New("acmetool")
 
@@ -44,6 +45,10 @@ var (
 
 	redirectorCmd      = kingpin.Command("redirector", "HTTP to HTTPS redirector with challenge response support")
 	redirectorPathFlag = redirectorCmd.Flag("path", "Path to serve challenge files from").String()
+
+	importJWKAccountCmd = kingpin.Command("import-jwk-account", "Import a JWK account key")
+	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
+	importJWKPathArg    = importJWKAccountCmd.Arg("private-key-file", "Path to private_key.json").Required().ExistingFile()
 )
 
 func main() {
@@ -65,7 +70,28 @@ func main() {
 		quickstart()
 	case "redirector":
 		runRedirector()
+	case "import-jwk-account":
+		importJWKAccount()
 	}
+}
+
+func importJWKAccount() {
+	s, err := storage.New(*stateFlag)
+	log.Fatale(err, "storage")
+
+	f, err := os.Open(*importJWKPathArg)
+	log.Fatale(err, "cannot open private key file")
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	log.Fatale(err, "cannot read file")
+
+	k := jose.JsonWebKey{}
+	err = k.UnmarshalJSON(b)
+	log.Fatale(err, "cannot unmarshal key")
+
+	err = s.ImportAccountKey(*importJWKURLArg, k.Key)
+	log.Fatale(err, "cannot import account key")
 }
 
 func reconcile() {
@@ -171,23 +197,23 @@ SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 
-if $(which systemctl &>/dev/null); then
+if which systemctl >/dev/null 2>/dev/null; then
   for x in $SERVICES; do
-    [ -e "/lib/systemd/system/$x.service" -o -e "/etc/systemd/system/$x.service" ] && systemctl reload "$x.service" &>/dev/null || true
+    [ -e "/lib/systemd/system/$x.service" -o -e "/etc/systemd/system/$x.service" ] && systemctl reload "$x.service" >/dev/null 2>/dev/null || true
   done
   exit 0
 fi
 
-if $(which service &>/dev/null); then
+if which service >/dev/null 2>/dev/null; then
   for x in $SERVICES; do
-    service "$x" reload &>/dev/null || true
+    service "$x" reload >/dev/null 2>/dev/null || true
   done
   exit 0
 fi
 
 if [ -e "/etc/init.d" ]; then
   for x in $SERVICES; do
-    /etc/init.d/$x &>/dev/null || true
+    /etc/init.d/$x >/dev/null 2>/dev/null || true
   done
   exit 0
 fi`
@@ -261,7 +287,7 @@ The service name will be acmetool-redirector.`,
 	rdr := sdunit.Serialize([]*sdunit.UnitOption{
 		sdunit.NewUnitOption("Unit", "Description", "acmetool HTTP redirector"),
 		sdunit.NewUnitOption("Service", "Type", "notify"),
-		sdunit.NewUnitOption("Service", "ExecStart", `"`+exepath.Abs+`" redirector --service.uid=`+username),
+		sdunit.NewUnitOption("Service", "ExecStart", exepath.Abs+` redirector --service.uid=`+username),
 		sdunit.NewUnitOption("Service", "Restart", "always"),
 		sdunit.NewUnitOption("Service", "RestartSec", "30"),
 		sdunit.NewUnitOption("Install", "WantedBy", "multi-user.target"),

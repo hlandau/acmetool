@@ -698,27 +698,49 @@ func (s *Store) createNewCertKey() (crypto.PrivateKey, *Key, error) {
 }
 
 func (s *Store) createKey(c *fdb.Collection) (pk *rsa.PrivateKey, keyID string, err error) {
-	if c == nil {
-		err = fmt.Errorf("cannot obtain key collection")
-		return
-	}
-
 	pk, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return
 	}
 
-	keyID, err = determineKeyIDFromKey(pk)
+	keyID, err = s.saveAccountKey(c, pk)
+	return
+}
+
+func (s *Store) ImportAccountKey(providerURL string, privateKey interface{}) error {
+	providerPath, err := accountURLPart(providerURL)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.saveAccountKey(s.db.Collection("accounts").Collection(providerPath), privateKey)
+	return err
+}
+
+func (s *Store) saveAccountKey(c *fdb.Collection, privateKey interface{}) (keyID string, err error) {
+	if c == nil {
+		err = fmt.Errorf("cannot obtain key collection")
+		return
+	}
+
+	keyID, err = determineKeyIDFromKey(privateKey)
 	if err != nil {
 		return
 	}
 
-	pkb := x509.MarshalPKCS1PrivateKey(pk)
+	var kb []byte
+
+	switch v := privateKey.(type) {
+	case *rsa.PrivateKey:
+		kb = x509.MarshalPKCS1PrivateKey(v)
+	default:
+		err = fmt.Errorf("unsupported private key type: %T", privateKey)
+		return
+	}
 
 	kc := c.Collection(keyID)
 	if kc == nil {
-		err = fmt.Errorf("cannot create key ID collection")
-		return
+		return "", fmt.Errorf("could not open collection")
 	}
 
 	f, err := kc.Create("privkey")
@@ -729,7 +751,7 @@ func (s *Store) createKey(c *fdb.Collection) (pk *rsa.PrivateKey, keyID string, 
 
 	err = pem.Encode(f, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: pkb,
+		Bytes: kb,
 	})
 	if err != nil {
 		return
