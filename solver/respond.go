@@ -85,6 +85,8 @@ func (as *authState) attemptCombination(az *acmeapi.Authorization, combination [
 // Completes a given challenge, polling it until it is complete. Can be
 // cancelled using ctx.
 func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPath string, interactor interaction.Interactor, ctx context.Context) (invalidated bool, err error) {
+	log.Debugf("attempting challenge type %s", ch.Type)
+
 	r, err := responder.New(responder.Config{
 		Type:       ch.Type,
 		Token:      ch.Token,
@@ -95,6 +97,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPat
 	})
 
 	if err != nil {
+		log.Debuge(err, "challenge instantiation failed")
 		return false, err
 	}
 
@@ -102,6 +105,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPat
 
 	err = r.Start(interactor)
 	if err != nil {
+		log.Debuge(err, "challenge start failed")
 		return false, err
 	}
 

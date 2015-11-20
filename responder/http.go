@@ -122,7 +122,7 @@ func (s *httpResponder) selfTest() error {
 	}
 
 	b = bytes.TrimSpace(b)
-	if bytes.Equal(b, s.ka) {
+	if !bytes.Equal(b, s.ka) {
 		return fmt.Errorf("got 200 response when doing self-test, but with the wrong data")
 	}
 
