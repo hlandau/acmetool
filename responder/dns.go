@@ -1,6 +1,7 @@
 package responder
 
 import "fmt"
+import "crypto"
 import "encoding/json"
 import "github.com/hlandau/acme/interaction"
 
@@ -60,6 +61,10 @@ func (s *dnsResponder) RequestDetectedChan() <-chan struct{} {
 
 func (s *dnsResponder) Validation() json.RawMessage {
 	return json.RawMessage(s.validation)
+}
+
+func (s *dnsResponder) ValidationSigningKey() crypto.PrivateKey {
+	return nil
 }
 
 func init() {

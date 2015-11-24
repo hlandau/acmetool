@@ -115,6 +115,9 @@ type Challenge struct {
 	// tls-sni-01
 	N int `json:"n,omitempty"`
 
+	// proofOfPossession
+	Certs []denet.Base64up `json:"certs,omitempty"`
+
 	retryAt time.Time
 }
 
@@ -210,8 +213,16 @@ func newHTTPError(res *http.Response) error {
 }
 
 func (c *Client) doReq(method, url string, v, r interface{}) (*http.Response, error) {
+	return c.doReqEx(method, url, nil, v, r)
+}
+
+func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interface{}) (*http.Response, error) {
 	if !validURL(url) {
 		return nil, fmt.Errorf("invalid URL: %#v", url)
+	}
+
+	if key == nil {
+		key = c.AccountInfo.AccountKey
 	}
 
 	var rdr io.Reader
@@ -225,7 +236,7 @@ func (c *Client) doReq(method, url string, v, r interface{}) (*http.Response, er
 			return nil, fmt.Errorf("account key must be specified")
 		}
 
-		signer, err := jose.NewSigner(jose.RS256, c.AccountInfo.AccountKey)
+		signer, err := jose.NewSigner(jose.RS256, key)
 		if err != nil {
 			return nil, err
 		}
@@ -547,8 +558,9 @@ func (c *Client) NewAuthorization(hostname string) (*Authorization, error) {
 }
 
 // Submit a challenge response. Only the challenge URI is required.
-func (c *Client) RespondToChallenge(ch *Challenge, response json.RawMessage) error {
-	_, err := c.doReq("POST", ch.URI, &response, c)
+// If responseKey is nil, the account key is used.
+func (c *Client) RespondToChallenge(ch *Challenge, response json.RawMessage, responseKey crypto.PrivateKey) error {
+	_, err := c.doReqEx("POST", ch.URI, responseKey, &response, c)
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,8 @@ import "github.com/hlandau/acme/solver"
 import "github.com/hlandau/acme/fdb"
 import "github.com/hlandau/acme/notify"
 import "io"
+import "io/ioutil"
+import "bytes"
 import "crypto/rsa"
 import "crypto/rand"
 import "crypto"
@@ -707,6 +709,48 @@ func (s *Store) createKey(c *fdb.Collection) (pk *rsa.PrivateKey, keyID string, 
 	return
 }
 
+func (s *Store) ImportKey(r io.Reader) error {
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	pk, err := acmeapi.LoadPrivateKey(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
+	keyID, err := determineKeyIDFromKey(pk)
+	if err != nil {
+		return err
+	}
+
+	c := s.db.Collection("keys/" + keyID)
+	if c == nil {
+		return fmt.Errorf("cannot open collection")
+	}
+
+	f, err := c.Open("privkey")
+	if err == nil {
+		f.Close()
+		return fmt.Errorf("key with ID %s already installed", keyID)
+	}
+
+	ff, err := c.Create("privkey")
+	if err != nil {
+		return err
+	}
+	defer ff.CloseAbort()
+
+	_, err = ff.Write(data)
+	if err != nil {
+		return err
+	}
+
+	ff.Close()
+	return nil
+}
+
 func (s *Store) ImportAccountKey(providerURL string, privateKey interface{}) error {
 	providerPath, err := accountURLPart(providerURL)
 	if err != nil {
@@ -773,6 +817,8 @@ func (s *Store) linkTargets() error {
 		}
 	}
 
+	var updatedHostnames []string
+
 	for name, tgt := range names {
 		c, err := s.findBestCertificateSatisfying(tgt)
 		if err == nil {
@@ -782,10 +828,12 @@ func (s *Store) linkTargets() error {
 				return err
 			}
 
-			err = notify.Notify("", s.path, name) // ignore error
-			log.Errore(err, "failed to call notify hooks")
+			updatedHostnames = append(updatedHostnames, name)
 		}
 	}
+
+	err := notify.Notify("", s.path, updatedHostnames) // ignore error
+	log.Errore(err, "failed to call notify hooks")
 
 	return nil
 }
@@ -1024,10 +1072,47 @@ func (s *Store) getAccountClient(a *Account) *acmeapi.Client {
 	return cl
 }
 
+func (s *Store) getPriorKey(publicKey crypto.PublicKey) (crypto.PrivateKey, error) {
+	// Returning an error here short circuits. If any errors occur, return (nil,nil).
+
+	keyID, err := determineKeyIDFromPublicKey(publicKey)
+	if err != nil {
+		log.Errore(err, "failed to get key ID from public key")
+		return nil, nil
+	}
+
+	if _, ok := s.keys[keyID]; !ok {
+		log.Infof("failed to find key ID wanted by proofOfPossession: %s", keyID)
+		return nil, nil // unknown key
+	}
+
+	c := s.db.Collection("keys/" + keyID)
+	if c == nil {
+		log.Errorf("failed to open key collection: %s", keyID)
+		return nil, nil
+	}
+
+	f, err := c.Open("privkey")
+	if err != nil {
+		log.Errore(err, "failed to open privkey for key with ID: ", keyID)
+		return nil, nil
+	}
+	defer f.Close()
+
+	privateKey, err := acmeapi.LoadPrivateKey(f)
+	if err != nil {
+		log.Errore(err, "failed to load private key for key with ID: ", keyID)
+		return nil, nil
+	}
+
+	log.Infof("found key for proofOfPossession: %s", keyID)
+	return privateKey, nil
+}
+
 func (s *Store) obtainAuthorization(name string, a *Account) error {
 	cl := s.getAccountClient(a)
 
-	az, err := solver.Authorize(cl, name, s.webrootPath, nil, context.TODO())
+	az, err := solver.Authorize(cl, name, s.webrootPath, nil, s.getPriorKey, context.TODO())
 	if err != nil {
 		return err
 	}

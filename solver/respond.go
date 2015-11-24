@@ -16,22 +16,24 @@ var log, Log = xlog.New("acme.solver")
 var ErrFailedAllCombinations = fmt.Errorf("failed all combinations")
 
 type authState struct {
-	c          *acmeapi.Client
-	dnsName    string
-	interactor interaction.Interactor
-	ctx        context.Context
-	pref       TypePreferencer
-	webPath    string
+	c            *acmeapi.Client
+	dnsName      string
+	interactor   interaction.Interactor
+	ctx          context.Context
+	pref         TypePreferencer
+	webPath      string
+	priorKeyFunc responder.PriorKeyFunc
 }
 
-func Authorize(c *acmeapi.Client, dnsName, webPath string, interactor interaction.Interactor, ctx context.Context) (*acmeapi.Authorization, error) {
+func Authorize(c *acmeapi.Client, dnsName, webPath string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (*acmeapi.Authorization, error) {
 	as := authState{
-		c:          c,
-		dnsName:    dnsName,
-		interactor: defaultInteraction(interactor),
-		ctx:        ctx,
-		pref:       PreferFast.Copy(),
-		webPath:    webPath,
+		c:            c,
+		dnsName:      dnsName,
+		interactor:   defaultInteraction(interactor),
+		ctx:          ctx,
+		pref:         PreferFast.Copy(),
+		webPath:      webPath,
+		priorKeyFunc: priorKeyFunc,
 	}
 
 	for {
@@ -72,7 +74,7 @@ func (as *authState) authorize() (az *acmeapi.Authorization, fatal bool, err err
 func (as *authState) attemptCombination(az *acmeapi.Authorization, combination []int) (invalidated bool, err error) {
 	for _, i := range combination {
 		ch := az.Challenges[i]
-		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.webPath, as.interactor, as.ctx)
+		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.webPath, as.interactor, as.priorKeyFunc, as.ctx)
 		if err != nil {
 			delete(as.pref, ch.Type)
 			return invalidated, err
@@ -84,16 +86,23 @@ func (as *authState) attemptCombination(az *acmeapi.Authorization, combination [
 
 // Completes a given challenge, polling it until it is complete. Can be
 // cancelled using ctx.
-func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPath string, interactor interaction.Interactor, ctx context.Context) (invalidated bool, err error) {
+func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPath string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (invalidated bool, err error) {
 	log.Debugf("attempting challenge type %s", ch.Type)
 
+	var certs [][]byte
+	for _, c := range ch.Certs {
+		certs = append(certs, c)
+	}
+
 	r, err := responder.New(responder.Config{
-		Type:       ch.Type,
-		Token:      ch.Token,
-		N:          ch.N,
-		AccountKey: c.AccountInfo.AccountKey,
-		Hostname:   dnsName,
-		WebPath:    webPath,
+		Type:                   ch.Type,
+		Token:                  ch.Token,
+		N:                      ch.N,
+		AccountKey:             c.AccountInfo.AccountKey,
+		Hostname:               dnsName,
+		WebPath:                webPath,
+		AcceptableCertificates: certs,
+		PriorKeyFunc:           priorKeyFunc,
 	})
 
 	if err != nil {
@@ -111,7 +120,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPat
 
 	defer r.Stop()
 
-	err = c.RespondToChallenge(ch, r.Validation())
+	err = c.RespondToChallenge(ch, r.Validation(), r.ValidationSigningKey())
 	if err != nil {
 		return false /* ??? */, err
 	}

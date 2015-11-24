@@ -1,6 +1,7 @@
 package responder
 
 import "net"
+import "crypto"
 import "crypto/ecdsa"
 import "crypto/elliptic"
 import "crypto/rand"
@@ -151,6 +152,10 @@ func (r *tlssniResponder) RequestDetectedChan() <-chan struct{} {
 
 func (r *tlssniResponder) Validation() json.RawMessage {
 	return json.RawMessage(r.validation)
+}
+
+func (s *tlssniResponder) ValidationSigningKey() crypto.PrivateKey {
+	return nil
 }
 
 func init() {

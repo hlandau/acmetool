@@ -1,5 +1,6 @@
 package responder
 
+import "crypto"
 import "encoding/json"
 import "net"
 import "net/http"
@@ -216,6 +217,10 @@ func (s *httpResponder) RequestDetectedChan() <-chan struct{} {
 
 func (s *httpResponder) Validation() json.RawMessage {
 	return json.RawMessage(s.validation)
+}
+
+func (s *httpResponder) ValidationSigningKey() crypto.PrivateKey {
+	return nil
 }
 
 func init() {

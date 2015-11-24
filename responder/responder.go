@@ -31,11 +31,14 @@ type Responder interface {
 	// Return the validation object the signature for which was delivered. If
 	// nil is returned, no validation object is submitted.
 	Validation() json.RawMessage
+
+	// Key which must sign validation object. If nil, account key is used.
+	ValidationSigningKey() crypto.PrivateKey
 }
 
 // Used to instantiate a responder.
 type Config struct {
-	// The responder type to be used. "simpleHttp".
+	// The responder type to be used. e.g. "http-01".
 	Type string
 
 	// The account private key.
@@ -48,12 +51,27 @@ type Config struct {
 	N int
 
 	// The hostname being verified. May be used for pre-initiation self-testing. Optional.
+	// Required for proofOfPossession.
 	Hostname string
 
 	// The http responder may attempt to place challenges here and perform
 	// self-testing if it is unable to listen on port 80. Optional.
 	WebPath string
+
+	// "proofOfPossession": The certificates which are acceptable. Each entry is
+	// a DER X.509 certificate.
+	AcceptableCertificates [][]byte
+
+	// Function which returns the private key for a given public key.  This may
+	// be called multiple times for a given challenge as multiple public keys may
+	// be permitted. If a private key for the given public key cannot be found,
+	// return nil and do not return an error. Returning an error short circuits.
+	//
+	// If not specified, proofOfPossession challenges always fail.
+	PriorKeyFunc PriorKeyFunc
 }
+
+type PriorKeyFunc func(crypto.PublicKey) (crypto.PrivateKey, error)
 
 var responderTypes = map[string]func(Config) (Responder, error){}
 
@@ -106,21 +124,10 @@ func (rcfg *Config) responseJSON(challengeType string) ([]byte, error) {
 		"keyAuthorization": ka,
 	}
 
-	/*	signer, err := jose.NewSigner(jose.RS256, rcfg.AccountKey)
-		if err != nil {
-			return nil, err
-		}*/
-
 	bb, err := json.Marshal(&info)
 	if err != nil {
 		return nil, err
 	}
 
-	/*	ws, err := signer.Sign(bb)
-		if err != nil {
-			return nil, err
-		}*/
-
 	return bb, nil
-	//return []byte(ws.FullSerialize()), nil
 }

@@ -77,6 +77,10 @@ var PreferFast = TypePreferencer{
 	"tls-sni-01": 1,
 	"http-01":    0,
 	"dns-01":     -100,
+
+	// Avoid unless necessary. In future we might want to determine whether we
+	// have a key and prefer this accordingly.
+	"proofOfPossession:": -40,
 }
 
 // Determines the degree to which a challenge is preferred. Higher values are

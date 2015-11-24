@@ -11,6 +11,7 @@ import "crypto/sha256"
 import "encoding/base32"
 import "math/big"
 import "crypto/rand"
+import "io"
 
 func decodeAccountURLPart(part string) (string, error) {
 	unesc, err := url.QueryUnescape(part)
@@ -122,10 +123,52 @@ func getPublicKey(pk crypto.PrivateKey) crypto.PublicKey {
 }
 
 func determineKeyIDFromKey(pk crypto.PrivateKey) (string, error) {
+	return determineKeyIDFromKeyIntl(getPublicKey(pk), pk)
+}
+
+func determineKeyIDFromKeyIntl(pubk crypto.PublicKey, pk crypto.PrivateKey) (string, error) {
 	cc := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 	}
-	cb, err := x509.CreateCertificate(rand.Reader, cc, cc, getPublicKey(pk), pk)
+	cb, err := x509.CreateCertificate(rand.Reader, cc, cc, pubk, pk)
+	if err != nil {
+		return "", err
+	}
+
+	c, err := x509.ParseCertificate(cb)
+	if err != nil {
+		return "", err
+	}
+
+	return determineKeyIDFromCert(c), nil
+}
+
+type psuedoPrivateKey struct {
+	pk crypto.PublicKey
+}
+
+func (ppk *psuedoPrivateKey) Public() crypto.PublicKey {
+	return ppk.pk
+}
+
+func (ppk *psuedoPrivateKey) Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte, error) {
+	return []byte{0}, nil
+}
+
+func determineKeyIDFromPublicKey(pubk crypto.PublicKey) (string, error) {
+	// Trick crypto/x509 into creating a certificate so we can grab the
+	// subjectPublicKeyInfo by giving it a fake private key generating an invalid
+	// signature. ParseCertificate doesn't verify the signature so this will
+	// work.
+	//
+	// Yes, this is very hacky, but avoids having to duplicate code in crypto/x509.
+
+	determineKeyIDFromKeyIntl(pubk, psuedoPrivateKey{})
+
+	cc := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+	}
+	cb, err := x509.CreateCertificate(rand.Reader, cc, cc, pubk, &psuedoPrivateKey{pubk})
 	if err != nil {
 		return "", err
 	}

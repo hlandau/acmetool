@@ -4,6 +4,11 @@ package notify
 
 import "os"
 import "os/exec"
+import "strings"
+import "path/filepath"
+import "github.com/hlandau/xlog"
+
+var log, Log = xlog.New("acme.notify")
 
 var DefaultHookPath = "/usr/lib/acme/hooks"
 
@@ -15,7 +20,7 @@ func init() {
 }
 
 // Notifies hook programs that a live symlink has been updated.
-func Notify(hookDirectory, stateDirectory, hostname string) error {
+func Notify(hookDirectory, stateDirectory string, hostnames []string) error {
 	if hookDirectory == "" {
 		hookDirectory = DefaultHookPath
 	}
@@ -26,17 +31,50 @@ func Notify(hookDirectory, stateDirectory, hostname string) error {
 		return nil
 	}
 
-	// TODO: emulate run-parts if not available
-
+	// Probably shouldn't propagate this to all child processes, but it's the
+	// easiest way to not replace the entire environment when calling.
 	err = os.Setenv("ACME_STATE_DIR", stateDirectory)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command("run-parts", "-a", "live-updated", "-a", hostname, hookDirectory)
-	cmd.Dir = "/"
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run() // ignore errors
+	hostnameList := strings.Join(hostnames, "\n") + "\n"
+	err = runParts(hookDirectory, []byte(hostnameList), "live-updated")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runParts(directory string, stdinData []byte, args ...string) error {
+	ms, err := filepath.Glob(filepath.Join(directory, "*"))
+	if err != nil {
+		return err
+	}
+
+	for _, m := range ms {
+		log.Debugf("calling notification script: %s", m)
+		cmd := exec.Command(m, args...)
+		cmd.Dir = "/"
+
+		pipeR, pipeW, err := os.Pipe()
+		if err != nil {
+			return err
+		}
+
+		defer pipeR.Close()
+		go func() {
+			defer pipeW.Close()
+			pipeW.Write([]byte(stdinData))
+		}()
+
+		cmd.Stdin = pipeR
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run() // ignore errors
+		log.Errore(err, "notify script: ", m)
+	}
+
 	return nil
 }

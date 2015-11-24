@@ -50,6 +50,9 @@ var (
 	importJWKAccountCmd = kingpin.Command("import-jwk-account", "Import a JWK account key")
 	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
 	importJWKPathArg    = importJWKAccountCmd.Arg("private-key-file", "Path to private_key.json").Required().ExistingFile()
+
+	importKeyCmd = kingpin.Command("import-key", "Import a certificate private key")
+	importKeyArg = importKeyCmd.Arg("private-key-file", "Path to PEM-encoded private key").Required().ExistingFile()
 )
 
 func main() {
@@ -73,6 +76,8 @@ func main() {
 		runRedirector()
 	case "import-jwk-account":
 		importJWKAccount()
+	case "import-key":
+		importKey()
 	}
 }
 
@@ -93,6 +98,19 @@ func importJWKAccount() {
 
 	err = s.ImportAccountKey(*importJWKURLArg, k.Key)
 	log.Fatale(err, "cannot import account key")
+}
+
+func importKey() {
+	s, err := storage.New(*stateFlag)
+	log.Fatale(err, "storage")
+
+	f, err := os.Open(*importKeyArg)
+	log.Fatale(err, "open")
+
+	defer f.Close()
+
+	err = s.ImportKey(f)
+	log.Fatale(err, "cannot import key")
 }
 
 func reconcile() {
