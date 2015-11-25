@@ -24,6 +24,7 @@ import sdutil "github.com/coreos/go-systemd/util"
 import "fmt"
 import "github.com/square/go-jose"
 import "crypto/rand"
+import "os/exec"
 
 var log, Log = xlog.New("acmetool")
 
@@ -206,6 +207,11 @@ func quickstart() {
 	}
 
 	installDefaultHooks()
+	if _, err := exec.LookPath("haproxy"); err == nil {
+		if promptInstallHAProxyHooks() {
+			installHAProxyHooks()
+		}
+	}
 
 	promptCron()
 	promptGettingStarted()
@@ -214,7 +220,7 @@ func quickstart() {
 const reloadHookFile = `#!/bin/sh
 ##!standard-reload-hook:1!##
 set -e
-SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4"
+SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 
@@ -239,6 +245,37 @@ if [ -e "/etc/init.d" ]; then
   exit 0
 fi`
 
+const haproxyReloadHookFile = `#!/bin/sh
+##!haproxy-reload-hook:1!##
+# This file should be executed before 'reload'. So long as it is named
+# 'haproxy' and reload is named 'reload', that is assured.
+
+set -e
+[ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
+[ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
+[ -n "$ACME_STATE_DIR" ] || exit 1
+
+[ -z "$HAPROXY_DH_PATH" ] && HAPROXY_DH_PATH="$ACME_STATE_DIR/conf/dhparams"
+
+# Don't do anything if HAProxy is not installed.
+which haproxy >/dev/null 2>/dev/null || exit 0
+
+# Create coalesced files.
+umask 0077
+while read name; do
+  certdir="$ACME_STATE_DIR/live/$name"
+  if [ -z "$name" -o ! -e "$certdir" ]; then
+    continue
+  fi
+
+  if [ -n "$HAPROXY_DH_PATH" -a -e "$HAPROXY_DH_PATH" ]; then
+    cat "$certdir/privkey" "$certdir/fullchain" "$HAPROXY_DH_PATH" > "$certdir/haproxy"
+  else
+    cat "$certdir/privkey" "$certdir/fullchain" > "$certdir/haproxy"
+  fi
+done
+`
+
 func installDefaultHooks() {
 	path := notify.DefaultHookPath
 
@@ -252,6 +289,16 @@ func installDefaultHooks() {
 
 	defer f.Close()
 	f.Write([]byte(reloadHookFile))
+}
+
+func installHAProxyHooks() {
+	f, err := os.OpenFile(filepath.Join(notify.DefaultHookPath, "haproxy"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
+	if err != nil {
+		return
+	}
+
+	defer f.Close()
+	f.Write([]byte(haproxyReloadHookFile))
 }
 
 var errStop = fmt.Errorf("stop")
@@ -342,6 +389,26 @@ func promptCron() {
 
 	defer f.Close()
 	f.Write([]byte(cronString))
+}
+
+func promptInstallHAProxyHooks() bool {
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
+		Title: "Install HAProxy hooks?",
+		Body: `You appear to have HAProxy installed. By default, acmetool doesn't support HAProxy too well because HAProxy requires the certificate chain, private key (and custom Diffie-Hellman parameters, if used) to be placed in the same file.
+
+acmetool can install a notification hook that will generate an additional file called "haproxy" in every certificate directory. This means that you can point HAProxy to "/var/lib/acme/live/HOSTNAME/haproxy".
+
+If you place a PEM-encoded DH parameter file at /var/lib/acme/conf/dhparams, those will also be included in each haproxy file. This is optional.
+
+Do you want to install the HAProxy notification hook?
+    `,
+		ResponseType: interaction.RTYesNo,
+	})
+	if err != nil {
+		return false
+	}
+
+	return !r.Cancelled
 }
 
 func promptSystemd() {

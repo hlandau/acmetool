@@ -159,6 +159,7 @@ var storePermissions = []fdb.Permission{
 	{Path: "desired", DirMode: 0755, FileMode: 0644},
 	{Path: "live", DirMode: 0755, FileMode: 0644},
 	{Path: "certs", DirMode: 0755, FileMode: 0644},
+	{Path: "certs/*/haproxy", DirMode: 0700, FileMode: 0600}, // hack for HAProxy
 	{Path: "keys", DirMode: 0700, FileMode: 0600},
 	{Path: "conf", DirMode: 0755, FileMode: 0644},
 	{Path: "tmp", DirMode: 0700, FileMode: 0600},
