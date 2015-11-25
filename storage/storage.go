@@ -180,6 +180,7 @@ func New(path string) (*Store, error) {
 
 	s := &Store{
 		db:             db,
+		path:           path,
 		defaultBaseURL: acmeapi.DefaultBaseURL,
 	}
 
@@ -823,12 +824,16 @@ func (s *Store) linkTargets() error {
 		c, err := s.findBestCertificateSatisfying(tgt)
 		if err == nil {
 			lt := "certs/" + c.ID()
-			err = s.db.Collection("live").WriteLink(name, fdb.Link{Target: lt})
-			if err != nil {
-				return err
-			}
 
-			updatedHostnames = append(updatedHostnames, name)
+			lnk, err := s.db.Collection("live").ReadLink(name)
+			if err != nil || lnk.Target != lt {
+				err = s.db.Collection("live").WriteLink(name, fdb.Link{Target: lt})
+				if err != nil {
+					return err
+				}
+
+				updatedHostnames = append(updatedHostnames, name)
+			}
 		}
 	}
 

@@ -25,6 +25,10 @@ func Notify(hookDirectory, stateDirectory string, hostnames []string) error {
 		hookDirectory = DefaultHookPath
 	}
 
+	if len(hostnames) == 0 {
+		return nil
+	}
+
 	_, err := os.Stat(hookDirectory)
 	if err != nil {
 		// nothing to notify

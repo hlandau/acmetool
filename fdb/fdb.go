@@ -519,14 +519,21 @@ func (cw *closeWrapper) Seek(p int64, w int) (int64, error) {
 // Read a link in the given collection with the given name. Returns an error
 // if the object does not exist or is not a link.
 func (c *Collection) ReadLink(name string) (Link, error) {
-	l, err := os.Readlink(filepath.Join(c.db.path, c.name, name))
+	fpath := filepath.Join(c.db.path, c.name, name)
+
+	l, err := os.Readlink(fpath)
 	if err != nil {
 		return Link{}, err
 	}
 
-	filepath.Rel(c.db.path, l)
+	flink := filepath.Join(filepath.Dir(fpath), l)
 
-	return Link{Target: l}, nil
+	lr, err := filepath.Rel(c.db.path, flink)
+	if err != nil {
+		return Link{}, err
+	}
+
+	return Link{Target: lr}, nil
 }
 
 // Write a link in the given collection with the given name. Any existing
