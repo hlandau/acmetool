@@ -29,8 +29,5 @@ branches:
     - master
     - /^test-.*$/
 
-install:
-  - true
-
 script:
   - source ./.travis/script
