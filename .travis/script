@@ -8,15 +8,12 @@ travis_retry go get \
   github.com/jsha/listenbuddy \
   github.com/letsencrypt/boulder/...
 
-# Make sure GOBIN is in the path.
-which listenbuddy >/dev/null 2>/dev/null || export PATH=$GOPATH/bin:$PATH
-
 # Setup DB.
 cd $GOPATH/src/github.com/letsencrypt/boulder
 ./test/create_db.sh || exit 2
 
 # Start boulder.
-patch -t < "$ACME_DIR/.travis/boulder.patch" || exit 3
+patch -t -p1 < "$ACME_DIR/.travis/boulder.patch" || exit 3
 ./start.py &
 START_PID=$$
 
