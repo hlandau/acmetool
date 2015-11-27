@@ -33,4 +33,4 @@ install:
   - true
 
 script:
-  - bash .travis/script
+  - source ./.travis/script

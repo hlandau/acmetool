@@ -13,10 +13,10 @@ which listenbuddy >/dev/null 2>/dev/null || export PATH=$GOPATH/bin:$PATH
 
 # Setup DB.
 cd $GOPATH/src/github.com/letsencrypt/boulder
-./test/create_db.sh || die "Cannot create DB."
+./test/create_db.sh || exit 2
 
 # Start boulder.
-patch -t < "$TRAVIS_DIR/boulder" || exit 1
+patch -t < "$TRAVIS_DIR/boulder" || exit 3
 ./start.py &
 START_PID=$$
 
