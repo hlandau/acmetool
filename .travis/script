@@ -14,6 +14,7 @@ cd $GOPATH/src/github.com/letsencrypt/boulder
 
 # Start boulder.
 patch -t -p1 < "$ACME_DIR/.travis/boulder.patch" || exit 3
+export OBJDIR="$GOPATH/src/github.com/letsencrypt/boulder/bin"
 ./start.py &
 START_PID=$$
 
