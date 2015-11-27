@@ -132,7 +132,10 @@ func installDefaultHooks() {
 	path := notify.DefaultHookPath
 
 	err := os.MkdirAll(path, 0755)
-	log.Fatale(err, "couldn't create hooks path")
+	if err != nil {
+		// fail silently, allow non-root, makes travis work.
+		return
+	}
 
 	f, err := os.OpenFile(filepath.Join(path, "reload"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
 	if err != nil {
