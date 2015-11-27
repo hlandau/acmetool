@@ -158,7 +158,7 @@ func (r *tlssniResponder) Validation() json.RawMessage {
 	return json.RawMessage(r.validation)
 }
 
-func (s *tlssniResponder) ValidationSigningKey() crypto.PrivateKey {
+func (r *tlssniResponder) ValidationSigningKey() crypto.PrivateKey {
 	return nil
 }
 

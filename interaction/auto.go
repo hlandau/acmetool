@@ -8,7 +8,7 @@ type autoInteractor struct{}
 
 var Auto Interactor = autoInteractor{}
 
-var Interceptor Interactor = nil
+var Interceptor Interactor
 
 func (autoInteractor) Prompt(c *Challenge) (*Response, error) {
 	if NonInteractive {

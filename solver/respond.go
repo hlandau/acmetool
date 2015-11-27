@@ -59,11 +59,11 @@ func (as *authState) authorize() (az *acmeapi.Authorization, fatal bool, err err
 	for _, com := range az.Combinations {
 		invalidated, err := as.attemptCombination(az, com)
 		if err != nil {
-			if invalidated {
-				return nil, false, err
-			} else {
+			if !invalidated {
 				continue
 			}
+
+			return nil, false, err
 		}
 		return az, false, nil
 	}

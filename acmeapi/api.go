@@ -370,9 +370,9 @@ func retryAtDefault(h http.Header, d time.Duration) time.Time {
 	t, ok := parseRetryAfter(h)
 	if ok {
 		return t
-	} else {
-		return time.Now().Add(d)
 	}
+
+	return time.Now().Add(d)
 }
 
 func (c *Client) getDirectory() (*directoryInfo, error) {
@@ -419,7 +419,9 @@ func (c *Client) getRegistrationURI() (string, error) {
 	res, err := c.doReq("POST", di.NewReg, &reqInfo, &resInfo)
 	if res == nil {
 		return "", err
-	} else if res.StatusCode == 201 || res.StatusCode == 409 {
+	}
+
+	if res.StatusCode == 201 || res.StatusCode == 409 {
 		loc := res.Header.Get("Location")
 		if !ValidURL(loc) {
 			return "", fmt.Errorf("invalid URL: %#v", loc)
