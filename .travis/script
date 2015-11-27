@@ -6,7 +6,7 @@ TRAVIS_DIR="$(realpath "$(dirname "$0")")"
 travis_retry go get \
   bitbucket.org/liamstask/goose/cmd/goose \
   github.com/jsha/listenbuddy \
-  github.com/letsencrypt/boulder
+  github.com/letsencrypt/boulder/...
 
 # Make sure GOBIN is in the path.
 which listenbuddy >/dev/null 2>/dev/null || export PATH=$GOPATH/bin:$PATH
