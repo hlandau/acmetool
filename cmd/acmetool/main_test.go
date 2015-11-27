@@ -24,7 +24,7 @@ func (i *interceptor) Prompt(c *interaction.Challenge) (*interaction.Response, e
 		return &interaction.Response{Value: "nobody@example.com"}, nil
 	case "acmetool-quickstart-complete":
 		return &interaction.Response{}, nil
-	case "acmetool-install-cronjob", "acmetool-quickstart-install-haproxy-script", "acmetool-quickstart-install-redirector-systemd":
+	case "acmetool-quickstart-install-cronjob", "acmetool-quickstart-install-haproxy-script", "acmetool-quickstart-install-redirector-systemd":
 		return &interaction.Response{Cancelled: true}, nil
 	default:
 		if strings.HasPrefix(c.UniqueID, "acme-agreement:") {
