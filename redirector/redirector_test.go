@@ -70,3 +70,5 @@ func TestRedirector(t *testing.T) {
 		t.Fatal("wrong response")
 	}
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

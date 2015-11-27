@@ -154,3 +154,5 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPat
 
 	return false, nil
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

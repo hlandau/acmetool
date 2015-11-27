@@ -94,3 +94,5 @@ type Interactor interface {
 	Prompt(*Challenge) (*Response, error)
 	Status(*StatusInfo) (StatusSink, error)
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

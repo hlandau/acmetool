@@ -35,3 +35,5 @@ func (ns *nonceSource) AddNonce(nonce string) {
 	ns.init()
 	ns.pool[nonce] = struct{}{}
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

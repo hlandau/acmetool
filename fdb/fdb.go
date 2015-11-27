@@ -596,3 +596,5 @@ func (c *Collection) List() ([]string, error) {
 
 	return objs, nil
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

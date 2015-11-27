@@ -62,3 +62,5 @@ func TestNotify(t *testing.T) {
 		t.Fatalf("mismatch: %v != %v", s, answer)
 	}
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

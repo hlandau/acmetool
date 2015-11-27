@@ -26,3 +26,5 @@ func TestKeyID(t *testing.T) {
 		t.Fatalf("key ID mismatch: %#v != %#v", keyID, keyID2)
 	}
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

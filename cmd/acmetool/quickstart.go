@@ -550,3 +550,5 @@ The Let's Encrypt Staging Server can be used by anyone but does not issue public
 
 	return r.Value
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

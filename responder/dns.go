@@ -72,3 +72,5 @@ func (s *dnsResponder) ValidationSigningKey() crypto.PrivateKey {
 func init() {
 	RegisterResponder("dns-01", newDNSResponder)
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

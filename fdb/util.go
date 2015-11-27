@@ -47,3 +47,5 @@ func WriteBytes(c *Collection, name string, bs ...[]byte) error {
 	f.Close()
 	return nil
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

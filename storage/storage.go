@@ -1275,3 +1275,5 @@ func (s *Store) SetWebrootPath(path string) error {
 	s.webrootPath = path
 	return nil
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

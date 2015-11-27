@@ -254,3 +254,5 @@ func runCommand(cmd *exec.Cmd) (int, error, error) {
 
 	return 255, err, err
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

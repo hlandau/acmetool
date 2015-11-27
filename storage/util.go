@@ -180,3 +180,5 @@ func determineKeyIDFromPublicKey(pubk crypto.PublicKey) (string, error) {
 
 	return determineKeyIDFromCert(c), nil
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

@@ -143,3 +143,5 @@ func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 		rw.Write([]byte(fmt.Sprintf(`<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><title>Permanently Moved</title></head><body><h1>Permanently Moved</h1><p>This resource has <strong>moved permanently</strong> to <a href="%s">%s</a>.</p></body></html>`, ue, ue)))
 	}
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

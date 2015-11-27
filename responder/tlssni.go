@@ -165,3 +165,5 @@ func (s *tlssniResponder) ValidationSigningKey() crypto.PrivateKey {
 func init() {
 	RegisterResponder("tls-sni-01", newTLSSNIResponder)
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

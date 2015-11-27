@@ -131,3 +131,5 @@ func (rcfg *Config) responseJSON(challengeType string) ([]byte, error) {
 
 	return bb, nil
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

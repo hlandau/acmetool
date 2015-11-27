@@ -59,3 +59,5 @@ func (autoInteractor) Status(info *StatusInfo) (StatusSink, error) {
 
 	return Stdio.Status(info)
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

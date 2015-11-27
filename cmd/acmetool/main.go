@@ -160,3 +160,5 @@ func determineWebroot() string {
 
 	return "/var/run/acme/acme-challenge"
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

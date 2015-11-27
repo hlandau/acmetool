@@ -48,3 +48,5 @@ func TestAPI(t *testing.T) {
 	//cl.WaitLoadChallenge
 	//cl.RequestCertificate
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

@@ -42,3 +42,5 @@ func tempSymlink(target string, fromDir string) (tmpName string, err error) {
 	}
 	return
 }
+
+// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
