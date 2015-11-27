@@ -35,10 +35,6 @@ cd "$ACME_DIR"
 go test -v ./...
 RESULT=$?
 
-# Stop boulder.
-echo ----------------------------------------------------------------
-echo Stopping boulder...
-kill -INT "$START_PID"
-wait
+# No point stopping boulder, travis will do it.
 echo Done.
 exit $RESULT
