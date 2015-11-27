@@ -12,6 +12,7 @@ import "time"
 import "math/big"
 import "encoding/json"
 import "github.com/hlandau/acme/interaction"
+import "fmt"
 
 //import "fmt"
 
@@ -107,8 +108,11 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 	return r, nil
 }
 
+// Internal use only.
+var InternalTLSSNIPort uint16 = 443
+
 func (r *tlssniResponder) Start(interactor interaction.Interactor) error {
-	l, err := tls.Listen("tcp", ":443", r.cfg)
+	l, err := tls.Listen("tcp", fmt.Sprintf(":%d", InternalTLSSNIPort), r.cfg)
 	if err != nil {
 		return err
 	}

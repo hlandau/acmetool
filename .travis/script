@@ -1,0 +1,46 @@
+#!/bin/bash
+
+TRAVIS_DIR="$(realpath "$(dirname "$0")")"
+
+# Fetch boulder.
+travis_retry go get \
+  bitbucket.org/liamstask/goose/cmd/goose \
+  github.com/jsha/listenbuddy \
+  github.com/letsencrypt/boulder
+
+# Make sure GOBIN is in the path.
+which listenbuddy >/dev/null 2>/dev/null || export PATH=$GOPATH/bin:$PATH
+
+# Setup DB.
+cd $GOPATH/src/github.com/letsencrypt/boulder
+./test/create_db.sh || die "Cannot create DB."
+
+# Start boulder.
+patch -t < "$TRAVIS_DIR/boulder" || exit 1
+./start.py &
+START_PID=$$
+
+# Wait for boulder to come up.
+while ((1)); do
+  kill -0 "$START_PID" || break
+  [ -e /tmp/boulder-has-started ] && break
+
+  echo Waiting for boulder to come up...
+  sleep 1
+done
+echo Boulder up.
+echo ----------------------------------------------------------------
+
+# Run tests.
+cd "$TRAVIS_DIR/.."
+
+go test -v ./...
+RESULT=$?
+
+# Stop boulder.
+echo ----------------------------------------------------------------
+echo Stopping boulder...
+kill -INT "$START_PID"
+wait
+echo Done.
+exit $RESULT

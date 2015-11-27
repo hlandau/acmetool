@@ -5,18 +5,17 @@ package storage
 import "fmt"
 import "github.com/hlandau/xlog"
 import "strings"
-import "net/url"
 import "encoding/pem"
 import "crypto/x509"
 import "crypto/sha256"
 import "encoding/base32"
 import "github.com/hlandau/acme/acmeapi"
+import "github.com/hlandau/acme/acmeutils"
 import "github.com/hlandau/acme/solver"
 import "github.com/hlandau/acme/fdb"
 import "github.com/hlandau/acme/notify"
 import "io"
 import "io/ioutil"
-import "bytes"
 import "crypto/rsa"
 import "crypto/rand"
 import "crypto"
@@ -219,12 +218,7 @@ func (s *Store) load() error {
 		return err
 	}
 
-	confc := s.db.Collection("conf")
-	if confc == nil {
-		return fmt.Errorf("cannot open conf collection")
-	}
-
-	s.webrootPath, _ = fdb.String(confc.Open("webroot-path"))
+	s.webrootPath, _ = fdb.String(s.db.Collection("conf").Open("webroot-path"))
 	// ignore errors
 
 	return nil
@@ -232,9 +226,6 @@ func (s *Store) load() error {
 
 func (s *Store) loadAccounts() error {
 	c := s.db.Collection("accounts")
-	if c == nil {
-		return fmt.Errorf("cannot open accounts collection")
-	}
 
 	serverNames, err := c.List()
 	if err != nil {
@@ -244,9 +235,6 @@ func (s *Store) loadAccounts() error {
 	s.accounts = map[string]*Account{}
 	for _, serverName := range serverNames {
 		sc := c.Collection(serverName)
-		if sc == nil {
-			return fmt.Errorf("cannot open account collection: %v", serverName)
-		}
 
 		accountNames, err := sc.List()
 		if err != nil {
@@ -255,9 +243,6 @@ func (s *Store) loadAccounts() error {
 
 		for _, accountName := range accountNames {
 			ac := sc.Collection(accountName)
-			if ac == nil {
-				return fmt.Errorf("cannot open account: %v/%v", serverName, accountName)
-			}
 
 			err := s.validateAccount(serverName, accountName, ac)
 			if err != nil {
@@ -277,7 +262,12 @@ func (s *Store) validateAccount(serverName, accountName string, c *fdb.Collectio
 
 	defer f.Close()
 
-	pk, err := acmeapi.LoadPrivateKey(f)
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	pk, err := acmeutils.LoadPrivateKey(b)
 	if err != nil {
 		return err
 	}
@@ -313,9 +303,6 @@ func (s *Store) validateAccount(serverName, accountName string, c *fdb.Collectio
 
 func (s *Store) validateAuthorizations(account *Account, c *fdb.Collection) error {
 	ac := c.Collection("authorizations")
-	if ac == nil {
-		return fmt.Errorf("cannot open authorizations collection")
-	}
 
 	auths, err := ac.List()
 	if err != nil {
@@ -324,9 +311,6 @@ func (s *Store) validateAuthorizations(account *Account, c *fdb.Collection) erro
 
 	for _, auth := range auths {
 		auc := ac.Collection(auth)
-		if auc == nil {
-			return fmt.Errorf("cannot open authorization")
-		}
 		err := s.validateAuthorization(account, auth, auc)
 		if err != nil {
 			return err
@@ -334,14 +318,6 @@ func (s *Store) validateAuthorizations(account *Account, c *fdb.Collection) erro
 	}
 
 	return nil
-}
-
-func validURI(u string) bool {
-	ur, err := url.Parse(u)
-	if err != nil {
-		return false
-	}
-	return ur.Scheme == "https"
 }
 
 func (s *Store) validateAuthorization(account *Account, authName string, c *fdb.Collection) error {
@@ -356,7 +332,7 @@ func (s *Store) validateAuthorization(account *Account, authName string, c *fdb.
 	}
 
 	azURL, _ := fdb.String(c.Open("url"))
-	if !validURI(azURL) {
+	if !acmeapi.ValidURL(azURL) {
 		azURL = ""
 	}
 
@@ -374,9 +350,6 @@ func (s *Store) loadKeys() error {
 	s.keys = map[string]*Key{}
 
 	c := s.db.Collection("keys")
-	if c == nil {
-		return fmt.Errorf("cannot open keys collection")
-	}
 
 	keyIDs, err := c.List()
 	if err != nil {
@@ -385,9 +358,6 @@ func (s *Store) loadKeys() error {
 
 	for _, keyID := range keyIDs {
 		kc := c.Collection(keyID)
-		if kc == nil {
-			return fmt.Errorf("cannot open key collection: %v", keyID)
-		}
 
 		err := s.validateKey(keyID, kc)
 		if err != nil {
@@ -406,7 +376,12 @@ func (s *Store) validateKey(keyID string, kc *fdb.Collection) error {
 
 	defer f.Close()
 
-	pk, err := acmeapi.LoadPrivateKey(f)
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	pk, err := acmeutils.LoadPrivateKey(b)
 	if err != nil {
 		return err
 	}
@@ -433,9 +408,6 @@ func (s *Store) loadCerts() error {
 	s.certs = map[string]*Certificate{}
 
 	c := s.db.Collection("certs")
-	if c == nil {
-		return fmt.Errorf("cannot open certs collection")
-	}
 
 	certIDs, err := c.List()
 	if err != nil {
@@ -444,9 +416,6 @@ func (s *Store) loadCerts() error {
 
 	for _, certID := range certIDs {
 		kc := c.Collection(certID)
-		if kc == nil {
-			return fmt.Errorf("cannot open cert collection: %v", certID)
-		}
 
 		err := s.validateCert(certID, kc)
 		if err != nil {
@@ -464,7 +433,7 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 	}
 
 	ss = strings.TrimSpace(ss)
-	if !validURI(ss) {
+	if !acmeapi.ValidURL(ss) {
 		return fmt.Errorf("certificate has invalid URI")
 	}
 
@@ -481,7 +450,7 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 
 	fullchain, err := fdb.Bytes(c.Open("fullchain"))
 	if err == nil {
-		certs, err := acmeapi.LoadCertificates(fullchain)
+		certs, err := acmeutils.LoadCertificates(fullchain)
 		if err != nil {
 			return err
 		}
@@ -519,7 +488,7 @@ func getCertID(url string) string {
 }
 
 func (s *Store) SetDefaultProvider(providerURL string) error {
-	if !validURI(providerURL) {
+	if !acmeapi.ValidURL(providerURL) {
 		return fmt.Errorf("invalid provider URL")
 	}
 
@@ -529,9 +498,6 @@ func (s *Store) SetDefaultProvider(providerURL string) error {
 
 func (s *Store) saveDefaultTarget() error {
 	confc := s.db.Collection("conf")
-	if confc == nil {
-		return fmt.Errorf("cannot open conf collection")
-	}
 
 	b, err := yaml.Marshal(s.defaultTarget)
 	if err != nil {
@@ -551,9 +517,6 @@ func (s *Store) loadTargets() error {
 
 	// default target
 	confc := s.db.Collection("conf")
-	if confc == nil {
-		return fmt.Errorf("cannot open conf collection")
-	}
 
 	dtgt, err := s.validateTargetInner("target", confc)
 	if err == nil {
@@ -565,9 +528,6 @@ func (s *Store) loadTargets() error {
 
 	// targets
 	c := s.db.Collection("desired")
-	if c == nil {
-		return fmt.Errorf("cannot open desired collection")
-	}
 
 	desiredKeys, err := c.List()
 	if err != nil {
@@ -652,7 +612,7 @@ func (s *Store) getAccountByProviderString(p string) (*Account, error) {
 		p = acmeapi.DefaultBaseURL
 	}
 
-	if !validURI(p) {
+	if !acmeapi.ValidURL(p) {
 		return nil, fmt.Errorf("provider URI is not a valid HTTPS URL")
 	}
 
@@ -717,7 +677,7 @@ func (s *Store) ImportKey(r io.Reader) error {
 		return err
 	}
 
-	pk, err := acmeapi.LoadPrivateKey(bytes.NewReader(data))
+	pk, err := acmeutils.LoadPrivateKey(data)
 	if err != nil {
 		return err
 	}
@@ -728,9 +688,6 @@ func (s *Store) ImportKey(r io.Reader) error {
 	}
 
 	c := s.db.Collection("keys/" + keyID)
-	if c == nil {
-		return fmt.Errorf("cannot open collection")
-	}
 
 	f, err := c.Open("privkey")
 	if err == nil {
@@ -764,11 +721,6 @@ func (s *Store) ImportAccountKey(providerURL string, privateKey interface{}) err
 }
 
 func (s *Store) saveAccountKey(c *fdb.Collection, privateKey interface{}) (keyID string, err error) {
-	if c == nil {
-		err = fmt.Errorf("cannot obtain key collection")
-		return
-	}
-
 	keyID, err = determineKeyIDFromKey(privateKey)
 	if err != nil {
 		return
@@ -785,9 +737,6 @@ func (s *Store) saveAccountKey(c *fdb.Collection, privateKey interface{}) (keyID
 	}
 
 	kc := c.Collection(keyID)
-	if kc == nil {
-		return "", fmt.Errorf("could not open collection")
-	}
 
 	f, err := kc.Create("privkey")
 	if err != nil {
@@ -1093,10 +1042,6 @@ func (s *Store) getPriorKey(publicKey crypto.PublicKey) (crypto.PrivateKey, erro
 	}
 
 	c := s.db.Collection("keys/" + keyID)
-	if c == nil {
-		log.Errorf("failed to open key collection: %s", keyID)
-		return nil, nil
-	}
 
 	f, err := c.Open("privkey")
 	if err != nil {
@@ -1105,7 +1050,12 @@ func (s *Store) getPriorKey(publicKey crypto.PublicKey) (crypto.PrivateKey, erro
 	}
 	defer f.Close()
 
-	privateKey, err := acmeapi.LoadPrivateKey(f)
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := acmeutils.LoadPrivateKey(b)
 	if err != nil {
 		log.Errore(err, "failed to load private key for key with ID: ", keyID)
 		return nil, nil
@@ -1130,9 +1080,6 @@ func (s *Store) obtainAuthorization(name string, a *Account) error {
 	}
 
 	c := s.db.Collection("accounts/" + a.ID() + "/authorizations/" + name)
-	if c == nil {
-		return fmt.Errorf("cannot get authorizations collection")
-	}
 
 	err = fdb.WriteBytes(c, "expiry", []byte(az.Expires.Format(time.RFC3339)))
 	if err != nil {
@@ -1207,9 +1154,6 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 	certID := crt.ID()
 
 	c := s.db.Collection("certs/" + certID)
-	if c == nil {
-		return fmt.Errorf("cannot create collection for certificate")
-	}
 
 	err = fdb.WriteBytes(c, "url", []byte(crt.URL))
 	if err != nil {
@@ -1272,9 +1216,6 @@ func (s *Store) AddTarget(tgt Target) error {
 	}
 
 	c := s.db.Collection("desired")
-	if c == nil {
-		return fmt.Errorf("cannot get desired collection")
-	}
 
 	fn := s.makeUniqueTargetName(&tgt)
 	return fdb.WriteBytes(c, fn, b)
@@ -1325,9 +1266,6 @@ func (s *Store) WebrootPath() string {
 
 func (s *Store) SetWebrootPath(path string) error {
 	confc := s.db.Collection("conf")
-	if confc == nil {
-		return fmt.Errorf("cannot open collection")
-	}
 
 	err := fdb.WriteBytes(confc, "webroot-path", []byte(path))
 	if err != nil {

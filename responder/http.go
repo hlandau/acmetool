@@ -12,6 +12,7 @@ import "net/url"
 import "fmt"
 import "path/filepath"
 import "os"
+import "time"
 
 type httpResponder struct {
 	serveMux            *http.ServeMux
@@ -25,6 +26,7 @@ type httpResponder struct {
 	token               string
 	filePath            string
 	notifySupported     bool // is notify supported?
+	listening           bool
 }
 
 func newHTTP(rcfg Config) (Responder, error) {
@@ -85,12 +87,15 @@ func (s *httpResponder) Start(interactor interaction.Interactor) error {
 		return err
 	}
 
+	log.Debug("http-01 self test")
 	err = s.selfTest()
 	if err != nil {
+		log.Infoe(err, "http-01 self test failed")
 		s.Stop()
 		return err
 	}
 
+	log.Debug("http-01 started")
 	return nil
 }
 
@@ -151,6 +156,7 @@ func (s *httpResponder) startListeners() error {
 	// Try the simple case of listening on port 80.
 	l, err := net.Listen("tcp", s.server.Addr)
 	if err == nil {
+		s.listening = true
 		return s.startListener(l)
 	}
 
@@ -159,6 +165,7 @@ func (s *httpResponder) startListeners() error {
 	s.server.Addr = "127.0.0.1:402"
 	l, err = net.Listen("tcp", s.server.Addr)
 	if err == nil {
+		s.listening = true
 		s.startListener(l)
 	}
 
@@ -197,8 +204,12 @@ func (s *httpResponder) startListener(l net.Listener) error {
 
 // Stop handling HTTP requests.
 func (s *httpResponder) Stop() error {
-	s.server.Stop(0)
-	<-s.server.StopChan()
+	if s.listening {
+		log.Debug("http-01 stopping")
+		s.server.Stop(10 * time.Millisecond)
+		<-s.server.StopChan()
+		log.Debug("http-01 stopped")
+	}
 
 	if s.filePath != "" {
 		os.Remove(s.filePath) // try and remove challenge, ignore errors

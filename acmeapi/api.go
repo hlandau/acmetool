@@ -17,12 +17,16 @@ import "github.com/peterhellberg/link"
 import "github.com/hlandau/xlog"
 import denet "github.com/hlandau/degoutils/net"
 import "golang.org/x/net/context"
+import "crypto/rsa"
+import "crypto/ecdsa"
 
+// Log site.
 var log, Log = xlog.NewQuiet("acme.api")
 
 const LEStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
 const LELiveURL = "https://acme-v01.api.letsencrypt.org/directory"
 
+// Default provider to use.
 var DefaultBaseURL = LEStagingURL
 
 type directoryInfo struct {
@@ -216,8 +220,32 @@ func (c *Client) doReq(method, url string, v, r interface{}) (*http.Response, er
 	return c.doReqEx(method, url, nil, v, r)
 }
 
+func algorithmFromKey(key crypto.PrivateKey) (jose.SignatureAlgorithm, error) {
+	switch v := key.(type) {
+	case *rsa.PrivateKey:
+		return jose.RS256, nil
+	case *ecdsa.PrivateKey:
+		name := v.Curve.Params().Name
+		switch name {
+		case "P-256":
+			return jose.ES256, nil
+		case "P-384":
+			return jose.ES384, nil
+		case "P-521":
+			return jose.ES512, nil
+		default:
+			return "", fmt.Errorf("unsupported ECDSA curve: %s", name)
+		}
+	default:
+		return "", fmt.Errorf("unsupported private key type: %T", key)
+	}
+}
+
 func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interface{}) (*http.Response, error) {
-	if !validURL(url) {
+	if TestingNoTLS && strings.HasPrefix(url, "https:") {
+		url = "http" + url[5:]
+	}
+	if !ValidURL(url) {
 		return nil, fmt.Errorf("invalid URL: %#v", url)
 	}
 
@@ -232,11 +260,16 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 			return nil, err
 		}
 
-		if c.AccountInfo.AccountKey == nil {
+		if key == nil {
 			return nil, fmt.Errorf("account key must be specified")
 		}
 
-		signer, err := jose.NewSigner(jose.RS256, key)
+		kalg, err := algorithmFromKey(key)
+		if err != nil {
+			return nil, err
+		}
+
+		signer, err := jose.NewSigner(kalg, key)
 		if err != nil {
 			return nil, err
 		}
@@ -303,14 +336,16 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 	return res, nil
 }
 
+// Returns true if the URL given is (potentially) a valid ACME resource URL.
+//
+// The URL must be an HTTPS URL.
 func ValidURL(u string) bool {
-	return validURL(u)
+	ur, err := url.Parse(u)
+	return err == nil && (ur.Scheme == "https" || (TestingNoTLS && ur.Scheme == "http"))
 }
 
-func validURL(u string) bool {
-	ur, err := url.Parse(u)
-	return err == nil && ur.Scheme == "https"
-}
+// Internal use only.
+var TestingNoTLS = false
 
 func parseRetryAfter(h http.Header) (t time.Time, ok bool) {
 	v := h.Get("Retry-After")
@@ -354,7 +389,7 @@ func (c *Client) getDirectory() (*directoryInfo, error) {
 		return nil, err
 	}
 
-	if !validURL(c.dir.NewReg) || !validURL(c.dir.NewAuthz) || !validURL(c.dir.NewCert) {
+	if !ValidURL(c.dir.NewReg) || !ValidURL(c.dir.NewAuthz) || !ValidURL(c.dir.NewCert) {
 		c.dir = nil
 		return nil, fmt.Errorf("directory does not provide required endpoints")
 	}
@@ -386,7 +421,7 @@ func (c *Client) getRegistrationURI() (string, error) {
 		return "", err
 	} else if res.StatusCode == 201 || res.StatusCode == 409 {
 		loc := res.Header.Get("Location")
-		if !validURL(loc) {
+		if !ValidURL(loc) {
 			return "", fmt.Errorf("invalid URL: %#v", loc)
 		}
 
@@ -543,7 +578,7 @@ func (c *Client) NewAuthorization(hostname string) (*Authorization, error) {
 	}
 
 	loc := res.Header.Get("Location")
-	if res.StatusCode != 201 || !validURL(loc) {
+	if res.StatusCode != 201 || !ValidURL(loc) {
 		return nil, fmt.Errorf("expected status code 201 and valid Location header: %#v", res)
 	}
 
@@ -591,7 +626,7 @@ func (c *Client) RequestCertificate(csrDER []byte) (*Certificate, error) {
 	}
 
 	loc := res.Header.Get("Location")
-	if !validURL(loc) {
+	if !ValidURL(loc) {
 		return nil, fmt.Errorf("invalid URI: %#v", loc)
 	}
 
@@ -736,7 +771,11 @@ func waitUntil(t time.Time, ctx context.Context) error {
 }
 
 // Revoke the given certificate.
-func (c *Client) Revoke(certificateDER []byte) error {
+//
+// The revocation key may be the key corresponding to the certificate. If it is
+// nil, the account key is used; in this case, the account must be authorized
+// for all identifiers in the certificate.
+func (c *Client) Revoke(certificateDER []byte, revocationKey crypto.PrivateKey) error {
 	di, err := c.getDirectory()
 	if err != nil {
 		return err
@@ -747,7 +786,7 @@ func (c *Client) Revoke(certificateDER []byte) error {
 		Certificate: certificateDER,
 	}
 
-	res, err := c.doReq("POST", di.RevokeCert, req, nil)
+	res, err := c.doReqEx("POST", di.RevokeCert, revocationKey, req, nil)
 	if err != nil {
 		return err
 	}

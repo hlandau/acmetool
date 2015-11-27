@@ -1,4 +1,4 @@
-package acmeapi
+package acmeutils
 
 import "crypto"
 import "crypto/rsa"
@@ -6,8 +6,6 @@ import "crypto/ecdsa"
 import "crypto/x509"
 import "encoding/pem"
 import "fmt"
-import "io"
-import "io/ioutil"
 import "strings"
 
 func LoadCertificates(pemBlock []byte) ([][]byte, error) {
@@ -33,12 +31,7 @@ func LoadCertificates(pemBlock []byte) ([][]byte, error) {
 }
 
 // Load a PEM private key from a stream.
-func LoadPrivateKey(r io.Reader) (crypto.PrivateKey, error) {
-	keyPEMBlock, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
+func LoadPrivateKey(keyPEMBlock []byte) (crypto.PrivateKey, error) {
 	var keyDERBlock *pem.Block
 	for {
 		keyDERBlock, keyPEMBlock = pem.Decode(keyPEMBlock)
@@ -50,7 +43,7 @@ func LoadPrivateKey(r io.Reader) (crypto.PrivateKey, error) {
 		}
 	}
 
-	pk, err := ParsePrivateKey(keyDERBlock.Bytes)
+	pk, err := LoadPrivateKeyDER(keyDERBlock.Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +52,7 @@ func LoadPrivateKey(r io.Reader) (crypto.PrivateKey, error) {
 }
 
 // Parse a DER private key.
-func ParsePrivateKey(der []byte) (crypto.PrivateKey, error) {
+func LoadPrivateKeyDER(der []byte) (crypto.PrivateKey, error) {
 	pk, err := x509.ParsePKCS1PrivateKey(der)
 	if err == nil {
 		return pk, nil
@@ -74,28 +67,26 @@ func ParsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 			return nil, fmt.Errorf("unknown private key type")
 		}
 	}
+	fmt.Printf("p8 %v\n", err)
 
-	if pk, err := x509.ParseECPrivateKey(der); err == nil {
-		return pk, nil
+	epk, err := x509.ParseECPrivateKey(der)
+	if err == nil {
+		return epk, nil
 	}
 
+	fmt.Printf("ec %v\n", err)
 	return nil, fmt.Errorf("failed to parse private key")
 }
 
 // Load a PEM CSR from a stream and return it in DER form.
-func LoadCSR(r io.Reader) ([]byte, error) {
-	pemBlock, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
+func LoadCSR(pemBlock []byte) ([]byte, error) {
 	var derBlock *pem.Block
 	for {
 		derBlock, pemBlock = pem.Decode(pemBlock)
 		if derBlock == nil {
 			return nil, fmt.Errorf("failed to parse CSR PEM data")
 		}
-		if derBlock.Type == "NEW CERTIFICATE REQUEST" {
+		if derBlock.Type == "CERTIFICATE REQUEST" {
 			break
 		}
 	}

@@ -8,9 +8,15 @@ type autoInteractor struct{}
 
 var Auto Interactor = autoInteractor{}
 
+var Interceptor Interactor = nil
+
 func (autoInteractor) Prompt(c *Challenge) (*Response, error) {
 	if NonInteractive {
 		return nil, fmt.Errorf("cannot prompt the user: currently non-interactive")
+	}
+
+	if Interceptor != nil {
+		return Interceptor.Prompt(c)
 	}
 
 	r, err := Dialog.Prompt(c)
@@ -36,6 +42,14 @@ func (dummySink) SetStatusLine(status string) {
 func (autoInteractor) Status(info *StatusInfo) (StatusSink, error) {
 	if NonInteractive {
 		return dummySink{}, nil
+	}
+
+	if Interceptor != nil {
+		s, err := Interceptor.Status(info)
+		if err != nil {
+			return dummySink{}, nil
+		}
+		return s, err
 	}
 
 	r, err := Dialog.Status(info)

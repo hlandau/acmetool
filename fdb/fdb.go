@@ -303,15 +303,16 @@ func (db *DB) ensurePath(path string) error {
 // accurately, it is a contextual point in the database hierarchy which object
 // references are interpreted relative to.
 type Collection struct {
-	db   *DB
-	name string
+	db          *DB
+	name        string
+	ensuredPath bool
 }
 
 // Obtain a collection. The collection will be created automatically if it does
-// not already exist.
+// not already exist. Guaranteed to return a non-nil value.
 func (db *DB) Collection(collectionName string) *Collection {
-	err := db.ensurePath(collectionName)
-	log.Errore(err, "cannot ensure path")
+	//err := db.ensurePath(collectionName)
+	//log.Errore(err, "cannot ensure path")
 
 	return &Collection{
 		db:   db,
@@ -320,15 +321,30 @@ func (db *DB) Collection(collectionName string) *Collection {
 }
 
 // Obtain a collection underneath the given collection. The collection will be
-// created automatically if it does not already exist.
+// created automatically if it does not already exist. Guaranteed to return a
+// non-nil value.
 func (c *Collection) Collection(name string) *Collection {
-	err := c.db.ensurePath(c.name + "/" + name)
-	log.Errore(err, "cannot ensure path")
+	//err := c.db.ensurePath(c.name + "/" + name)
+	//log.Errore(err, "cannot ensure path")
 
 	return &Collection{
 		db:   c.db,
 		name: c.name + "/" + name,
 	}
+}
+
+func (c *Collection) ensurePath() error {
+	if c.ensuredPath {
+		return nil
+	}
+
+	err := c.db.ensurePath(c.name)
+	if err != nil {
+		return err
+	}
+
+	c.ensuredPath = true
+	return nil
 }
 
 // Stream for reading an object from the database.
@@ -368,6 +384,8 @@ func (c *Collection) Name() string {
 // Returns the OS path to the file with the given name inside the collection.
 // If name is "", returns the OS path to the collection.
 func (c *Collection) OSPath(name string) string {
+	c.ensurePath() // ignore error
+
 	if name == "" {
 		return filepath.Join(c.db.path, c.name)
 	}
@@ -430,6 +448,11 @@ again:
 // object already exists, it will be overwritten atomically.  Changes only take
 // effect once the stream is closed.
 func (c *Collection) Create(name string) (WriteStream, error) {
+	err := c.ensurePath()
+	if err != nil {
+		return nil, err
+	}
+
 	f, err := ioutil.TempFile(filepath.Join(c.db.path, "tmp"), "tmp.")
 	if err != nil {
 		return nil, err
@@ -539,6 +562,11 @@ func (c *Collection) ReadLink(name string) (Link, error) {
 // Write a link in the given collection with the given name. Any existing
 // object or link is overwritten atomically.
 func (c *Collection) WriteLink(name string, target Link) error {
+	err := c.ensurePath()
+	if err != nil {
+		return err
+	}
+
 	from := filepath.Join(c.db.path, c.name, name)
 	to := filepath.Join(c.db.path, target.Target)
 	toRel, err := filepath.Rel(filepath.Dir(from), to)

@@ -35,6 +35,7 @@ func (s *dnsResponder) Start(interactor interaction.Interactor) error {
 		return fmt.Errorf("interaction func not provided but required")
 	}
 
+	log.Debug("dns-01 interaction prompt")
 	_, err := interactor.Prompt(&interaction.Challenge{
 		Title: "Verification DNS Record",
 		Prompt: fmt.Sprintf(`You must place the verification DNS record at
@@ -52,6 +53,7 @@ under the name to be verified.`, s.dnsString),
 
 // Stop is a no-op for the DNS method.
 func (s *dnsResponder) Stop() error {
+	log.Debug("dns-01 stopped")
 	return nil
 }
 

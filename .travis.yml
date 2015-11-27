@@ -1,0 +1,36 @@
+language: go
+go:
+  - tip
+
+addons:
+  hosts:
+    - dom1.acmetool-test.devever.net
+    - dom2.acmetool-test.devever.net
+  apt:
+    packages:
+      - lsb-release
+      - gcc
+      - libssl-dev
+      - libffi-dev
+      - ca-certificates
+      - rsyslog
+  mariadb: "10.0"
+
+sudo: false
+
+services:
+  - rabbitmq
+
+matrix:
+  fast_finish: true
+
+branches:
+  only:
+    - master
+    - /^test-.*$/
+
+install:
+  - true
+
+script:
+  - bash .travis/script
