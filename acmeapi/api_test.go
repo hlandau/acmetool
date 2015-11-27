@@ -1,8 +1,10 @@
 package acmeapi
 
-import "testing"
-import "crypto/rand"
-import "crypto/rsa"
+import (
+	"crypto/rand"
+	"crypto/rsa"
+	"testing"
+)
 
 func TestAPI(t *testing.T) {
 	pk, err := rsa.GenerateKey(rand.Reader, 2048)

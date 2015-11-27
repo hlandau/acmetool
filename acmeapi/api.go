@@ -1,24 +1,28 @@
 // Package acmeapi provides an API for accessing ACME servers.
 package acmeapi
 
-import "fmt"
-import "io"
-import "io/ioutil"
-import "strings"
-import "net/url"
-import "crypto"
-import "net/http"
-import "github.com/square/go-jose"
-import "sync"
-import "encoding/json"
-import "time"
-import "strconv"
-import "github.com/peterhellberg/link"
-import "github.com/hlandau/xlog"
-import denet "github.com/hlandau/degoutils/net"
-import "golang.org/x/net/context"
-import "crypto/rsa"
-import "crypto/ecdsa"
+import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"github.com/square/go-jose"
+
+	denet "github.com/hlandau/degoutils/net"
+	"github.com/peterhellberg/link"
+	"golang.org/x/net/context"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+
+	"encoding/json"
+	"fmt"
+	"github.com/hlandau/xlog"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+)
 
 // Log site.
 var log, Log = xlog.NewQuiet("acme.api")

@@ -1,12 +1,14 @@
 package responder
 
-import "crypto"
-import "crypto/x509"
-import "encoding/json"
-import "github.com/hlandau/acme/acmeapi"
-import "github.com/hlandau/acme/interaction"
-import "fmt"
-import "github.com/square/go-jose"
+import (
+	"crypto"
+	"crypto/x509"
+	"encoding/json"
+	"fmt"
+	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/interaction"
+	"github.com/square/go-jose"
+)
 
 type proofOfPossessionResponder struct {
 	validation []byte

@@ -2,16 +2,18 @@
 // requests to HTTPS requests and serving ACME HTTP challenge values.
 package redirector
 
-import "net"
-import "net/http"
-import "gopkg.in/tylerb/graceful.v1"
-import "time"
-import "github.com/hlandau/xlog"
-import "sync/atomic"
-import "html"
-import "fmt"
-import "gopkg.in/hlandau/service.v2/daemon/chroot"
-import "os"
+import (
+	"fmt"
+	"github.com/hlandau/xlog"
+	"gopkg.in/hlandau/service.v2/daemon/chroot"
+	"gopkg.in/tylerb/graceful.v1"
+	"html"
+	"net"
+	"net/http"
+	"os"
+	"sync/atomic"
+	"time"
+)
 
 var log, Log = xlog.New("acme.redirector")
 

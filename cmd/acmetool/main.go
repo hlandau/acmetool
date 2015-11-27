@@ -1,19 +1,21 @@
 package main
 
-import "gopkg.in/alecthomas/kingpin.v2"
-import "github.com/hlandau/acme/storage"
-import "github.com/hlandau/acme/interaction"
-import "github.com/hlandau/acme/redirector"
-import "github.com/hlandau/acme/notify"
-import "gopkg.in/hlandau/service.v2"
-import "github.com/hlandau/xlog"
-import "github.com/hlandau/degoutils/xlogconfig"
-import "gopkg.in/hlandau/easyconfig.v1/adaptflag"
-import "os"
-import "path/filepath"
-import "io/ioutil"
-import "bytes"
-import "github.com/square/go-jose"
+import (
+	"bytes"
+	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/acme/notify"
+	"github.com/hlandau/acme/redirector"
+	"github.com/hlandau/acme/storage"
+	"github.com/hlandau/degoutils/xlogconfig"
+	"github.com/hlandau/xlog"
+	"github.com/square/go-jose"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
+	"gopkg.in/hlandau/service.v2"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+)
 
 var log, Log = xlog.New("acmetool")
 

@@ -1,10 +1,12 @@
 package fdb
 
-import "os"
-import "time"
-import "sync"
-import "path/filepath"
-import "strconv"
+import (
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
+	"time"
+)
 
 var rand uint32
 var randmu sync.Mutex

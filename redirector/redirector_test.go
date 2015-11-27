@@ -1,10 +1,12 @@
 package redirector
 
-import "testing"
-import "io/ioutil"
-import "net/http"
-import "os"
-import "path/filepath"
+import (
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestRedirector(t *testing.T) {
 	dir, err := ioutil.TempDir("", "acme-redirector-test")

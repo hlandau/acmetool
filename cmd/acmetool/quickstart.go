@@ -1,23 +1,25 @@
 package main
 
-import "github.com/hlandau/acme/storage"
-import "github.com/hlandau/acme/interaction"
-import "github.com/hlandau/acme/acmeapi"
-import "github.com/hlandau/acme/notify"
-import "gopkg.in/hlandau/svcutils.v1/exepath"
-import "gopkg.in/hlandau/service.v2/passwd"
-import "os"
-import "strings"
-import "path/filepath"
-import "io"
-import "io/ioutil"
-import "bytes"
-import sddbus "github.com/coreos/go-systemd/dbus"
-import sdunit "github.com/coreos/go-systemd/unit"
-import sdutil "github.com/coreos/go-systemd/util"
-import "fmt"
-import "crypto/rand"
-import "os/exec"
+import (
+	"bytes"
+	"crypto/rand"
+	"fmt"
+	sddbus "github.com/coreos/go-systemd/dbus"
+	sdunit "github.com/coreos/go-systemd/unit"
+	sdutil "github.com/coreos/go-systemd/util"
+	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/acme/notify"
+	"github.com/hlandau/acme/storage"
+	"gopkg.in/hlandau/service.v2/passwd"
+	"gopkg.in/hlandau/svcutils.v1/exepath"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
 
 func quickstart() {
 	s, err := storage.New(*stateFlag)

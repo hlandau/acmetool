@@ -2,11 +2,13 @@
 // hooks, used when a certificate has been updated.
 package notify
 
-import "os"
-import "os/exec"
-import "strings"
-import "path/filepath"
-import "github.com/hlandau/xlog"
+import (
+	"github.com/hlandau/xlog"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
 
 var log, Log = xlog.New("acme.notify")
 

@@ -1,8 +1,10 @@
 package storage
 
-import "testing"
-import "crypto/rsa"
-import "crypto/rand"
+import (
+	"crypto/rand"
+	"crypto/rsa"
+	"testing"
+)
 
 // Make sure the determineKeyIDFromKey and determineKeyIDFromPublicKey
 // functions produce the same result.

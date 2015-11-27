@@ -1,10 +1,12 @@
 package notify
 
-import "testing"
-import "io/ioutil"
-import "os"
-import "path/filepath"
-import "fmt"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 const fileTpl = `#!/bin/sh
 [ -n "$ACME_STATE_DIR" ] || exit 1

@@ -2,12 +2,14 @@
 // database on UNIX-like systems.
 package fdb
 
-import "os"
-import "io/ioutil"
-import "path/filepath"
-import "fmt"
-import "github.com/hlandau/xlog"
-import "strings"
+import (
+	"fmt"
+	"github.com/hlandau/xlog"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+)
 
 var log, Log = xlog.New("fdb")
 

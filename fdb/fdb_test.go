@@ -1,10 +1,12 @@
 package fdb
 
-import "testing"
-import "reflect"
-import "io/ioutil"
-import "os"
-import "path/filepath"
+import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+)
 
 func TestFDB(t *testing.T) {
 	dir, err := ioutil.TempDir("", "acmefdbtest")

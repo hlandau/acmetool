@@ -1,11 +1,13 @@
 package acmeutils
 
-import "testing"
-import "reflect"
-import "math/big"
-import "crypto/rsa"
-import "crypto/ecdsa"
-import "crypto/elliptic"
+import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rsa"
+	"math/big"
+	"reflect"
+	"testing"
+)
 
 const testCerts = `-----BEGIN CERTIFICATE-----
 MIIEmzCCA4OgAwIBAgITAP8qTldZTvtEDieNbQA7/6O6mDANBgkqhkiG9w0BAQsF

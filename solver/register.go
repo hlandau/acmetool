@@ -1,9 +1,11 @@
 package solver
 
-import "github.com/hlandau/acme/acmeapi"
-import "github.com/hlandau/acme/interaction"
-import "fmt"
-import "net/mail"
+import (
+	"fmt"
+	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/interaction"
+	"net/mail"
+)
 
 func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Interactor) error {
 	interactor = defaultInteraction(interactor)

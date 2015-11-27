@@ -1,7 +1,9 @@
 package solver
 
-import "github.com/hlandau/acme/acmeapi"
-import "sort"
+import (
+	"github.com/hlandau/acme/acmeapi"
+	"sort"
+)
 
 const NonviableThreshold int32 = -1000000
 

@@ -1,18 +1,20 @@
 package responder
 
-import "crypto"
-import "encoding/json"
-import "net"
-import "net/http"
-import "gopkg.in/tylerb/graceful.v1"
-import "github.com/hlandau/acme/interaction"
-import "bytes"
-import "io/ioutil"
-import "net/url"
-import "fmt"
-import "path/filepath"
-import "os"
-import "time"
+import (
+	"bytes"
+	"crypto"
+	"encoding/json"
+	"fmt"
+	"github.com/hlandau/acme/interaction"
+	"gopkg.in/tylerb/graceful.v1"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"time"
+)
 
 type httpResponder struct {
 	serveMux            *http.ServeMux

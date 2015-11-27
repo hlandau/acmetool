@@ -1,12 +1,14 @@
 package interaction
 
-import "os"
-import "os/exec"
-import "fmt"
-import "io/ioutil"
-import "syscall"
-import "sync"
-import "strings"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
+	"syscall"
+)
 
 type dialogInteractor struct{}
 

@@ -1,9 +1,12 @@
 package responder
 
-import "fmt"
-import "crypto"
-import "encoding/json"
-import "github.com/hlandau/acme/interaction"
+import (
+	"crypto"
+	"encoding/json"
+	"fmt"
+
+	"github.com/hlandau/acme/interaction"
+)
 
 type dnsResponder struct {
 	validation []byte

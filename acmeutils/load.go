@@ -1,12 +1,14 @@
 package acmeutils
 
-import "crypto"
-import "crypto/rsa"
-import "crypto/ecdsa"
-import "crypto/x509"
-import "encoding/pem"
-import "fmt"
-import "strings"
+import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"strings"
+)
 
 func LoadCertificates(pemBlock []byte) ([][]byte, error) {
 	var derBlock *pem.Block

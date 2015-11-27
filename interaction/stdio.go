@@ -1,12 +1,14 @@
 package interaction
 
-import "fmt"
-import "os"
-import "bufio"
-import "strings"
-import "strconv"
-import "sync"
-import "github.com/cheggaaa/pb"
+import (
+	"bufio"
+	"fmt"
+	"github.com/cheggaaa/pb"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+)
 
 type stdioInteractor struct{}
 

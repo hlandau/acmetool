@@ -1,13 +1,16 @@
 package main
 
-import "testing"
-import "github.com/hlandau/acme/acmeapi"
-import "github.com/hlandau/acme/interaction"
-import "github.com/hlandau/acme/responder"
-import "io/ioutil"
-import "path/filepath"
-import "fmt"
-import "strings"
+import (
+	"fmt"
+	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/acme/responder"
+	"github.com/prometheus/log"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 type interceptor struct {
 }

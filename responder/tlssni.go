@@ -1,20 +1,20 @@
 package responder
 
-import "net"
-import "crypto"
-import "crypto/ecdsa"
-import "crypto/elliptic"
-import "crypto/rand"
-import "crypto/tls"
-import "crypto/x509"
-import "crypto/x509/pkix"
-import "time"
-import "math/big"
-import "encoding/json"
-import "github.com/hlandau/acme/interaction"
-import "fmt"
-
-//import "fmt"
+import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/json"
+	"fmt"
+	"github.com/hlandau/acme/interaction"
+	"math/big"
+	"net"
+	"time"
+)
 
 type tlssniResponder struct {
 	requestDetectedChan chan struct{}

@@ -1,17 +1,19 @@
 package storage
 
-import "net/url"
-import "fmt"
-import "crypto"
-import "crypto/x509"
-import "crypto/rsa"
-import "path/filepath"
-import "strings"
-import "crypto/sha256"
-import "encoding/base32"
-import "math/big"
-import "crypto/rand"
-import "io"
+import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base32"
+	"fmt"
+	"io"
+	"math/big"
+	"net/url"
+	"path/filepath"
+	"strings"
+)
 
 func decodeAccountURLPart(part string) (string, error) {
 	unesc, err := url.QueryUnescape(part)

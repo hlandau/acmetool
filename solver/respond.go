@@ -2,14 +2,16 @@
 // by instantiating responders.
 package solver
 
-import "github.com/hlandau/acme/acmeapi"
-import "github.com/hlandau/acme/responder"
-import "github.com/hlandau/acme/interaction"
-import denet "github.com/hlandau/degoutils/net"
-import "time"
-import "fmt"
-import "golang.org/x/net/context"
-import "github.com/hlandau/xlog"
+import (
+	"fmt"
+	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/acme/responder"
+	denet "github.com/hlandau/degoutils/net"
+	"github.com/hlandau/xlog"
+	"golang.org/x/net/context"
+	"time"
+)
 
 var log, Log = xlog.New("acme.solver")
 
