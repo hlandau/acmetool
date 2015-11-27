@@ -17,7 +17,7 @@ func TestAPI(t *testing.T) {
 	}
 	cl.AccountInfo.AccountKey = pk
 	cl.AccountInfo.AgreementURIs = map[string]struct{}{
-		"http://127.0.0.1:4001/terms/v1": struct{}{},
+		"http://127.0.0.1:4001/terms/v1": {},
 	}
 	cl.AccountInfo.ContactURIs = []string{
 		"mailto:nobody@localhost",
