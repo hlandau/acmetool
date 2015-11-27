@@ -1,4 +1,4 @@
-# ACME Client Utilities
+# ACME Client Utilities [![Build Status](https://travis-ci.org/hlandau/acme.svg?branch=master)](https://travis-ci.org/hlandau/acme)
 
 Command line tools for obtaining certificates from an ACME server.
 
