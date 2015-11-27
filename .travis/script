@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TRAVIS_DIR="$(realpath "$(dirname "$0")")"
+ACME_DIR="$(pwd)"
 
 # Fetch boulder.
 travis_retry go get \
@@ -16,7 +16,7 @@ cd $GOPATH/src/github.com/letsencrypt/boulder
 ./test/create_db.sh || exit 2
 
 # Start boulder.
-patch -t < "$TRAVIS_DIR/boulder" || exit 3
+patch -t < "$ACME_DIR/.travis/boulder.patch" || exit 3
 ./start.py &
 START_PID=$$
 
@@ -32,7 +32,7 @@ echo Boulder up.
 echo ----------------------------------------------------------------
 
 # Run tests.
-cd "$TRAVIS_DIR/.."
+cd "$ACME_DIR"
 
 go test -v ./...
 RESULT=$?
