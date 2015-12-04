@@ -74,10 +74,12 @@ func quickstart() {
 const reloadHookFile = `#!/bin/sh
 ##!standard-reload-hook:1!##
 set -e
+EVENT_NAME="$1"
 SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 
+# Restart services.
 if which systemctl >/dev/null 2>/dev/null; then
   for x in $SERVICES; do
     [ -e "/lib/systemd/system/$x.service" -o -e "/etc/systemd/system/$x.service" ] && systemctl reload "$x.service" >/dev/null 2>/dev/null || true
@@ -100,14 +102,14 @@ if [ -e "/etc/init.d" ]; then
 fi`
 
 const haproxyReloadHookFile = `#!/bin/sh
-##!haproxy-reload-hook:1!##
+##!haproxy-reload-hook:2!##
 # This file should be executed before 'reload'. So long as it is named
 # 'haproxy' and reload is named 'reload', that is assured.
 
 set -e
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
-[ -n "$ACME_STATE_DIR" ] || exit 1
+[ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
 
 [ -z "$HAPROXY_DH_PATH" ] && HAPROXY_DH_PATH="$ACME_STATE_DIR/conf/dhparams"
 
@@ -155,7 +157,7 @@ func installHAProxyHooks() {
 	}
 
 	defer f.Close()
-	f.Write([]byte(haproxyReloadHookFile))
+	f.Write([]byte(strings.Replace(haproxyReloadHookFile, "@@ACME_STATE_DIR@@", *stateFlag, -1)))
 }
 
 var errStop = fmt.Errorf("stop")
