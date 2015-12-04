@@ -214,7 +214,21 @@ func formulateCron() string {
 
 	m := b[0] % 60
 	h := b[1] % 24
-	return fmt.Sprintf("SHELL=/bin/sh\nPATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin\nMAILTO=root\n%d %d * * * root %s --batch reconcile\n", m, h, exepath.Abs)
+	s := ""
+	if runningAsRoot() {
+		s = "SHELL=/bin/sh\nPATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin\nMAILTO=root\n"
+	}
+	s += fmt.Sprintf("%d %d * * * %s --batch ", m, h, exepath.Abs)
+	if *stateFlag != storage.RecommendedPath {
+		s += fmt.Sprintf(`--state="%s" `, *stateFlag)
+	}
+
+	s += "reconcile\n"
+	return s
+}
+
+func runningAsRoot() bool {
+	return os.Getuid() == 0
 }
 
 func promptCron() {
@@ -224,7 +238,12 @@ func promptCron() {
 
 	cronString := formulateCron()
 
-	_, err := os.Stat("/etc/cron.d")
+	var err error
+	if runningAsRoot() {
+		_, err = os.Stat("/etc/cron.d")
+	} else {
+		_, err = exec.LookPath("crontab")
+	}
 	if err != nil {
 		log.Warnf("Don't know how to install a cron job on this system, please install the following job:\n%s\n", cronString)
 	}
@@ -241,14 +260,64 @@ func promptCron() {
 		return
 	}
 
-	f, err := os.OpenFile("/etc/cron.d/acmetool", os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
+	if runningAsRoot() {
+		f, err := os.OpenFile("/etc/cron.d/acmetool", os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
+		if err != nil {
+			log.Errore(err, "failed to install cron job at /etc/cron.d/acmetool (does the file already exist?), wanted to install: ", cronString)
+			return
+		}
+
+		defer f.Close()
+		f.Write([]byte(cronString))
+	} else {
+		err := amendUserCron(cronString, "acmetool")
+		if err != nil {
+			log.Errore(err, "failed to amend user crontab to add: ", cronString)
+			return
+		}
+	}
+}
+
+func amendUserCron(cronLine, filterString string) error {
+	b, err := getUserCron()
 	if err != nil {
-		log.Errore(err, "failed to install cron job at /etc/cron.d/acmetool (does the file already exist?)")
-		return
+		return err
 	}
 
-	defer f.Close()
-	f.Write([]byte(cronString))
+	if bytes.Index(b, []byte("acmetool")) >= 0 {
+		return nil
+	}
+
+	b = append(b, '\n')
+	b = append(b, []byte(cronLine)...)
+
+	return setUserCron(b)
+}
+
+func getUserCron() ([]byte, error) {
+	errBuf := bytes.Buffer{}
+
+	listCmd := exec.Command("crontab", "-l")
+	listCmd.Stderr = &errBuf
+	b, err := listCmd.Output()
+	if err == nil {
+		return b, nil
+	}
+
+	// crontab -l returns 1 if no crontab is installed, grep stderr to identify this condition
+	if bytes.Index(errBuf.Bytes(), []byte("no crontab for")) >= 0 {
+		return nil, nil
+	}
+
+	return b, nil
+}
+
+func setUserCron(b []byte) error {
+	setCmd := exec.Command("crontab", "-")
+	setCmd.Stdin = bytes.NewReader(b)
+	setCmd.Stdout = os.Stdout
+	setCmd.Stderr = os.Stderr
+	return setCmd.Run()
 }
 
 func promptInstallHAProxyHooks() bool {

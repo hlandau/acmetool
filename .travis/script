@@ -22,11 +22,11 @@ export OBJDIR="$GOPATH/src/github.com/letsencrypt/boulder/bin"
 START_PID=$$
 
 # Wait for boulder to come up.
+echo Waiting for boulder to come up...
 while ((1)); do
   kill -0 "$START_PID" || break
   [ -e /tmp/boulder-has-started ] && break
 
-  echo Waiting for boulder to come up...
   sleep 1
 done
 echo Boulder up.

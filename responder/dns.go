@@ -40,12 +40,13 @@ func (s *dnsResponder) Start(interactor interaction.Interactor) error {
 
 	log.Debug("dns-01 interaction prompt")
 	_, err := interactor.Prompt(&interaction.Challenge{
-		Title: "Verification DNS Record",
-		Prompt: fmt.Sprintf(`You must place the verification DNS record at
+		Title: "Verification DNS Record", Body: fmt.Sprintf(`All other verification methods have failed. In order to complete the DNS verification method, you must place the verification DNS record at
 
   _acme-challenge IN TXT %#v
 
-under the name to be verified.`, s.dnsString),
+under the name to be verified before continuing.
+
+However, you should consider that it is likely to be easier for you to investigate and rectify the reason that the HTTP and TLSSNI challenges did not work. You may wish to consider this notice a failure condition.`, s.dnsString),
 	})
 	if err != nil {
 		return err

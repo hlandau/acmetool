@@ -806,7 +806,10 @@ func targetGt(a *Target, b *Target) bool {
 
 	if a.Priority > b.Priority {
 		return true
+	} else if a.Priority < b.Priority {
+		return false
 	}
+
 	return len(a.Names) > len(b.Names)
 }
 

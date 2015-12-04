@@ -1,0 +1,30 @@
+#!/bin/bash
+if ! [[ "$TRAVIS_TAG" =~ ^v[0-9] ]]; then
+  echo Skipping release upload because this build is not for a release tag.
+  exit 0
+fi
+
+if [ -z "$GITHUB_TOKEN" ]; then
+  echo "Don't appear to have GitHub token, cannot continue."
+  exit 0
+fi
+
+echo Cross-compiling releases...
+go get github.com/tcnksm/ghr github.com/mitchellh/gox
+gox -cgo -osarch 'linux/386 linux/amd64' -output "idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool"
+gox -os '!windows' -osarch '!linux/386 !linux/amd64' -output "idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool"
+
+# Make archives.
+echo Archiving releases...
+mkdir -p dist
+cd idist
+for x in *; do
+  echo "$x"
+  tar -zcf "../dist/$(basename "$x").tar.gz" "$x"
+done
+cd ..
+
+echo Uploading releases...
+ghr -u hlandau "$TRAVIS_TAG" dist/
+
+echo Done
