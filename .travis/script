@@ -12,6 +12,9 @@ travis_retry go get \
 cd $GOPATH/src/github.com/letsencrypt/boulder
 ./test/create_db.sh || exit 2
 
+# Setup AMQP.
+go run cmd/rabbitmq-setup/main.go -server amqp://localhost || exit 4
+
 # Start boulder.
 patch -t -p1 < "$ACME_DIR/.travis/boulder.patch" || exit 3
 export OBJDIR="$GOPATH/src/github.com/letsencrypt/boulder/bin"
