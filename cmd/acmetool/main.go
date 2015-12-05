@@ -51,6 +51,9 @@ var (
 
 	importKeyCmd = kingpin.Command("import-key", "Import a certificate private key")
 	importKeyArg = importKeyCmd.Arg("private-key-file", "Path to PEM-encoded private key").Required().ExistingFile()
+
+	importLECmd = kingpin.Command("import-le", "Import a Let's Encrypt client state directory")
+	importLEArg = importLECmd.Arg("le-state-path", "Path to Let's Encrypt state directory").Default("/etc/letsencrypt").ExistingDir()
 )
 
 func main() {
@@ -64,22 +67,25 @@ func main() {
 
 	switch cmd {
 	case "reconcile":
-		reconcile()
+		cmdReconcile()
 	case "want":
-		want()
-		reconcile()
+		cmdWant()
+		cmdReconcile()
 	case "quickstart":
-		quickstart()
+		cmdQuickstart()
 	case "redirector":
-		runRedirector()
-	case "import-jwk-account":
-		importJWKAccount()
+		cmdRunRedirector()
 	case "import-key":
-		importKey()
+		cmdImportKey()
+	case "import-jwk-account":
+		cmdImportJWKAccount()
+	case "import-le":
+		cmdImportLE()
+		cmdReconcile()
 	}
 }
 
-func importJWKAccount() {
+func cmdImportJWKAccount() {
 	s, err := storage.New(*stateFlag)
 	log.Fatale(err, "storage")
 
@@ -98,20 +104,15 @@ func importJWKAccount() {
 	log.Fatale(err, "cannot import account key")
 }
 
-func importKey() {
+func cmdImportKey() {
 	s, err := storage.New(*stateFlag)
 	log.Fatale(err, "storage")
 
-	f, err := os.Open(*importKeyArg)
-	log.Fatale(err, "open")
-
-	defer f.Close()
-
-	err = s.ImportKey(f)
-	log.Fatale(err, "cannot import key")
+	err = importKey(s, *importKeyArg)
+	log.Fatale(err, "import key")
 }
 
-func reconcile() {
+func cmdReconcile() {
 	s, err := storage.New(*stateFlag)
 	log.Fatale(err, "storage")
 
@@ -119,7 +120,7 @@ func reconcile() {
 	log.Fatale(err, "reconcile")
 }
 
-func want() {
+func cmdWant() {
 	s, err := storage.New(*stateFlag)
 	log.Fatale(err, "storage")
 
@@ -131,7 +132,7 @@ func want() {
 	log.Fatale(err, "add target")
 }
 
-func runRedirector() {
+func cmdRunRedirector() {
 	rpath := *redirectorPathFlag
 	if rpath == "" {
 		rpath = determineWebroot()

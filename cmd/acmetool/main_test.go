@@ -57,12 +57,12 @@ func TestCLI(t *testing.T) {
 	*hooksFlag = filepath.Join(tmpDir, "hooks")
 
 	responder.InternalTLSSNIPort = 5443
-	quickstart()
+	cmdQuickstart()
 
 	*wantArg = []string{"dom1.acmetool-test.devever.net", "dom2.acmetool-test.devever.net"}
 
-	want()
-	reconcile()
+	cmdWant()
+	cmdReconcile()
 }
 
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License

@@ -47,13 +47,10 @@ type Account struct {
 
 // Returns the account ID (server URL/key ID).
 func (a *Account) ID() string {
-	u, err := accountURLPart(a.BaseURL)
+	accountID, err := determineAccountID(a.BaseURL, a.PrivateKey)
 	log.Panice(err)
 
-	keyID, err := determineKeyIDFromKey(a.PrivateKey)
-	log.Panice(err)
-
-	return u + "/" + keyID
+	return accountID
 }
 
 // Returns true iff the account is for a given provider URL.
@@ -669,10 +666,12 @@ func (s *Store) createKey(c *fdb.Collection) (pk *rsa.PrivateKey, keyID string, 
 		return
 	}
 
-	keyID, err = s.saveAccountKey(c, pk)
+	keyID, err = s.saveKeyUnderID(c, pk)
 	return
 }
 
+// Give a PEM-encoded key file, imports the key into the store. If the key is
+// already installed, returns nil.
 func (s *Store) ImportKey(r io.Reader) error {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -694,7 +693,7 @@ func (s *Store) ImportKey(r io.Reader) error {
 	f, err := c.Open("privkey")
 	if err == nil {
 		f.Close()
-		return fmt.Errorf("key with ID %s already installed", keyID)
+		return nil
 	}
 
 	ff, err := c.Create("privkey")
@@ -712,37 +711,50 @@ func (s *Store) ImportKey(r io.Reader) error {
 	return nil
 }
 
+// Given a certificate URL, imports the certificate into the store. The
+// certificate will be retrirved on the next reconcile. If a certificate with
+// that URL already exists, this is a no-op and returns nil.
+func (s *Store) ImportCertificate(url string) error {
+	certID := getCertID(url)
+	_, ok := s.certs[certID]
+	if ok {
+		return nil
+	}
+
+	return fdb.WriteBytes(s.db.Collection("certs/"+certID), "url", []byte(url))
+}
+
+// Given an account private key and the provider directory URL, imports that account key.
+// If the account already exists and has a private key, this is a no-op and returns nil.
 func (s *Store) ImportAccountKey(providerURL string, privateKey interface{}) error {
-	providerPath, err := accountURLPart(providerURL)
+	accountID, err := determineAccountID(providerURL, privateKey)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.saveAccountKey(s.db.Collection("accounts").Collection(providerPath), privateKey)
+	_, ok := s.accounts[accountID]
+	if ok {
+		return nil
+	}
+
+	err = s.saveKey(s.db.Collection("accounts/"+accountID), privateKey)
 	return err
 }
 
-func (s *Store) saveAccountKey(c *fdb.Collection, privateKey interface{}) (keyID string, err error) {
-	keyID, err = determineKeyIDFromKey(privateKey)
-	if err != nil {
-		return
-	}
-
+// Saves a key as a file named "privkey" inside the given collection.
+func (s *Store) saveKey(c *fdb.Collection, privateKey interface{}) error {
 	var kb []byte
 
 	switch v := privateKey.(type) {
 	case *rsa.PrivateKey:
 		kb = x509.MarshalPKCS1PrivateKey(v)
 	default:
-		err = fmt.Errorf("unsupported private key type: %T", privateKey)
-		return
+		return fmt.Errorf("unsupported private key type: %T", privateKey)
 	}
 
-	kc := c.Collection(keyID)
-
-	f, err := kc.Create("privkey")
+	f, err := c.Create("privkey")
 	if err != nil {
-		return
+		return err
 	}
 	defer f.CloseAbort()
 
@@ -751,10 +763,21 @@ func (s *Store) saveAccountKey(c *fdb.Collection, privateKey interface{}) (keyID
 		Bytes: kb,
 	})
 	if err != nil {
-		return
+		return err
 	}
 
 	f.Close()
+	return nil
+}
+
+// Save a private key inside a key ID collection under the given collection.
+func (s *Store) saveKeyUnderID(c *fdb.Collection, privateKey interface{}) (keyID string, err error) {
+	keyID, err = determineKeyIDFromKey(privateKey)
+	if err != nil {
+		return
+	}
+
+	err = s.saveKey(c.Collection(keyID), privateKey)
 	return
 }
 

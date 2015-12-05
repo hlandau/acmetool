@@ -1,7 +1,6 @@
 language: go
 go:
   - 1.5.2
-# - tip
 
 addons:
   hosts:
@@ -25,15 +24,6 @@ sudo: false
 
 services:
   - rabbitmq
-
-matrix:
-  fast_finish: true
-
-branches:
-  only:
-    - master
-    - /^test-.*$/
-    - /^v[0-9].*$/
 
 script:
   - source ./.travis/script

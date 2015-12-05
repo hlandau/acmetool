@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-func quickstart() {
+func cmdQuickstart() {
 	s, err := storage.New(*stateFlag)
 	log.Fatale(err, "storage")
 

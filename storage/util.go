@@ -183,4 +183,18 @@ func determineKeyIDFromPublicKey(pubk crypto.PublicKey) (string, error) {
 	return determineKeyIDFromCert(c), nil
 }
 
+func determineAccountID(providerURL string, privateKey interface{}) (string, error) {
+	u, err := accountURLPart(providerURL)
+	if err != nil {
+		return "", err
+	}
+
+	keyID, err := determineKeyIDFromKey(privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	return u + "/" + keyID, nil
+}
+
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License
