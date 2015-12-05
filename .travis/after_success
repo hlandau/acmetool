@@ -24,6 +24,6 @@ done
 cd "$ACME_DIR"
 
 echo Uploading releases...
-ghr -u hlandau "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
+travis_retry ghr -u hlandau "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
 
 echo Done
