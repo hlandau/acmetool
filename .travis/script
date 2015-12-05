@@ -38,6 +38,10 @@ cd "$ACME_DIR"
 go test -v ./...
 RESULT=$?
 
+echo Done with exit code $RESULT
+if [ "$RESULT" != "0" ]; then
+  exit $RESULT
+fi
+
 # No point stopping boulder, travis will do it.
-echo Done.
-exit $RESULT
+# Don't exit here, we need after_success to rn
