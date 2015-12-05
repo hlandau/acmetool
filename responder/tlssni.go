@@ -93,7 +93,7 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 		}
 
 		if i == 0 {
-			//r.cfg.Certificates = []tls.Certificate{*c}
+			r.cfg.Certificates = []tls.Certificate{*c}
 		}
 
 		certs[name] = c
