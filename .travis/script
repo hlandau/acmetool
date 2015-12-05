@@ -6,7 +6,9 @@ ACME_DIR="$(pwd)"
 travis_retry go get \
   bitbucket.org/liamstask/goose/cmd/goose \
   github.com/jsha/listenbuddy \
-  github.com/letsencrypt/boulder/...
+  github.com/letsencrypt/boulder/... \
+  github.com/tcnksm/ghr \
+  github.com/mitchellh/gox
 
 # Setup DB.
 cd $GOPATH/src/github.com/letsencrypt/boulder
@@ -43,5 +45,30 @@ if [ "$RESULT" != "0" ]; then
   exit $RESULT
 fi
 
+# Test cross-compilation. The binaries produced are also used for release
+# upload in after_success if this is a release tag.
+
+echo Cross-compiling releases...
+mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
+
+# cgo crosscompile
+REPOS="github.com/hlandau/acme/cmd/acmetool"
+gox -cgo -osarch 'linux/386 linux/amd64' -output "$GOPATH/releasing/idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool" $REPOS
+RESULT1=$?
+
+# non-cgo crosscompile
+gox -osarch 'darwin/386 darwin/amd64 linux/arm freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool" $REPOS
+RESULT2=$?
+
+# Defer exiting to get as much error output as possible upfront.
+echo cgo crosscompile exited with code $RESULT1
+echo non-cgo crosscompile exited with code $RESULT2
+if [ "$RESULT1" != "0" ]; then
+  exit $RESULT1
+fi
+if [ "$RESULT2" != "0" ]; then
+  exit $RESULT2
+fi
+
 # No point stopping boulder, travis will do it.
-# Don't exit here, we need after_success to rn
+# Don't exit here, we need after_success to run and this script is sourced.
