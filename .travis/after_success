@@ -13,13 +13,15 @@ fi
 
 # Make archives.
 echo Archiving releases...
+ACME_DIR="$(pwd)"
 cd "$GOPATH/releasing/idist"
 for x in *; do
   echo "$x"
   cp $GOPATH/src/github.com/hlandau/acme/.travis/dist-readme.md "$x"/README.md
   tar -zcf "../dist/$(basename "$x").tar.gz" "$x"
 done
-cd ..
+# Must be in the right directory when calling ghr.
+cd "$ACME_DIR"
 
 echo Uploading releases...
 ghr -u hlandau "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
