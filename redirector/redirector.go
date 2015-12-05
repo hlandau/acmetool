@@ -4,8 +4,10 @@ package redirector
 
 import (
 	"fmt"
+	deos "github.com/hlandau/degoutils/os"
 	"github.com/hlandau/xlog"
 	"gopkg.in/hlandau/service.v2/daemon/chroot"
+	"gopkg.in/hlandau/service.v2/passwd"
 	"gopkg.in/tylerb/graceful.v1"
 	"html"
 	"net"
@@ -20,6 +22,7 @@ var log, Log = xlog.New("acme.redirector")
 type Config struct {
 	Bind          string `default:":80" usage:"Bind address"`
 	ChallengePath string `default:"/var/run/acme/acme-challenge" usage:"Path containing HTTP challenge files"`
+	ChallengeGID  string `default:"" usage:"GID to chgrp the challenge path to (optional)"`
 }
 
 type Redirector struct {
@@ -47,6 +50,13 @@ func New(cfg Config) (*Redirector, error) {
 		return nil, err
 	}
 
+	if r.cfg.ChallengeGID != "" {
+		err := enforceGID(r.cfg.ChallengeGID, r.cfg.ChallengePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	l, err := net.Listen("tcp", r.httpServer.Server.Addr)
 	if err != nil {
 		return nil, err
@@ -55,6 +65,57 @@ func New(cfg Config) (*Redirector, error) {
 	r.httpListener = l
 
 	return r, nil
+}
+
+func enforceGID(gid, path string) error {
+	newGID, err := passwd.ParseGID(gid)
+	if err != nil {
+		return err
+	}
+
+	// So this is a surprisingly complicated dance if we want to be free of
+	// potentially hazardous race conditions. We have a path. We can't assume
+	// anything about its ownership, or mode, whether it's a symlink, etc.
+	//
+	// The big risk is that someone is able to create a symlink pointing to
+	// something they want to illicitly access. Note that since /var/run will
+	// commonly be used and because this directory is world-writeable, ala /tmp,
+	// this is a real risk.
+	//
+	// So we have to make sure we don't follow symlinks. Assume we are running
+	// as root (necessary, since we're chowning), and that nothing running as
+	// root is malicious.
+	//
+	// We open the directory as a file so we can modify it using that reference
+	// without worrying about the resolution of the path changing under us. But
+	// we need to make sure we don't follow symlinks. This requires special OS
+	// support, alas.
+	dir, err := deos.OpenNoSymlinks(path)
+	if err != nil {
+		return err
+	}
+
+	defer dir.Close()
+
+	fi, err := dir.Stat()
+	if err != nil {
+		return err
+	}
+
+	// Attributes of the directory can still change, but its type certainly
+	// can't. This guarantee is enough for our purposes.
+	if (fi.Mode() & os.ModeType) != os.ModeDir {
+		return fmt.Errorf("challenge path %#v is not a directory", path)
+	}
+
+	curUID, err := deos.GetFileUID(fi)
+	if err != nil {
+		return err
+	}
+
+	dir.Chmod((fi.Mode() | 0070) & ^os.ModeType) // Ignore errors.
+	dir.Chown(curUID, newGID)                    // Ignore errors.
+	return nil
 }
 
 func (r *Redirector) commonHandler(h http.Handler) http.Handler {

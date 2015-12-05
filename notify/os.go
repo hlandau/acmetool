@@ -1,9 +1,9 @@
 package notify
 
 import (
+	deos "github.com/hlandau/degoutils/os"
 	"os"
 	"os/exec"
-	"syscall"
 )
 
 func runningAsRoot() bool {
@@ -42,10 +42,11 @@ func shouldSudoFile(fn string, fi os.FileInfo) bool {
 		return false
 	}
 
-	// Don't sudo anything which appears to be setuid-d for a non-root user.
+	// Don't sudo anything which appears to be setuid'd for a non-root user.
 	// This doesn't really buy us anything security-wise, but it's not what
 	// we're expecting.
-	if s, ok := fi.Sys().(*syscall.Stat_t); ok && s.Uid != 0 {
+	uid, err := deos.GetFileUID(fi)
+	if err != nil || uid != 0 {
 		return false
 	}
 

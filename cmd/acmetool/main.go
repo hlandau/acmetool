@@ -43,6 +43,7 @@ var (
 
 	redirectorCmd      = kingpin.Command("redirector", "HTTP to HTTPS redirector with challenge response support")
 	redirectorPathFlag = redirectorCmd.Flag("path", "Path to serve challenge files from").String()
+	redirectorGIDFlag  = redirectorCmd.Flag("challenge-gid", "GID to chgrp the challenge path to (optional)").String()
 
 	importJWKAccountCmd = kingpin.Command("import-jwk-account", "Import a JWK account key")
 	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
@@ -144,6 +145,7 @@ func runRedirector() {
 			return redirector.New(redirector.Config{
 				Bind:          ":80",
 				ChallengePath: rpath,
+				ChallengeGID:  *redirectorGIDFlag,
 			})
 		},
 	})
