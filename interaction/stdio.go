@@ -3,7 +3,7 @@ package interaction
 import (
 	"bufio"
 	"fmt"
-	"github.com/cheggaaa/pb"
+	"github.com/hlandauf/pb"
 	"os"
 	"strconv"
 	"strings"
