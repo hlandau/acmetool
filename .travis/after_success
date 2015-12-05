@@ -11,8 +11,9 @@ fi
 
 echo Cross-compiling releases...
 go get github.com/tcnksm/ghr github.com/mitchellh/gox
-gox -cgo -osarch 'linux/386 linux/amd64' -output "idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool"
-gox -os '!windows' -osarch '!linux/386 !linux/amd64' -output "idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool"
+REPOS="github.com/hlandau/acme/cmd/acmetool"
+gox -cgo -osarch 'linux/386 linux/amd64' -output "idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool" $REPOS
+gox -os '!windows' -osarch '!linux/386 !linux/amd64' -output "idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool" $REPOS
 
 # Make archives.
 echo Archiving releases...
