@@ -169,6 +169,15 @@ func (s *httpResponder) startListeners() error {
 	if err == nil {
 		s.listening = true
 		s.startListener(l)
+	} else {
+		// Attempt to start on the unprivileged proxy port.
+		// TODO: should we do this as well as port 402?
+		s.server.Addr = "127.0.0.1:4402"
+		l, err = net.Listen("tcp", s.server.Addr)
+		if err == nil {
+			s.listening = true
+			s.startListener(l)
+		}
 	}
 
 	// The webroot and redirector models both require us to drop the challenge at
