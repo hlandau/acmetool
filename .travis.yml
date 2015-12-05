@@ -29,6 +29,7 @@ branches:
   only:
     - master
     - /^test-.*$/
+    - /^v[0-9].*$/
 
 script:
   - source ./.travis/script
