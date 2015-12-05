@@ -13,14 +13,15 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
 type httpResponder struct {
 	serveMux            *http.ServeMux
 	response            []byte
-	server              graceful.Server
 	requestDetectedChan chan struct{}
+	stopFuncs           []func()
 	ka                  []byte
 	validation          []byte
 	hostname            string
@@ -33,13 +34,7 @@ type httpResponder struct {
 
 func newHTTP(rcfg Config) (Responder, error) {
 	s := &httpResponder{
-		serveMux: http.NewServeMux(),
-		server: graceful.Server{
-			NoSignalHandling: true,
-			Server: &http.Server{
-				Addr: ":80",
-			},
-		},
+		serveMux:            http.NewServeMux(),
 		requestDetectedChan: make(chan struct{}, 1),
 		hostname:            rcfg.Hostname,
 		webpath:             rcfg.WebPath,
@@ -49,7 +44,6 @@ func newHTTP(rcfg Config) (Responder, error) {
 
 	// Configure the HTTP server
 	s.serveMux.HandleFunc("/.well-known/acme-challenge/"+rcfg.Token, s.handle)
-	s.server.Handler = s.serveMux
 
 	ka, err := rcfg.keyAuthorization()
 	if err != nil {
@@ -155,30 +149,12 @@ L:
 }
 
 func (s *httpResponder) startListeners() error {
-	// Try the simple case of listening on port 80.
-	l, err := net.Listen("tcp", s.server.Addr)
-	if err == nil {
-		s.listening = true
-		return s.startListener(l)
-	}
-
-	// Attempt to start on the proxy port instead. Don't assume it will
-	// be sufficient, and don't worry if it doesn't work.
-	s.server.Addr = "127.0.0.1:402"
-	l, err = net.Listen("tcp", s.server.Addr)
-	if err == nil {
-		s.listening = true
-		s.startListener(l)
-	} else {
-		// Attempt to start on the unprivileged proxy port.
-		// TODO: should we do this as well as port 402?
-		s.server.Addr = "127.0.0.1:4402"
-		l, err = net.Listen("tcp", s.server.Addr)
-		if err == nil {
-			s.listening = true
-			s.startListener(l)
-		}
-	}
+	// Here's our brute force method: listen on everything that might work.
+	s.startListener(":80")
+	s.startListener("127.0.0.1:402")
+	s.startListener("[::1]:402")
+	s.startListener("127.0.0.1:4402")
+	s.startListener("[::1]:4402")
 
 	// The webroot and redirector models both require us to drop the challenge at
 	// a given path. If a webroot is not specified in the configuration, use an
@@ -204,23 +180,45 @@ func (s *httpResponder) startListeners() error {
 	return nil
 }
 
-func (s *httpResponder) startListener(l net.Listener) error {
+func (s *httpResponder) startListener(addr string) error {
+	svr := &graceful.Server{
+		NoSignalHandling: true,
+		Server: &http.Server{
+			Addr:    addr,
+			Handler: s.serveMux,
+		},
+	}
+
+	l, err := net.Listen("tcp", svr.Addr)
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		defer l.Close()
-		s.server.Serve(l)
+		svr.Serve(l)
 	}()
 
+	stopFunc := func() {
+		svr.Stop(10 * time.Millisecond)
+		<-svr.StopChan()
+	}
+
+	s.stopFuncs = append(s.stopFuncs, stopFunc)
 	return nil
 }
 
 // Stop handling HTTP requests.
 func (s *httpResponder) Stop() error {
-	if s.listening {
-		log.Debug("http-01 stopping")
-		s.server.Stop(10 * time.Millisecond)
-		<-s.server.StopChan()
-		log.Debug("http-01 stopped")
+	var wg sync.WaitGroup
+	wg.Add(len(s.stopFuncs))
+	for _, f := range s.stopFuncs {
+		go func() {
+			defer wg.Done()
+			f()
+		}()
 	}
+	wg.Wait()
 
 	if s.filePath != "" {
 		os.Remove(s.filePath) // try and remove challenge, ignore errors
