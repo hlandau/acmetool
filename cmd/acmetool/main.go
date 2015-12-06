@@ -34,6 +34,8 @@ var (
 	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs").
 			Bool()
 
+	stdioFlag = kingpin.Flag("stdio", "Don't attempt to use console dialogs; fall back to stdio prompts").Bool()
+
 	reconcileCmd = kingpin.Command("reconcile", "Reconcile ACME state").Default()
 
 	wantCmd = kingpin.Command("want", "Add a target with one or more hostnames")
@@ -64,6 +66,10 @@ func main() {
 
 	if *batchFlag {
 		interaction.NonInteractive = true
+	}
+
+	if *stdioFlag {
+		interaction.NoDialog = true
 	}
 
 	switch cmd {

@@ -10,6 +10,8 @@ var Auto Interactor = autoInteractor{}
 
 var Interceptor Interactor
 
+var NoDialog = false
+
 func (autoInteractor) Prompt(c *Challenge) (*Response, error) {
 	if NonInteractive {
 		return nil, fmt.Errorf("cannot prompt the user: currently non-interactive")
@@ -19,9 +21,11 @@ func (autoInteractor) Prompt(c *Challenge) (*Response, error) {
 		return Interceptor.Prompt(c)
 	}
 
-	r, err := Dialog.Prompt(c)
-	if err == nil {
-		return r, nil
+	if !NoDialog {
+		r, err := Dialog.Prompt(c)
+		if err == nil {
+			return r, nil
+		}
 	}
 
 	return Stdio.Prompt(c)
@@ -52,9 +56,11 @@ func (autoInteractor) Status(info *StatusInfo) (StatusSink, error) {
 		return s, err
 	}
 
-	r, err := Dialog.Status(info)
-	if err == nil {
-		return r, nil
+	if !NoDialog {
+		r, err := Dialog.Status(info)
+		if err == nil {
+			return r, nil
+		}
 	}
 
 	return Stdio.Status(info)
