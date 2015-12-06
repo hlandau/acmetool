@@ -50,7 +50,6 @@ prebuild-checks:
 			echo "GOPATH/src/$(PROJNAME)/ already exists, can't auto-relocate."; \
 			exit 1; \
 		fi; \
-	  echo Relocating makefile.; \
 		mkdir -p "$(GOPATH)/src/$(PROJNAME)/"; \
 		for x in ./* ./.*; do \
 			[ "$$x" == "./src" ] && continue; \
