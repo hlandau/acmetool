@@ -191,7 +191,7 @@ func (s *httpResponder) startListener(addr string) error {
 
 	l, err := net.Listen("tcp", svr.Addr)
 	if err != nil {
-		log.Noticee(err, "failed to listen on ", svr.Addr)
+		log.Debuge(err, "failed to listen on ", svr.Addr)
 		return err
 	}
 
