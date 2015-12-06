@@ -25,6 +25,8 @@ sudo: false
 services:
   - rabbitmq
 
+install:
+  - go get -v -t ./...
 script:
   - source ./.travis/script
 after_success:
