@@ -5,6 +5,12 @@ BINARIES=$(PROJNAME)/cmd/acmetool
 # v1.8  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
 # This is a standard Makefile for building Go code designed to be copied into
 # other projects. Code below this line is not intended to be modified.
+#
+# NOTE: Use of this Makefile is not mandatory. People familiar with the use
+# of the "go" command who have a GOPATH setup can use go get/go install.
+
+# XXX: prebuild-checks needs bash, fix this at some point
+SHELL := /bin/bash
 
 -include Makefile.extra
 -include Makefile.assets
@@ -47,10 +53,9 @@ all: prebuild-checks $(DIRS)
 prebuild-checks:
 	$(call QI,RELOCATE)if [ `find . -iname '*.go' | grep -v ./src/ | wc -l` != 0 ]; then \
 		if [ -e "$(GOPATH)/src/$(PROJNAME)/" ]; then \
-			echo "GOPATH/src/$(PROJNAME)/ already exists, can't auto-relocate."; \
+			echo "$$GOPATH/src/$(PROJNAME)/ already exists, can't auto-relocate. Since you appear to have a GOPATH configured, just use go get -u '$(PROJNAME)/...; go install $(BINARIES)'. Alternatively, move this Makefile to either GOPATH or an empty directory outside GOPATH (preferred) and run it. Or delete '$$GOPATH/src/$(PROJNAME)/'."; \
 			exit 1; \
 		fi; \
-	  echo Relocating makefile.; \
 		mkdir -p "$(GOPATH)/src/$(PROJNAME)/"; \
 		for x in ./* ./.*; do \
 			[ "$$x" == "./src" ] && continue; \
@@ -58,9 +63,8 @@ prebuild-checks:
 		done; \
 		ln -s "$(GOPATH)/src/$(PROJNAME)/Makefile"; \
 		[ -e "$(GOPATH)/src/$(PROJNAME)/_doc" ] && ln -s "$(GOPATH)/src/$(PROJNAME)/_doc" doc; \
-		echo Relocated, please run make again.; \
-		exit 1; \
-	fi
+	fi; \
+	exit 0
 
 $(DIRS): | .gotten
 	$(call QI,DIRS)mkdir -p $(GOPATH)/src $(GOBIN); \
@@ -82,6 +86,6 @@ test:
 	$(call QI,GO-TEST,$(PROJNAME))for x in $(PROJNAME); do go test -cover -v $$x/...; done
 
 install: all
-	$(call QI,INSTALL,foo)for x in $(BINARIES); do \
+	$(call QI,INSTALL,$(BINARIES))for x in $(BINARIES); do \
 		install -Dp $(GOBIN)/`basename "$$x"` $(DESTDIR)$(PREFIX)/bin; \
 	done

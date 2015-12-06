@@ -191,6 +191,7 @@ func (s *httpResponder) startListener(addr string) error {
 
 	l, err := net.Listen("tcp", svr.Addr)
 	if err != nil {
+		log.Debuge(err, "failed to listen on ", svr.Addr)
 		return err
 	}
 
@@ -212,13 +213,17 @@ func (s *httpResponder) startListener(addr string) error {
 func (s *httpResponder) Stop() error {
 	var wg sync.WaitGroup
 	wg.Add(len(s.stopFuncs))
+
+	call := func(f func()) {
+		defer wg.Done()
+		f()
+	}
+
 	for _, f := range s.stopFuncs {
-		go func() {
-			defer wg.Done()
-			f()
-		}()
+		go call(f)
 	}
 	wg.Wait()
+	s.stopFuncs = nil
 
 	if s.filePath != "" {
 		os.Remove(s.filePath) // try and remove challenge, ignore errors

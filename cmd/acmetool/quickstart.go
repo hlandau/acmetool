@@ -508,9 +508,9 @@ func promptServerURL() string {
 		Title: "Select ACME Server",
 		Body: `Please choose an ACME server from which to request certificates. Your principal choices are the Let's Encrypt Live Server, and the Let's Encrypt Staging Server.
 
-Until Let's Encrypt enters open beta, you can only use the Let's Encrypt Live Server if you have been invited to the closed beta, and you will only be able to request certificates for the hostnames you specified in your beta application.
+You can use the Let's Encrypt Live Server to get real certificates.
 
-The Let's Encrypt Staging Server can be used by anyone but does not issue publically trusted certificates. It is useful for development purposes.`,
+The Let's Encrypt Staging Server does not issue publically trusted certificates. It is useful for development purposes, as it has far higher rate limits than the live server.`,
 		ResponseType: interaction.RTSelect,
 		Options: []interaction.Option{
 			{
