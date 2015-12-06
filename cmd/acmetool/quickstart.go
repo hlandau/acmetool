@@ -222,8 +222,10 @@ func formulateCron() string {
 	s := ""
 	if runningAsRoot() {
 		s = "SHELL=/bin/sh\nPATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin\nMAILTO=root\n"
-	}
-	s += fmt.Sprintf("%d %d * * * %s --batch ", m, h, exepath.Abs)
+		s += fmt.Sprintf("%d %d * * * root %s --batch ", m, h, exepath.Abs)
+	} else {
+	        s += fmt.Sprintf("%d %d * * * %s --batch ", m, h, exepath.Abs)
+        }
 	if *stateFlag != storage.RecommendedPath {
 		s += fmt.Sprintf(`--state="%s" `, *stateFlag)
 	}
