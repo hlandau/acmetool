@@ -208,6 +208,9 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Authorization via proxy</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via listener§</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td>Import state from official client</td><td>Yes</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Windows (basic) support</td><td>No</td><td>No</td><td>Yes</td><td>—</td></tr>
+<tr><td>Windows integration support</td><td>No</td><td>No</td><td>No</td><td>—</td></tr>
+
 </table>
 
 † acmetool has a different philosophy to state management and configuration to
