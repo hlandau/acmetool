@@ -80,6 +80,6 @@ test:
 	$(call QI,GO-TEST,$(PROJNAME))for x in $(PROJNAME); do go test -cover -v $$x/...; done
 
 install: all
-	$(call QI,INSTALL,foo)for x in $(BINARIES); do \
+	$(call QI,INSTALL,$(BINARIES))for x in $(BINARIES); do \
 		install -Dp $(GOBIN)/`basename "$$x"` $(DESTDIR)$(PREFIX)/bin; \
 	done

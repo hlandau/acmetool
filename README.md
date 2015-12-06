@@ -21,7 +21,7 @@ acmetool to reload your webserver automatically when it renews a certificate.
 
 acmetool is intended to be "magic-free". All of acmetool's state is stored in a
 simple, comprehensible directory of flat files. [The schema for this directory
-is documented.](https://github.com/hlandau/acme.t/blob/master/doc/SCHEMA.md)
+is documented.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
 
 acmetool is intended to work like "make". The state directory expresses target
 domain names, and whenever acmetool is invoked, it ensures that valid
@@ -29,7 +29,7 @@ certificates are available to meet those names. Certificates which will expire
 soon are renewed. acmetool is thus idempotent and minimises the use of state.
 
 acmetool can optionally be used [without running it as
-root.](https://github.com/hlandau/acme.t/blob/master/doc/NOROOT.md) If you have
+root.](https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md) If you have
 existing certificates issued using the official client, acmetool can import
 those certificates, keys and account keys (`acmetool import-le`).
 
@@ -44,15 +44,15 @@ If you are on Linux, you will need to make sure the development files for
 `libcap-dev` or `libcap-devel` or similar.
 
 ```bash
-$ git clone https://github.com/hlandau/acme.t
-$ cd acme.t
+$ git clone https://github.com/hlandau/acme
+$ cd acme
 $ make && sudo make install
 
 # Run the quickstart wizard. Sets up account, cronjob, etc.
 $ sudo acmetool quickstart
 
 # Configure your webserver to serve challenges if necessary.
-# See https://github.com/hlandau/acme.t/blob/master/doc/WSCONFIG.md
+# See https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md
 $ ...
 
 # Request the hostnames you want:
@@ -115,7 +115,7 @@ pass `--batch` to ensure it doesn't attempt to interact with a terminal.
   each invocation, ACME figures out which certificates satisfy which targets
   and obtains certificates as necessary.
 
-  [Details on the state directory format.](https://github.com/hlandau/acme.t/blob/master/doc/SCHEMA.md)
+  [Details on the state directory format.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
 -->
 
 ## Validation Options
@@ -126,14 +126,14 @@ pass `--batch` to ensure it doesn't attempt to interact with a terminal.
 web server to serve them. The files must be served from the path you specify at
 `/.well-known/acme-challenge/`.
 
-[Information on configuring your web server.](https://github.com/hlandau/acme.t/blob/master/doc/WSCONFIG.md)
+[Information on configuring your web server.](https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md)
 
 **Proxy:** acmetool can respond to validation challenges by serving them on port 402. In
 order for this to be useful, you must configure your webserver to proxy
 requests under `/.well-known/acme-challenge/` to
 `http://127.0.0.1:402/.well-known/acme-challenge`.
 
-[Information on configuring your web server.](https://github.com/hlandau/acme.t/blob/master/doc/WSCONFIG.md)
+[Information on configuring your web server.](https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md)
 
 **Redirector:** `acmetool redirector` starts an HTTP server on port 80 which redirects all
 requests to HTTPS, as well as serving any necessary validation responses. The
@@ -195,7 +195,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Quickstart wizard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
 <tr><td>Modifies webserver config</td><td>No</td><td>By default</td><td>No</td><td>No</td></tr>
-<tr><td>Non-root support</td><td><a href="https://github.com/hlandau/acme.t/blob/master/doc/NOROOT.md">Optional</a></td><td>No</td><td>Optional</td><td>—</td></tr>
+<tr><td>Non-root support</td><td><a href="https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md">Optional</a></td><td>No</td><td>Optional</td><td>—</td></tr>
 <tr><td>Supports Apache</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Supports nginx</td><td>Yes</td><td>Experimental</td><td>—</td><td>—</td></tr>
 <tr><td>Supports HAProxy</td><td>Yes</td><td>No</td><td>—</td><td>—</td></tr>
