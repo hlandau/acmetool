@@ -58,8 +58,6 @@ prebuild-checks:
 		done; \
 		ln -s "$(GOPATH)/src/$(PROJNAME)/Makefile"; \
 		[ -e "$(GOPATH)/src/$(PROJNAME)/_doc" ] && ln -s "$(GOPATH)/src/$(PROJNAME)/_doc" doc; \
-		echo Relocated, please run make again.; \
-		exit 1; \
 	fi
 
 $(DIRS): | .gotten
