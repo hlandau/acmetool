@@ -37,7 +37,7 @@ those certificates, keys and account keys (`acmetool import-le`).
 
 [**Binary releases are also available.**](https://github.com/hlandau/acme/releases)
 
-You will need Go installed.
+You will need Go installed to build from source.
 
 If you are on Linux, you will need to make sure the development files for
 `libcap` are installed. This is probably a package for your distro called
