@@ -40,6 +40,7 @@ var (
 	wantArg = wantCmd.Arg("hostname", "hostnames for which a certificate is desired").Required().Strings()
 
 	quickstartCmd = kingpin.Command("quickstart", "Interactively ask some getting started questions (recommended)")
+	expertFlag    = quickstartCmd.Flag("expert", "Ask more questions in quickstart wizard").Bool()
 
 	redirectorCmd      = kingpin.Command("redirector", "HTTP to HTTPS redirector with challenge response support")
 	redirectorPathFlag = redirectorCmd.Flag("path", "Path to serve challenge files from").String()

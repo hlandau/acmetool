@@ -138,15 +138,16 @@ type Key struct {
 type Store struct {
 	db *fdb.DB
 
-	path            string
-	referencedCerts map[string]struct{}
-	certs           map[string]*Certificate
-	accounts        map[string]*Account
-	keys            map[string]*Key
-	targets         map[string]*Target
-	defaultTarget   *Target // from conf
-	defaultBaseURL  string
-	webrootPath     string
+	path                string
+	referencedCerts     map[string]struct{}
+	certs               map[string]*Certificate
+	accounts            map[string]*Account
+	keys                map[string]*Key
+	targets             map[string]*Target
+	defaultTarget       *Target // from conf
+	defaultBaseURL      string
+	webrootPath         string
+	preferredRSAKeySize int
 }
 
 const RecommendedPath = "/var/lib/acme"
@@ -217,10 +218,36 @@ func (s *Store) load() error {
 		return err
 	}
 
-	s.webrootPath, _ = fdb.String(s.db.Collection("conf").Open("webroot-path"))
-	// ignore errors
+	s.webrootPath, _ = fdb.String(s.db.Collection("conf").Open("webroot-path")) // ignore errors
+	s.webrootPath = strings.TrimSpace(s.webrootPath)
+
+	s.loadRSAKeySize()
 
 	return nil
+}
+
+func (s *Store) loadRSAKeySize() {
+	s.preferredRSAKeySize = 2048
+	n, err := fdb.Uint(s.db.Collection("conf"), "rsa-key-size", 31)
+	if err != nil {
+		return
+	}
+
+	s.preferredRSAKeySize = int(n)
+
+	if nn := clampRSAKeySize(int(n)); nn != int(n) {
+		log.Warnf("An RSA key size of %d is not supported; must have 2048 <= size <= 4096; clamping at %d", n, nn)
+	}
+}
+
+func clampRSAKeySize(sz int) int {
+	if sz < 2048 {
+		return 2048
+	}
+	if sz > 4096 {
+		return 4096
+	}
+	return sz
 }
 
 func (s *Store) loadAccounts() error {
@@ -661,7 +688,7 @@ func (s *Store) createNewCertKey() (crypto.PrivateKey, *Key, error) {
 }
 
 func (s *Store) createKey(c *fdb.Collection) (pk *rsa.PrivateKey, keyID string, err error) {
-	pk, err = rsa.GenerateKey(rand.Reader, 2048)
+	pk, err = rsa.GenerateKey(rand.Reader, clampRSAKeySize(s.preferredRSAKeySize))
 	if err != nil {
 		return
 	}
@@ -1301,6 +1328,24 @@ func (s *Store) SetWebrootPath(path string) error {
 	}
 
 	s.webrootPath = path
+	return nil
+}
+
+// Gets the preferred RSA key size, in bits.
+func (s *Store) PreferredRSAKeySize() int {
+	return s.preferredRSAKeySize
+}
+
+// Set the preferred RSA key size. The size is not validated here, as it is
+// clamped later and a higher preferred size may become available in future
+// releases.
+func (s *Store) SetPreferredRSAKeySize(keySize int) error {
+	err := fdb.WriteBytes(s.db.Collection("conf"), "rsa-key-size", []byte(fmt.Sprintf("%d", keySize)))
+	if err != nil {
+		return err
+	}
+
+	s.preferredRSAKeySize = keySize
 	return nil
 }
 

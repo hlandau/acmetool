@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -24,6 +25,14 @@ func cmdQuickstart() {
 	serverURL := promptServerURL()
 	err = s.SetDefaultProvider(serverURL)
 	log.Fatale(err, "set provider URL")
+
+	if *expertFlag {
+		rsaKeySize := promptRSAKeySize()
+		if rsaKeySize != 0 {
+			err = s.SetPreferredRSAKeySize(rsaKeySize)
+			log.Fatale(err, "set preferred RSA Key size")
+		}
+	}
 
 	method := promptHookMethod()
 	webroot := ""
@@ -348,6 +357,42 @@ func determineAppropriateUsername() (string, error) {
 	}
 
 	return "", fmt.Errorf("cannot find appropriate username")
+}
+
+func promptRSAKeySize() int {
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
+		Title: "RSA Key Size",
+		Body: `Please enter the RSA key size to use for keys and account keys.
+
+The recommended key size is 2048. Unsupported key sizes will be clamped to the nearest supported value at generation time (the current minimum is 2048; the current maximum is 4096).
+
+Leave blank to use the recommended value, currently 2048.`,
+		ResponseType: interaction.RTLineString,
+		UniqueID:     "acmetool-quickstart-rsa-key-size",
+	})
+	log.Fatale(err, "interaction")
+
+	if r.Cancelled {
+		os.Exit(1)
+		return 0
+	}
+
+	v := strings.TrimSpace(r.Value)
+	if v == "" {
+		return 0
+	}
+
+	n, err := strconv.ParseUint(v, 10, 31)
+	if err != nil {
+		interaction.Auto.Prompt(&interaction.Challenge{
+			Title:    "Invalid RSA Key Size",
+			Body:     "The RSA key size must be an integer in decimal form.",
+			UniqueID: "acmetool-quickstart-invalid-rsa-key-size",
+		})
+		return promptRSAKeySize()
+	}
+
+	return int(n)
 }
 
 func promptWebrootDir() string {

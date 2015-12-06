@@ -1,6 +1,10 @@
 package fdb
 
-import "io/ioutil"
+import (
+	"io/ioutil"
+	"strconv"
+	"strings"
+)
 
 func String(rs ReadStream, err error) (string, error) {
 	if err != nil {
@@ -46,6 +50,16 @@ func WriteBytes(c *Collection, name string, bs ...[]byte) error {
 
 	f.Close()
 	return nil
+}
+
+func Uint(c *Collection, name string, bits int) (uint64, error) {
+	s, err := String(c.Open(name))
+	if err != nil {
+		return 0, err
+	}
+
+	s = strings.TrimSpace(s)
+	return strconv.ParseUint(s, 10, bits)
 }
 
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License
