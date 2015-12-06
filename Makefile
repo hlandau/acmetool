@@ -47,7 +47,7 @@ all: prebuild-checks $(DIRS)
 prebuild-checks:
 	$(call QI,RELOCATE)if [ `find . -iname '*.go' | grep -v ./src/ | wc -l` != 0 ]; then \
 		if [ -e "$(GOPATH)/src/$(PROJNAME)/" ]; then \
-			echo "GOPATH/src/$(PROJNAME)/ already exists, can't auto-relocate."; \
+			echo "GOPATH/src/$(PROJNAME)/ already exists, can't auto-relocate. Since you appear to have a GOPATH configured, just use go get '$(PROJNAME)/...; go install $(BINARIES)'. Alternatively, move this Makefile to either GOPATH or an empty directory outside GOPATH (preferred) and run it."; \
 			exit 1; \
 		fi; \
 		mkdir -p "$(GOPATH)/src/$(PROJNAME)/"; \
