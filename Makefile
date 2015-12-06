@@ -58,7 +58,8 @@ prebuild-checks:
 		done; \
 		ln -s "$(GOPATH)/src/$(PROJNAME)/Makefile"; \
 		[ -e "$(GOPATH)/src/$(PROJNAME)/_doc" ] && ln -s "$(GOPATH)/src/$(PROJNAME)/_doc" doc; \
-	fi
+	fi; \
+	exit 0
 
 $(DIRS): | .gotten
 	$(call QI,DIRS)mkdir -p $(GOPATH)/src $(GOBIN); \
