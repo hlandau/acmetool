@@ -514,7 +514,7 @@ The Let's Encrypt Staging Server does not issue publically trusted certificates.
 		ResponseType: interaction.RTSelect,
 		Options: []interaction.Option{
 			{
-				Title: "Let's Encrypt Live Server - I have been invited and want live certificates",
+				Title: "Let's Encrypt Live Server - I want live certificates",
 				Value: acmeapi.LELiveURL,
 			},
 			{
