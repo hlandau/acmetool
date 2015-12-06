@@ -6,6 +6,9 @@ BINARIES=$(PROJNAME)/cmd/acmetool
 # This is a standard Makefile for building Go code designed to be copied into
 # other projects. Code below this line is not intended to be modified.
 
+# XXX: prebuild-checks needs bash, fix this at some point
+SHELL := /bin/bash
+
 -include Makefile.extra
 -include Makefile.assets
 
