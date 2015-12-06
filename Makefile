@@ -5,6 +5,9 @@ BINARIES=$(PROJNAME)/cmd/acmetool
 # v1.8  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
 # This is a standard Makefile for building Go code designed to be copied into
 # other projects. Code below this line is not intended to be modified.
+#
+# NOTE: Use of this Makefile is not mandatory. People familiar with the use
+# of the "go" command who have a GOPATH setup can use go get/go install.
 
 # XXX: prebuild-checks needs bash, fix this at some point
 SHELL := /bin/bash

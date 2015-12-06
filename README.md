@@ -48,6 +48,9 @@ $ git clone https://github.com/hlandau/acme
 $ cd acme
 $ make && sudo make install
 
+  # (People familiar with Go with a GOPATH setup can alternatively use go get/go install:)
+  $ go get github.com/hlandau/acme/cmd/acmetool
+
 # Run the quickstart wizard. Sets up account, cronjob, etc.
 $ sudo acmetool quickstart
 

@@ -52,12 +52,13 @@ echo Cross-compiling releases...
 mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
 
 # cgo crosscompile
-REPOS="github.com/hlandau/acme/cmd/acmetool"
-gox -cgo -osarch 'linux/386 linux/amd64' -output "$GOPATH/releasing/idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool" $REPOS
+REPO=github.com/$TRAVIS_REPO_SLUG
+BINARIES=$REPO/cmd/acmetool
+gox -cgo -osarch 'linux/386 linux/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT1=$?
 
 # non-cgo crosscompile
-gox -osarch 'darwin/386 darwin/amd64 linux/arm freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/{{.Dir}}-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/acmetool" $REPOS
+gox -osarch 'darwin/386 darwin/amd64 linux/arm freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT2=$?
 
 # Defer exiting to get as much error output as possible upfront.
