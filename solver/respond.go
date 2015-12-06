@@ -133,19 +133,23 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPat
 	}
 
 	for {
+		log.Debug("waiting to poll challenge")
 		select {
 		case <-ctx.Done():
 			return true, ctx.Err()
 		case <-r.RequestDetectedChan():
+			log.Debug("request detected")
 		case <-time.After(b.NextDelay()):
 		}
 
+		log.Debug("querying challenge status")
 		err := c.WaitLoadChallenge(ch, ctx)
 		if err != nil {
 			return false, err
 		}
 
 		if ch.Status.Final() {
+			log.Debug("challenge now in final state")
 			break
 		}
 	}
