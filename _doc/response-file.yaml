@@ -1,0 +1,16 @@
+# This is a example of a response file, used with --response-file.
+# It automatically answers prompts for unattended operation.
+# grep for UniqueID in the source code for prompt names.
+# Pass --response-file to all invocations, not just quickstart.
+# You will typically want to use --response-file with --stdio or --batch.
+# For dialogs not requiring a response, but merely acknowledgement, specify true.
+# This file is YAML. Note that JSON is a subset of YAML.
+"acmetool-quickstart-choose-server": https://acme-staging.api.letsencrypt.org/directory
+"acmetool-quickstart-choose-method": redirector
+"acme-enter-email": "hostmaster@example.com"
+"acmetool-quickstart-complete": true
+"acmetool-quickstart-install-cronjob": true
+"acmetool-quickstart-install-haproxy-script": true
+"acmetool-quickstart-install-redirector-systemd": true
+"acmetool-quickstart-rsa-key-size": 4096
+"acme-agreement:https://letsencrypt.org/documents/LE-SA-v1.0.1-July-27-2015.pdf": true

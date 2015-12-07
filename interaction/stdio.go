@@ -223,7 +223,7 @@ func titleLine(title string) string {
 	}
 
 	n := lineLength/2 - len(title)/2
-	s := repeat(n) + title
+	s := "\n\n" + repeat(n) + title
 	if len(s) < lineLength {
 		s += repeat(lineLength - len(s))
 	}

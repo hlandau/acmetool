@@ -1,6 +1,11 @@
 package interaction
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/hlandau/xlog"
+)
+
+var log, Log = xlog.New("acme.interactor")
 
 var NonInteractive = false
 
@@ -13,6 +18,12 @@ var Interceptor Interactor
 var NoDialog = false
 
 func (autoInteractor) Prompt(c *Challenge) (*Response, error) {
+	r, err := Responder.Prompt(c)
+	if err == nil || c.Implicit {
+		return r, err
+	}
+	log.Infoe(err, "interaction auto-responder couldn't give a canned response")
+
 	if NonInteractive {
 		return nil, fmt.Errorf("cannot prompt the user: currently non-interactive")
 	}

@@ -26,12 +26,10 @@ func cmdQuickstart() {
 	err = s.SetDefaultProvider(serverURL)
 	log.Fatale(err, "set provider URL")
 
-	if *expertFlag {
-		rsaKeySize := promptRSAKeySize()
-		if rsaKeySize != 0 {
-			err = s.SetPreferredRSAKeySize(rsaKeySize)
-			log.Fatale(err, "set preferred RSA Key size")
-		}
+	rsaKeySize := promptRSAKeySize()
+	if rsaKeySize != 0 {
+		err = s.SetPreferredRSAKeySize(rsaKeySize)
+		log.Fatale(err, "set preferred RSA Key size")
 	}
 
 	method := promptHookMethod()
@@ -372,8 +370,11 @@ The recommended key size is 2048. Unsupported key sizes will be clamped to the n
 Leave blank to use the recommended value, currently 2048.`,
 		ResponseType: interaction.RTLineString,
 		UniqueID:     "acmetool-quickstart-rsa-key-size",
+		Implicit:     !*expertFlag,
 	})
-	log.Fatale(err, "interaction")
+	if err != nil {
+		return 0
+	}
 
 	if r.Cancelled {
 		os.Exit(1)

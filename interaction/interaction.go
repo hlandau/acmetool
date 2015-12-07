@@ -48,6 +48,10 @@ type Challenge struct {
 
 	// Specifies the options for RTSelect.
 	Options []Option
+
+	// An implicit challenge will never be shown to the user but may be provided
+	// by a response file.
+	Implicit bool
 }
 
 // An option in an RTSelect challenge.

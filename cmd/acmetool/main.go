@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
@@ -12,9 +12,11 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
 	"gopkg.in/hlandau/service.v2"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var log, Log = xlog.New("acmetool")
@@ -35,6 +37,8 @@ var (
 			Bool()
 
 	stdioFlag = kingpin.Flag("stdio", "Don't attempt to use console dialogs; fall back to stdio prompts").Bool()
+
+	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file").ExistingFile()
 
 	reconcileCmd = kingpin.Command("reconcile", "Reconcile ACME state").Default()
 
@@ -70,6 +74,11 @@ func main() {
 
 	if *stdioFlag {
 		interaction.NoDialog = true
+	}
+
+	if *responseFileFlag != "" {
+		err := loadResponseFile(*responseFileFlag)
+		log.Errore(err, "cannot load response file, continuing anyway")
 	}
 
 	switch cmd {
@@ -163,14 +172,58 @@ func determineWebroot() string {
 	// don't use fdb for this, we don't need access to the whole db
 	b, err := ioutil.ReadFile(filepath.Join(*stateFlag, "conf", "webroot-path"))
 	if err == nil {
-		b = bytes.TrimSpace(b)
-		s := string(b)
+		s := strings.TrimSpace(strings.Split(strings.TrimSpace(string(b)), "\n")[0])
 		if s != "" {
 			return s
 		}
 	}
 
 	return "/var/run/acme/acme-challenge"
+}
+
+// YAML response file loading.
+
+func loadResponseFile(path string) error {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	m := map[string]interface{}{}
+	err = yaml.Unmarshal(b, &m)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range m {
+		r, err := parseResponse(v)
+		if err != nil {
+			log.Errore(err, "response for ", k, " invalid")
+			continue
+		}
+		interaction.SetResponse(k, r)
+	}
+
+	return nil
+}
+
+func parseResponse(v interface{}) (*interaction.Response, error) {
+	switch x := v.(type) {
+	case string:
+		return &interaction.Response{
+			Value: x,
+		}, nil
+	case int:
+		return &interaction.Response{
+			Value: fmt.Sprintf("%d", x),
+		}, nil
+	case bool:
+		return &interaction.Response{
+			Cancelled: !x,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unknown response value")
+	}
 }
 
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License

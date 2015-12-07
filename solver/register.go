@@ -22,7 +22,7 @@ func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Inter
 					NoLabel:      "Cancel",
 					ResponseType: interaction.RTYesNo,
 					UniqueID:     "acme-agreement:" + e.URI,
-					Prompt:       "Do you agree to the Terms of Service? [Yn]",
+					Prompt:       "Do you agree to the Terms of Service?",
 					Body: fmt.Sprintf(`You must agree to the terms of service at the following URL to continue:
 
 %s
