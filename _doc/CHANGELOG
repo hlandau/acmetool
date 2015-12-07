@@ -1,3 +1,9 @@
+---------------------------------------------------------------------
+v0.0.14: Add support for multiple webroots.
+
+Multiple webroots can now be specified, one per line, in conf.
+
+---------------------------------------------------------------------
 v0.0.13: Improve compatibility, fix crontab bug
 
 Dialog/whiptail prompts were breaking on some systems with old
