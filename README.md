@@ -112,6 +112,19 @@ Make sure your web server is not listening on port 80.
 will use those ports. Either port being available is sufficient. This is only
 really useful for development purposes.
 
+## Renewal
+
+acmetool will try to renew certificates automatically once they are 30 days
+from expiry, or 66% through their validity period, whichever is lower.
+Note that Let's Encrypt currently issues 90 day certificates.
+
+acmetool will exit with an error message with nonzero exit status if it cannot
+renew a certificate, so it is suitable for use in a cronjob. Ensure your system
+is configured so that you get notifications of failing cronjobs.
+
+If a cronjob fails, you should intervene manually to see what went wrong by
+running `acmetool` (possibly with `--xlog.severity=debug` for verbose logging).
+
 ## Library
 
 The client library which these utilities use
