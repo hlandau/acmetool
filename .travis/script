@@ -63,7 +63,7 @@ GO386=387 gox -cgo -osarch 'linux/386' -output "$GOPATH/releasing/idist/acmetool
 RESULT2=$?
 
 # non-cgo crosscompile
-gox -osarch 'darwin/386 darwin/amd64 linux/arm freebsd/386 freebsd/amd64 freebsd/arm openbsd/386 openbsd/amd64 netbsd/386 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+gox -osarch 'darwin/amd64 linux/arm freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT3=$?
 GO386=387 gox -osarch 'darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT4=$?
