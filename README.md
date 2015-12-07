@@ -112,6 +112,19 @@ Make sure your web server is not listening on port 80.
 will use those ports. Either port being available is sufficient. This is only
 really useful for development purposes.
 
+## Renewal
+
+acmetool will try to renew certificates automatically once they are 30 days
+from expiry, or 66% through their validity period, whichever is lower.
+Note that Let's Encrypt currently issues 90 day certificates.
+
+acmetool will exit with an error message with nonzero exit status if it cannot
+renew a certificate, so it is suitable for use in a cronjob. Ensure your system
+is configured so that you get notifications of failing cronjobs.
+
+If a cronjob fails, you should intervene manually to see what went wrong by
+running `acmetool` (possibly with `--xlog.severity=debug` for verbose logging).
+
 ## Library
 
 The client library which these utilities use
@@ -159,7 +172,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Quickstart wizard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
 <tr><td>Modifies webserver config</td><td>No</td><td>By default</td><td>No</td><td>No</td></tr>
-<tr><td>Non-root support</td><td><a href="https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md">Optional</a></td><td>No</td><td>Optional</td><td>—</td></tr>
+<tr><td>Non-root support</td><td><a href="https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md">Optional</a></td><td>Optional</td><td>Optional</td><td>—</td></tr>
 <tr><td>Supports Apache</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Supports nginx</td><td>Yes</td><td>Experimental</td><td>—</td><td>—</td></tr>
 <tr><td>Supports HAProxy</td><td>Yes</td><td>No</td><td>—</td><td>—</td></tr>
@@ -169,6 +182,9 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Authorization via proxy</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via listener§</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td>Import state from official client</td><td>Yes</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Windows (basic) support</td><td>No</td><td>No</td><td>Yes</td><td>—</td></tr>
+<tr><td>Windows integration support</td><td>No</td><td>No</td><td>No</td><td>—</td></tr>
+
 </table>
 
 † acmetool has a different philosophy to state management and configuration to
@@ -182,7 +198,11 @@ requires manual intervention.
 
 This table is maintained in good faith; I believe the above comparison to be
 accurate. If notified of any inaccuracies, I will rectify the table and publish
-a notice of correction here.
+a notice of correction here:
+
+  - This table previously stated that the official Let's Encrypt client doesn't
+    support non-root operation. This was incorrect; it can be installed at user
+    level and be configured to use user-writable directories.
 
 ## Licence
 

@@ -3,6 +3,20 @@ Rootless support
 
 acmetool has experimental support for root-free operation.
 
+The following steps describe how you can, as root, take a series of steps that allows
+you to invoke acmetool as a non-root user, thereby limiting your attack surface and
+the degree to which you trust acmetool.
+
+It is also possible to use acmetool without you having access to root at all.
+In this case, place acmetool in a location of your choice and pass the
+`--state` and `--hooks` flags with appropriate paths of your choice to all
+invocations of acmetool.
+
+Rootless setup as root
+----------------------
+
+acmetool has experimental support for root-free operation.
+
 In order to run root-free, after installing acmetool in `/usr/local/bin` (or
 wherever you want it), before running acmetool, do the following:
 
