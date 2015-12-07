@@ -211,7 +211,7 @@ func isCronjobInstalled() bool {
 	return installed
 }
 
-func formulateCron() string {
+func formulateCron(root bool) string {
 	// Randomise cron time to avoid hammering the ACME server.
 	var b [2]byte
 	_, err := rand.Read(b[:])
@@ -220,10 +220,14 @@ func formulateCron() string {
 	m := b[0] % 60
 	h := b[1] % 24
 	s := ""
-	if runningAsRoot() {
+	if root {
 		s = "SHELL=/bin/sh\nPATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin\nMAILTO=root\n"
 	}
-	s += fmt.Sprintf("%d %d * * * %s --batch ", m, h, exepath.Abs)
+	s += fmt.Sprintf("%d %d * * * ", m, h)
+	if root {
+		s += "root "
+	}
+	s += fmt.Sprintf("%s --batch ", exepath.Abs)
 	if *stateFlag != storage.RecommendedPath {
 		s += fmt.Sprintf(`--state="%s" `, *stateFlag)
 	}
@@ -241,9 +245,8 @@ func promptCron() {
 		return
 	}
 
-	cronString := formulateCron()
-
 	var err error
+	cronString := formulateCron(runningAsRoot())
 	if runningAsRoot() {
 		_, err = os.Stat("/etc/cron.d")
 	} else {
@@ -514,7 +517,7 @@ The Let's Encrypt Staging Server does not issue publically trusted certificates.
 		ResponseType: interaction.RTSelect,
 		Options: []interaction.Option{
 			{
-				Title: "Let's Encrypt Live Server - I have been invited and want live certificates",
+				Title: "Let's Encrypt Live Server - I want live certificates",
 				Value: acmeapi.LELiveURL,
 			},
 			{

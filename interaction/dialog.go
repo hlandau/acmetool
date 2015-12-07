@@ -198,6 +198,13 @@ func (dialogInteractor) Prompt(c *Challenge) (*Response, error) {
 		return nil, err
 	}
 
+	// If we get error code >1 (particularly 255) the dialog command probably
+	// doesn't support some option we pass it. Return an error, which should make
+	// us fall back to stdio.
+	if rc > 1 {
+		return nil, xerr
+	}
+
 	res := &Response{}
 	if pipeW != nil {
 		pipeW.Close()
@@ -230,7 +237,8 @@ func findDialogCommand() (string, string) {
 		return dialogCommand, dialogCommandType
 	}
 
-	for _, s := range []string{"whiptail", "dialog"} {
+	// not using whiptail for now, see #18
+	for _, s := range []string{"dialog"} {
 		p, err := exec.LookPath(s)
 		if err == nil {
 			dialogCommand = p
