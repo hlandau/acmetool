@@ -146,7 +146,7 @@ type Store struct {
 	targets             map[string]*Target
 	defaultTarget       *Target // from conf
 	defaultBaseURL      string
-	webrootPath         string
+	webrootPaths        []string
 	preferredRSAKeySize int
 }
 
@@ -218,12 +218,21 @@ func (s *Store) load() error {
 		return err
 	}
 
-	s.webrootPath, _ = fdb.String(s.db.Collection("conf").Open("webroot-path")) // ignore errors
-	s.webrootPath = strings.TrimSpace(s.webrootPath)
-
+	s.loadWebrootPaths()
 	s.loadRSAKeySize()
 
 	return nil
+}
+
+func (s *Store) loadWebrootPaths() {
+	webrootPath, _ := fdb.String(s.db.Collection("conf").Open("webroot-path")) // ignore errors
+	webrootPath = strings.TrimSpace(webrootPath)
+	webrootPaths := strings.Split(webrootPath, "\n")
+	for i := range webrootPaths {
+		webrootPaths[i] = strings.TrimSpace(webrootPaths[i])
+	}
+
+	s.webrootPaths = webrootPaths
 }
 
 func (s *Store) loadRSAKeySize() {
@@ -1123,7 +1132,7 @@ func (s *Store) getPriorKey(publicKey crypto.PublicKey) (crypto.PrivateKey, erro
 func (s *Store) obtainAuthorization(name string, a *Account) error {
 	cl := s.getAccountClient(a)
 
-	az, err := solver.Authorize(cl, name, s.webrootPath, nil, s.getPriorKey, context.TODO())
+	az, err := solver.Authorize(cl, name, s.webrootPaths, nil, s.getPriorKey, context.TODO())
 	if err != nil {
 		return err
 	}
@@ -1315,19 +1324,19 @@ func (s *Store) makeUniqueTargetName(tgt *Target) string {
 	return nprefix + str
 }
 
-func (s *Store) WebrootPath() string {
-	return s.webrootPath
+func (s *Store) WebrootPaths() []string {
+	return s.webrootPaths
 }
 
-func (s *Store) SetWebrootPath(path string) error {
+func (s *Store) SetWebrootPaths(paths []string) error {
 	confc := s.db.Collection("conf")
 
-	err := fdb.WriteBytes(confc, "webroot-path", []byte(path))
+	err := fdb.WriteBytes(confc, "webroot-path", []byte(strings.Join(paths, "\n")))
 	if err != nil {
 		return err
 	}
 
-	s.webrootPath = path
+	s.webrootPaths = paths
 	return nil
 }
 

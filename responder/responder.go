@@ -54,9 +54,9 @@ type Config struct {
 	// Required for proofOfPossession.
 	Hostname string
 
-	// The http responder may attempt to place challenges here and perform
-	// self-testing if it is unable to listen on port 80. Optional.
-	WebPath string
+	// The http responder may attempt to place challenges in these locations and
+	// perform self-testing if it is unable to listen on port 80. Optional.
+	WebPaths []string
 
 	// "proofOfPossession": The certificates which are acceptable. Each entry is
 	// a DER X.509 certificate.

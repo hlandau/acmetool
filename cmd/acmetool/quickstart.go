@@ -46,7 +46,7 @@ func cmdQuickstart() {
 		log.Fatale(err, "couldn't create webroot path")
 	}
 
-	err = s.SetWebrootPath(webroot)
+	err = s.SetWebrootPaths([]string{webroot})
 	log.Fatale(err, "set webroot path")
 
 	prog, err := interaction.Auto.Status(&interaction.StatusInfo{

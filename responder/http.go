@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/acme/interaction"
+	deos "github.com/hlandau/degoutils/os"
 	"gopkg.in/tylerb/graceful.v1"
 	"io/ioutil"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -25,7 +27,7 @@ type httpResponder struct {
 	ka                  []byte
 	validation          []byte
 	hostname            string
-	webpath             string
+	webpaths            []string
 	token               string
 	filePath            string
 	notifySupported     bool // is notify supported?
@@ -37,7 +39,7 @@ func newHTTP(rcfg Config) (Responder, error) {
 		serveMux:            http.NewServeMux(),
 		requestDetectedChan: make(chan struct{}, 1),
 		hostname:            rcfg.Hostname,
-		webpath:             rcfg.WebPath,
+		webpaths:            rcfg.WebPaths,
 		token:               rcfg.Token,
 		notifySupported:     true,
 	}
@@ -148,6 +150,62 @@ L:
 	return nil
 }
 
+// Tries to write a challenge file to each of the directories.
+func webrootWriteChallenge(webroots map[string]struct{}, token string, ka []byte) {
+	for wr := range webroots {
+		os.MkdirAll(wr, 0755) // ignore errors
+		fn := filepath.Join(wr, token)
+
+		// Because /var/run/acme/acme-challenge may not exist due to /var/run
+		// possibly being a tmpfs, and because that tmpfs is likely to be world
+		// writable, there is a risk of following a maliciously crafted symlink to
+		// cause a file to be overwritten as root. Open the file using a
+		// no-symlinks flag if the OS supports it, but only for /var/run paths; we
+		// want to support symlinks for other paths, which are presumably properly
+		// controlled.
+		//
+		// Unfortunately earlier components in the pathname will still be followed
+		// if they are symlinks, but it looks like this is the best we can do.
+		var f *os.File
+		var err error
+		if strings.HasPrefix(wr, "/var/run/") {
+			f, err = deos.OpenFileNoSymlinks(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		} else {
+			f, err = os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		}
+		if err != nil {
+			continue
+		}
+
+		f.Write(ka)
+		f.Close()
+	}
+}
+
+// Tries to remove a challenge file from each of the directories.
+func webrootRemoveChallenge(webroots map[string]struct{}, token string) {
+	for wr := range webroots {
+		fn := filepath.Join(wr, token)
+
+		os.Remove(fn) // ignore errors
+	}
+}
+
+func (s *httpResponder) getWebroots() map[string]struct{} {
+	webroots := map[string]struct{}{}
+	for _, p := range s.webpaths {
+		if p != "" {
+			webroots[strings.TrimRight(p, "/")] = struct{}{}
+		}
+	}
+
+	// The webroot and redirector models both require us to drop the challenge at
+	// a given path. If a webroot is not specified in the configuration, use an
+	// ephemeral default that the redirector might be using anyway.
+	webroots["/var/run/acme/acme-challenge"] = struct{}{}
+	return webroots
+}
+
 func (s *httpResponder) startListeners() error {
 	// Here's our brute force method: listen on everything that might work.
 	s.startListener(":80")
@@ -156,26 +214,9 @@ func (s *httpResponder) startListeners() error {
 	s.startListener("127.0.0.1:4402")
 	s.startListener("[::1]:4402")
 
-	// The webroot and redirector models both require us to drop the challenge at
-	// a given path. If a webroot is not specified in the configuration, use an
-	// ephemeral default that the redirector might be using anyway.
-	if s.webpath == "" {
-		s.webpath = "/var/run/acme/acme-challenge"
-	}
-
-	if s.webpath != "" {
-		os.MkdirAll(s.webpath, 0755) // ignore errors
-
-		fn := filepath.Join(s.webpath, s.token)
-		f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			// proxy might work
-			return nil
-		}
-		defer f.Close()
-		f.Write(s.ka)
-		s.filePath = fn
-	}
+	// Even if none of the listeners managed to start, the webroot or redirector
+	// methods might work.
+	webrootWriteChallenge(s.getWebroots(), s.token, s.ka)
 
 	return nil
 }
@@ -225,9 +266,8 @@ func (s *httpResponder) Stop() error {
 	wg.Wait()
 	s.stopFuncs = nil
 
-	if s.filePath != "" {
-		os.Remove(s.filePath) // try and remove challenge, ignore errors
-	}
+	// Try and remove challenges.
+	webrootRemoveChallenge(s.getWebroots(), s.token)
 
 	return nil
 }

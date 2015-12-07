@@ -58,9 +58,9 @@ that shown below is used.
                             ; a default provider URL. Not all values which are valid
                             ; in a target expression file may be used.
 
-        webroot-path        ; Contains the path to a directory where challenge files
+        webroot-path        ; Contains paths to directories where challenge files
                             ; may be placed in order to potentially expose them over
-                            ; HTTP. A string, no newlines or whitespace. May be empty.
+                            ; HTTP. One path per line. May be empty.
 
         rsa-key-size        ; Contains the RSA modulus length in bits to use for new keys
                             ; and account keys. An ASCII string expressing a decimal integer

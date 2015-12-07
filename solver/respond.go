@@ -23,18 +23,18 @@ type authState struct {
 	interactor   interaction.Interactor
 	ctx          context.Context
 	pref         TypePreferencer
-	webPath      string
+	webPaths     []string
 	priorKeyFunc responder.PriorKeyFunc
 }
 
-func Authorize(c *acmeapi.Client, dnsName, webPath string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (*acmeapi.Authorization, error) {
+func Authorize(c *acmeapi.Client, dnsName string, webPaths []string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (*acmeapi.Authorization, error) {
 	as := authState{
 		c:            c,
 		dnsName:      dnsName,
 		interactor:   defaultInteraction(interactor),
 		ctx:          ctx,
 		pref:         PreferFast.Copy(),
-		webPath:      webPath,
+		webPaths:     webPaths,
 		priorKeyFunc: priorKeyFunc,
 	}
 
@@ -76,7 +76,7 @@ func (as *authState) authorize() (az *acmeapi.Authorization, fatal bool, err err
 func (as *authState) attemptCombination(az *acmeapi.Authorization, combination []int) (invalidated bool, err error) {
 	for _, i := range combination {
 		ch := az.Challenges[i]
-		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.webPath, as.interactor, as.priorKeyFunc, as.ctx)
+		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.webPaths, as.interactor, as.priorKeyFunc, as.ctx)
 		if err != nil {
 			delete(as.pref, ch.Type)
 			return invalidated, err
@@ -88,7 +88,7 @@ func (as *authState) attemptCombination(az *acmeapi.Authorization, combination [
 
 // Completes a given challenge, polling it until it is complete. Can be
 // cancelled using ctx.
-func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPath string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (invalidated bool, err error) {
+func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string, webPaths []string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (invalidated bool, err error) {
 	log.Debugf("attempting challenge type %s", ch.Type)
 
 	var certs [][]byte
@@ -102,7 +102,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName, webPat
 		N:                      ch.N,
 		AccountKey:             c.AccountInfo.AccountKey,
 		Hostname:               dnsName,
-		WebPath:                webPath,
+		WebPaths:               webPaths,
 		AcceptableCertificates: certs,
 		PriorKeyFunc:           priorKeyFunc,
 	})
