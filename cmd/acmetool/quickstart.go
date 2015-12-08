@@ -85,7 +85,7 @@ SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4
 # Restart services.
 if which systemctl >/dev/null 2>/dev/null; then
   for x in $SERVICES; do
-    [ -e "/lib/systemd/system/$x.service" -o -e "/etc/systemd/system/$x.service" ] && systemctl reload "$x.service" >/dev/null 2>/dev/null || true
+    [ -e "/lib/systemd/system/$x.service" -o -e "/etc/systemd/system/$x.service" -o -e "/etc/init.d/$x" ] && systemctl reload "$x.service" >/dev/null 2>/dev/null || true
   done
   exit 0
 fi
