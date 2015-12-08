@@ -12,6 +12,8 @@ import (
 
 type dialogInteractor struct{}
 
+// Invokes a dialog program to create terminal dialog boxes. Fails if no such
+// program is available.
 var Dialog Interactor = dialogInteractor{}
 
 type dialogStatusSink struct {

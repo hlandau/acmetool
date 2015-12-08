@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// Load one or more certificates from a sequence of PEM-encoded certificates.
 func LoadCertificates(pemBlock []byte) ([][]byte, error) {
 	var derBlock *pem.Block
 	var certs [][]byte

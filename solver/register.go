@@ -7,6 +7,11 @@ import (
 	"net/mail"
 )
 
+// Using the given client and interactor (or interaction.Auto if nil), register
+// the client account if it does not already exist.
+//
+// The interactor is used to prompt for terms of service agreement, if
+// agreement has not already been obtained. An e. mail address is prompted for.
 func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Interactor) error {
 	interactor = defaultInteraction(interactor)
 

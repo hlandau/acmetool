@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -195,6 +196,46 @@ func determineAccountID(providerURL string, privateKey interface{}) (string, err
 	}
 
 	return u + "/" + keyID, nil
+}
+
+func determineCertificateID(url string) string {
+	h := sha256.New()
+	h.Write([]byte(url))
+	b := h.Sum(nil)
+	return strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
+}
+
+var re_hostname = regexp.MustCompilePOSIX(`^([a-z0-9_-]+\.)*[a-z0-9_-]+$`)
+
+func validHostname(name string) bool {
+	return re_hostname.MatchString(name)
+}
+
+func targetGt(a *Target, b *Target) bool {
+	if a == nil && b == nil {
+		return false
+	} else if b == nil {
+		return true
+	} else if a == nil {
+		return false
+	}
+
+	if a.Priority > b.Priority {
+		return true
+	} else if a.Priority < b.Priority {
+		return false
+	}
+
+	return len(a.Names) > len(b.Names)
+}
+
+func containsName(names []string, name string) bool {
+	for _, n := range names {
+		if n == name {
+			return true
+		}
+	}
+	return false
 }
 
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License

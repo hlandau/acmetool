@@ -17,13 +17,16 @@ ACME_DIR="$(pwd)"
 cd "$GOPATH/releasing/idist"
 for x in *; do
   echo "$x"
-  cp $GOPATH/src/github.com/hlandau/acme/.travis/dist-readme.md "$x"/README.md
+  cp "$GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/dist-readme.md" "$x"/README.md || \
+  cp "$GOPATH/src/github.com/$TRAVIS_REPO_SLUG/README.md" "$x"/ || true
   tar -zcf "../dist/$(basename "$x").tar.gz" "$x"
 done
+
 # Must be in the right directory when calling ghr.
 cd "$ACME_DIR"
 
 echo Uploading releases...
-travis_retry ghr -u hlandau "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
+TRAVIS_REPO_OWER="$(echo "$TRAVIS_REPO_SLUG" | sed 's#/.*##g')"
+travis_retry ghr -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
 
 echo Done

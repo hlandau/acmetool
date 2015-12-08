@@ -152,6 +152,8 @@ L:
 
 // Tries to write a challenge file to each of the directories.
 func webrootWriteChallenge(webroots map[string]struct{}, token string, ka []byte) {
+	log.Debug("writing webroot challenge files")
+
 	for wr := range webroots {
 		os.MkdirAll(wr, 0755) // ignore errors
 		fn := filepath.Join(wr, token)
@@ -174,6 +176,7 @@ func webrootWriteChallenge(webroots map[string]struct{}, token string, ka []byte
 			f, err = os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		}
 		if err != nil {
+			log.Errore(err, "failed to open webroot file ", fn)
 			continue
 		}
 
@@ -187,6 +190,7 @@ func webrootRemoveChallenge(webroots map[string]struct{}, token string) {
 	for wr := range webroots {
 		fn := filepath.Join(wr, token)
 
+		log.Debugf("removing webroot file %s", fn)
 		os.Remove(fn) // ignore errors
 	}
 }

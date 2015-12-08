@@ -15,6 +15,7 @@ import (
 
 var log, Log = xlog.New("acme.solver")
 
+// Returned if all combinations fail.
 var ErrFailedAllCombinations = fmt.Errorf("failed all combinations")
 
 type authState struct {
@@ -27,6 +28,9 @@ type authState struct {
 	priorKeyFunc responder.PriorKeyFunc
 }
 
+// Attempts to authorize a hostname using the given client. webPaths,
+// interactor and priorKeyFunc are passed to responders. Returns the
+// successfully validated authorization on success.
 func Authorize(c *acmeapi.Client, dnsName string, webPaths []string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (*acmeapi.Authorization, error) {
 	as := authState{
 		c:            c,
@@ -88,6 +92,13 @@ func (as *authState) attemptCombination(az *acmeapi.Authorization, combination [
 
 // Completes a given challenge, polling it until it is complete. Can be
 // cancelled using ctx.
+//
+// dnsName is the hostname which is being authorized. webPaths, interactor and
+// priorKeyFunc are passed to responders.
+//
+// The return value indicates whether the whole authorization has been invalidated
+// (set to "failed" status) as a result of an error. In this case a new authorization
+// must be created.
 func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string, webPaths []string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (invalidated bool, err error) {
 	log.Debugf("attempting challenge type %s", ch.Type)
 

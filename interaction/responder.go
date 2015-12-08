@@ -6,7 +6,8 @@ type responder struct{}
 
 var responses = map[string]*Response{}
 
-// Auto-responder.
+// Auto-responder. Provides canned responses if they have been set. Otherwise,
+// fails.
 var Responder Interactor = responder{}
 
 func (responder) Status(c *StatusInfo) (StatusSink, error) {

@@ -6,7 +6,6 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base32"
 	"encoding/pem"
@@ -22,7 +21,6 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -80,18 +78,9 @@ type Target struct {
 	// hostnames (and maybe one day SRV-IDs). May include wildcard hostnames.
 	Names []string `yaml:"names,omitempty"`
 
-	// N. If this is a substring of a known account ID, that account is used.
-	// Otherwise, if this is the URL of an ACME server, or the first part of an
-	// account ID or a substring thereof, an account for that server is used.
-	// This relies on a list of known ACME servers.
-	//
-	// Valid examples:
-	//   "https://acme-staging.letsencrypt.org/directory"
-	//   "https://acme-live.letsencrypt.org/directory"
-	//   "asl39aldskl"
-	//   "acme-staging.letsencrypt.org%2fdirectory/asl39"
-	//   "acme-staging.letsencrypt.org%2fdirectory"
-	//   "acme-staging"
+	// N. Currently, this is the provider directory URL. An account matching it
+	// will be used. At some point, a way to specify a particular account should
+	// probably be added.
 	Provider string `yaml:"provider,omitempty"`
 
 	// D. Account to use, determined via Provider string.
@@ -121,7 +110,7 @@ type Certificate struct {
 }
 
 func (c *Certificate) ID() string {
-	return getCertID(c.URL)
+	return determineCertificateID(c.URL)
 }
 
 // Represents a stored key.
@@ -222,41 +211,6 @@ func (s *Store) load() error {
 	s.loadRSAKeySize()
 
 	return nil
-}
-
-func (s *Store) loadWebrootPaths() {
-	webrootPath, _ := fdb.String(s.db.Collection("conf").Open("webroot-path")) // ignore errors
-	webrootPath = strings.TrimSpace(webrootPath)
-	webrootPaths := strings.Split(webrootPath, "\n")
-	for i := range webrootPaths {
-		webrootPaths[i] = strings.TrimSpace(webrootPaths[i])
-	}
-
-	s.webrootPaths = webrootPaths
-}
-
-func (s *Store) loadRSAKeySize() {
-	s.preferredRSAKeySize = 2048
-	n, err := fdb.Uint(s.db.Collection("conf"), "rsa-key-size", 31)
-	if err != nil {
-		return
-	}
-
-	s.preferredRSAKeySize = int(n)
-
-	if nn := clampRSAKeySize(int(n)); nn != int(n) {
-		log.Warnf("An RSA key size of %d is not supported; must have 2048 <= size <= 4096; clamping at %d", n, nn)
-	}
-}
-
-func clampRSAKeySize(sz int) int {
-	if sz < 2048 {
-		return 2048
-	}
-	if sz > 4096 {
-		return 4096
-	}
-	return sz
 }
 
 func (s *Store) loadAccounts() error {
@@ -472,7 +426,7 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 		return fmt.Errorf("certificate has invalid URI")
 	}
 
-	actualCertID := getCertID(ss)
+	actualCertID := determineCertificateID(ss)
 	if certID != actualCertID {
 		return fmt.Errorf("cert ID mismatch: %#v != %#v", certID, actualCertID)
 	}
@@ -515,13 +469,7 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 	return nil
 }
 
-func getCertID(url string) string {
-	h := sha256.New()
-	h.Write([]byte(url))
-	b := h.Sum(nil)
-	return strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
-}
-
+// Set the default provider directory URL.
 func (s *Store) SetDefaultProvider(providerURL string) error {
 	if !acmeapi.ValidURL(providerURL) {
 		return fmt.Errorf("invalid provider URL")
@@ -620,12 +568,6 @@ func (s *Store) validateTargetInner(desiredKey string, c *fdb.Collection) (*Targ
 
 	// TODO: tgt.Priority
 	return tgt, nil
-}
-
-var re_hostname = regexp.MustCompilePOSIX(`^([a-z0-9_-]+\.)*[a-z0-9_-]+$`)
-
-func validHostname(name string) bool {
-	return re_hostname.MatchString(name)
 }
 
 func (s *Store) EnsureRegistration() error {
@@ -751,7 +693,7 @@ func (s *Store) ImportKey(r io.Reader) error {
 // certificate will be retrirved on the next reconcile. If a certificate with
 // that URL already exists, this is a no-op and returns nil.
 func (s *Store) ImportCertificate(url string) error {
-	certID := getCertID(url)
+	certID := determineCertificateID(url)
 	_, ok := s.certs[certID]
 	if ok {
 		return nil
@@ -854,24 +796,7 @@ func (s *Store) linkTargets() error {
 	return nil
 }
 
-func targetGt(a *Target, b *Target) bool {
-	if a == nil && b == nil {
-		return false
-	} else if b == nil {
-		return true
-	} else if a == nil {
-		return false
-	}
-
-	if a.Priority > b.Priority {
-		return true
-	} else if a.Priority < b.Priority {
-		return false
-	}
-
-	return len(a.Names) > len(b.Names)
-}
-
+// Runs the reconcilation operation and reloads state.
 func (s *Store) Reconcile() error {
 	err := s.reconcile()
 
@@ -1299,15 +1224,6 @@ T:
 	return nil
 }
 
-func containsName(names []string, name string) bool {
-	for _, n := range names {
-		if n == name {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *Store) makeUniqueTargetName(tgt *Target) string {
 	// Unfortunately we can't really check if the first hostname exists as a filename
 	// and use another name instead as this would create all sorts of race conditions.
@@ -1322,40 +1238,6 @@ func (s *Store) makeUniqueTargetName(tgt *Target) string {
 	str := strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 
 	return nprefix + str
-}
-
-func (s *Store) WebrootPaths() []string {
-	return s.webrootPaths
-}
-
-func (s *Store) SetWebrootPaths(paths []string) error {
-	confc := s.db.Collection("conf")
-
-	err := fdb.WriteBytes(confc, "webroot-path", []byte(strings.Join(paths, "\n")))
-	if err != nil {
-		return err
-	}
-
-	s.webrootPaths = paths
-	return nil
-}
-
-// Gets the preferred RSA key size, in bits.
-func (s *Store) PreferredRSAKeySize() int {
-	return s.preferredRSAKeySize
-}
-
-// Set the preferred RSA key size. The size is not validated here, as it is
-// clamped later and a higher preferred size may become available in future
-// releases.
-func (s *Store) SetPreferredRSAKeySize(keySize int) error {
-	err := fdb.WriteBytes(s.db.Collection("conf"), "rsa-key-size", []byte(fmt.Sprintf("%d", keySize)))
-	if err != nil {
-		return err
-	}
-
-	s.preferredRSAKeySize = keySize
-	return nil
 }
 
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License

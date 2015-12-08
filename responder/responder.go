@@ -38,43 +38,44 @@ type Responder interface {
 
 // Used to instantiate a responder.
 type Config struct {
-	// The responder type to be used. e.g. "http-01".
-	Type string
+	Type       string            // The responder type to be used. e.g. "http-01".
+	AccountKey crypto.PrivateKey // The account private key.
+	Token      string            // The challenge token.
 
-	// The account private key.
-	AccountKey crypto.PrivateKey
+	N int // "tls-sni-01": Number of iterations.
 
-	// The challenge token.
-	Token string
-
-	// "tls-sni-01": Number of iterations.
-	N int
-
-	// The hostname being verified. May be used for pre-initiation self-testing. Optional.
-	// Required for proofOfPossession.
+	// "http-01", "proofOfPossession": The hostname being verified. May be used
+	// for pre-initiation self-testing. Optional. Required for
+	// proofOfPossession.
 	Hostname string
 
-	// The http responder may attempt to place challenges in these locations and
-	// perform self-testing if it is unable to listen on port 80. Optional.
+	// "http-01": The http responder may attempt to place challenges in these
+	// locations and perform self-testing if it is unable to listen on port 80.
+	// Optional.
 	WebPaths []string
 
 	// "proofOfPossession": The certificates which are acceptable. Each entry is
 	// a DER X.509 certificate.
 	AcceptableCertificates [][]byte
 
-	// Function which returns the private key for a given public key.  This may
-	// be called multiple times for a given challenge as multiple public keys may
-	// be permitted. If a private key for the given public key cannot be found,
-	// return nil and do not return an error. Returning an error short circuits.
+	// "proofOfPossession": Function which returns the private key for a given
+	// public key.  This may be called multiple times for a given challenge as
+	// multiple public keys may be permitted. If a private key for the given
+	// public key cannot be found, return nil and do not return an error.
+	// Returning an error short circuits.
 	//
 	// If not specified, proofOfPossession challenges always fail.
 	PriorKeyFunc PriorKeyFunc
 }
 
+// Returns the private key corresponding to the given public key, if it can be
+// found. If a corresponding private key cannot be found, return nil; do not
+// return an error. Returning an error short circuits.
 type PriorKeyFunc func(crypto.PublicKey) (crypto.PrivateKey, error)
 
 var responderTypes = map[string]func(Config) (Responder, error){}
 
+// Try and instantiate a responder using the given configuration.
 func New(rcfg Config) (Responder, error) {
 	f, ok := responderTypes[rcfg.Type]
 	if !ok {

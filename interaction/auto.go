@@ -7,14 +7,21 @@ import (
 
 var log, Log = xlog.New("acme.interactor")
 
+// Used by Auto. If this is set, only autoresponses can be used. Any challenge
+// without an autoresponse fails.
 var NonInteractive = false
 
 type autoInteractor struct{}
 
+// Interactor which automatically uses the most suitable challenge method.
 var Auto Interactor = autoInteractor{}
 
+// Used by Auto. If this is non-nil, all challenges are directed to it. There
+// is no fallback if the interceptor fails. Autoresponses and NonInteractive
+// take precedence over this.
 var Interceptor Interactor
 
+// Used by Auto. Do not use the Dialog mode.
 var NoDialog = false
 
 func (autoInteractor) Prompt(c *Challenge) (*Response, error) {

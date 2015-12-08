@@ -5,6 +5,7 @@ import (
 	"sort"
 )
 
+// Any challenge having a preference at or below this value will never be used.
 const NonviableThreshold int32 = -1000000
 
 // Sorter.
@@ -58,6 +59,7 @@ func satAdd(x, y int32) int32 {
 // Unknown challenge types are nonviable.
 type TypePreferencer map[string]int32
 
+// Implements Preferencer.
 func (p TypePreferencer) Preference(ch *acmeapi.Challenge) int32 {
 	v, ok := p[ch.Type]
 	if !ok {
@@ -66,6 +68,8 @@ func (p TypePreferencer) Preference(ch *acmeapi.Challenge) int32 {
 	return v
 }
 
+// Returns a copy of TypePreferencer, so that it can be mutated without
+// changing the original.
 func (p TypePreferencer) Copy() TypePreferencer {
 	tp := TypePreferencer{}
 	for k, v := range p {
@@ -86,8 +90,9 @@ var PreferFast = TypePreferencer{
 }
 
 // Determines the degree to which a challenge is preferred. Higher values are
-// more preferred.
+// more preferred. Any value <= NonviableThreshold will never be used.
 type Preferencer interface {
+	// Get the preference for the given challenge.
 	Preference(ch *acmeapi.Challenge) int32
 }
 
