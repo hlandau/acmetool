@@ -26,7 +26,7 @@ done
 cd "$ACME_DIR"
 
 echo Uploading releases...
-TRAVIS_REPO_OWER="$(echo "$TRAVIS_REPO_SLUG" | sed 's#/.*##g')"
+TRAVIS_REPO_OWNER="$(echo "$TRAVIS_REPO_SLUG" | sed 's#/.*##g')"
 travis_retry ghr -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
 
 echo Done
