@@ -1,0 +1,397 @@
+<!doctype html>
+<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
+<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on https://github.com/jonrohan -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen">
+  <link rel="stylesheet" href="stylesheets/github-dark.css">
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="javascripts/script.js"></script>
+
+  <title>ACME Client Utilities</title>
+  <meta name="description" content="Automatic certificate acquisition tool. Let&#39;s Encrypt. Idempotent. Works like &quot;make&quot;.">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header>
+      <h1 class="title">ACME Client Utilities</h1>
+    </header>
+    <div id="container">
+      <p class="tagline">Automatic certificate acquisition tool. Let&#39;s Encrypt. Idempotent. Works like &quot;make&quot;.</p>
+      <div id="main" role="main">
+        <div class="download-bar">
+        <div class="inner">
+          <a href="https://github.com/hlandau/acme/tarball/master" class="download-button tar"><span>Download</span></a>
+          <a href="https://github.com/hlandau/acme/zipball/master" class="download-button zip"><span>Download</span></a>
+          <a href="https://github.com/hlandau/acme" class="code">View ACME Client Utilities on GitHub</a>
+        </div>
+        <span class="blc"></span><span class="trc"></span>
+        </div>
+        <article class="markdown-body">
+          <h1>
+<a id="acme-client-utilities" class="anchor" href="#acme-client-utilities" aria-hidden="true"><span class="octicon octicon-link"></span></a>ACME Client Utilities</h1>
+
+<p>acmetool is an easy-to-use command line tool for automatically acquiring
+certificates from ACME servers (such as Let's Encrypt). Designed to flexibly
+integrate into your webserver setup to enable automatic verification. Unlike
+the official Let's Encrypt client, this doesn't modify your web server
+configuration.</p>
+
+<p>You can perform verifications using port 80 or 443 (if you don't yet have a
+server running on one of them); via webroot; by configuring your webserver to
+proxy requests for <code>/.well-known/acme-challenge/</code> to a special port (402) which
+acmetool can listen on; or by configuring your webserver not to listen on port
+80, and instead running acmetool's built in HTTPS redirector (and challenge
+responder) on port 80. This is useful if all you want to do with port 80 is
+redirect people to port 443.</p>
+
+<p>You can run acmetool on a cron job to renew certificates automatically (<code>acmetool --batch</code>).  The
+preferred certificate for a given hostname is always at
+<code>/var/lib/acme/live/HOSTNAME/{cert,chain,fullchain,privkey}</code>. You can configure
+acmetool to reload your webserver automatically when it renews a certificate.</p>
+
+<p>acmetool is intended to be "magic-free". All of acmetool's state is stored in a
+simple, comprehensible directory of flat files. <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">The schema for this directory
+is documented.</a></p>
+
+<p>acmetool is intended to work like "make". The state directory expresses target
+domain names, and whenever acmetool is invoked, it ensures that valid
+certificates are available to meet those names. Certificates which will expire
+soon are renewed. acmetool is thus idempotent and minimises the use of state.</p>
+
+<p>acmetool can optionally be used <a href="https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md">without running it as
+root.</a> If you have
+existing certificates issued using the official client, acmetool can import
+those certificates, keys and account keys (<code>acmetool import-le</code>).</p>
+
+<h2>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p><a href="https://github.com/hlandau/acme/releases"><strong>Binary releases are also available.</strong></a></p>
+
+<p>You will need Go installed to build from source.</p>
+
+<p>If you are on Linux, you will need to make sure the development files for
+<code>libcap</code> are installed. This is probably a package for your distro called
+<code>libcap-dev</code> or <code>libcap-devel</code> or similar.</p>
+
+<div class="highlight highlight-source-shell"><pre>$ git clone https://github.com/hlandau/acme
+$ <span class="pl-c1">cd</span> acme
+$ make <span class="pl-k">&amp;&amp;</span> sudo make install
+
+  <span class="pl-c"># (People familiar with Go with a GOPATH setup can alternatively use go get/go install:)</span>
+  $ go get github.com/hlandau/acme/cmd/acmetool
+
+<span class="pl-c"># Run the quickstart wizard. Sets up account, cronjob, etc.</span>
+$ sudo acmetool quickstart
+
+<span class="pl-c"># Configure your webserver to serve challenges if necessary.</span>
+<span class="pl-c"># See https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md</span>
+$ ...
+
+<span class="pl-c"># Request the hostnames you want:</span>
+$ sudo acmetool want example.com www.example.com
+
+<span class="pl-c"># Now you have certificates:</span>
+$ ls -l /var/lib/acme/live/example.com/</pre></div>
+
+<p>The <code>quickstart</code> subcommand is a recommended wizard which guides you through the
+setup of ACME on your system.</p>
+
+<p>The <code>want</code> subcommand states that you want a certificate for the given hostnames.
+(If you want separate certificates for each of the hostnames, run the want
+subcommand separately for each hostname.)</p>
+
+<p>The default subcommand, <code>reconcile</code>, is like "make" and makes sure all desired
+hostnames are satisfied by valid certificates which aren't soon to expire.
+<code>want</code> calls <code>reconcile</code> automatically.</p>
+
+<p>If you run <code>acmetool reconcile</code> on a cronjob to facilitate automatic renewal,
+pass <code>--batch</code> to ensure it doesn't attempt to interact with a terminal.</p>
+
+<p>You can increase logging severity for debugging purposes by passing
+<code>--xlog.severity=debug</code>.</p>
+
+<h2>
+<a id="validation-options" class="anchor" href="#validation-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Validation Options</h2>
+
+<p><img src="https://i.imgur.com/w8TbgLL.png" align="right" alt="[screenshot]"></p>
+
+<p><strong>Webroot:</strong> acmetool can place challenge files in a given directory, allowing your normal
+web server to serve them. The files must be served from the path you specify at
+<code>/.well-known/acme-challenge/</code>.</p>
+
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md">Information on configuring your web server.</a></p>
+
+<p><strong>Proxy:</strong> acmetool can respond to validation challenges by serving them on port 402. In
+order for this to be useful, you must configure your webserver to proxy
+requests under <code>/.well-known/acme-challenge/</code> to
+<code>http://127.0.0.1:402/.well-known/acme-challenge</code>.</p>
+
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md">Information on configuring your web server.</a></p>
+
+<p><strong>Redirector:</strong> <code>acmetool redirector</code> starts an HTTP server on port 80 which redirects all
+requests to HTTPS, as well as serving any necessary validation responses. The
+<code>acmetool quickstart</code> wizard can set it up for you if you use systemd.
+Otherwise, you'll need to configure your system to run <code>acmetool redirector
+--service.uid=USERNAME --service.daemon=1</code> as a service, where <code>USERNAME</code> is
+the username you want the daemon to drop to.</p>
+
+<p>Make sure your web server is not listening on port 80.</p>
+
+<p><strong>Listen:</strong> If you are for some reason not running anything on port 80 or 443, acmetool
+will use those ports. Either port being available is sufficient. This is only
+really useful for development purposes.</p>
+
+<h2>
+<a id="renewal" class="anchor" href="#renewal" aria-hidden="true"><span class="octicon octicon-link"></span></a>Renewal</h2>
+
+<p>acmetool will try to renew certificates automatically once they are 30 days
+from expiry, or 66% through their validity period, whichever is lower.
+Note that Let's Encrypt currently issues 90 day certificates.</p>
+
+<p>acmetool will exit with an error message with nonzero exit status if it cannot
+renew a certificate, so it is suitable for use in a cronjob. Ensure your system
+is configured so that you get notifications of failing cronjobs.</p>
+
+<p>If a cronjob fails, you should intervene manually to see what went wrong by
+running <code>acmetool</code> (possibly with <code>--xlog.severity=debug</code> for verbose logging).</p>
+
+<h2>
+<a id="library" class="anchor" href="#library" aria-hidden="true"><span class="octicon octicon-link"></span></a>Library</h2>
+
+<p>The client library which these utilities use
+(<code>github.com/hlandau/acme/acmeapi</code>) can be used independently by any Go code.
+<a href="https://godoc.org/github.com/hlandau/acme/acmeapi"><img src="https://godoc.org/github.com/hlandau/acme/acmeapi?status.svg" alt="GoDoc"></a></p>
+
+<p><a href="https://github.com/hlandau/acme">Source code.</a></p>
+
+<h2>
+<a id="comparison-with" class="anchor" href="#comparison-with" aria-hidden="true"><span class="octicon octicon-link"></span></a>Comparison with...</h2>
+
+<p><strong>Let's Encrypt Official Client:</strong> A heavyweight Python implementation which is
+a bit too “magic” for my tastes. Tries to mutate your webserver configuration
+automatically.</p>
+
+<p>acmetool is a single-file binary which only depends on basic system libraries
+(on Linux, these are libc, libpthread, libcap, libattr). It doesn't do anything
+to your webserver; it just places certificates at a standard location and can
+also reload your webserver (whichever webserver it is) by executing hook shell
+scripts.</p>
+
+<p>acmetool isn't based around individual transactions for obtaining certificates;
+it's about satisfying expressed requirements by any means necessary. Its
+comprehensible, magic-free state directory makes it as stateless and idempotent
+as possible.</p>
+
+<p><strong>lego:</strong> Like acmetool, <a href="https://github.com/xenolf/lego">xenolf/lego</a> provides
+a library and client utility. The utility provides commands for creating
+certificates, but doesn't provide a compelling system for managing the lifetime
+of the short-lived certificates offered by Let's Encrypt. The user is expected
+to generate and install all certificates manually.</p>
+
+<p><strong>gethttpsforfree:</strong>
+<a href="https://github.com/diafygi/gethttpsforfree">diafygi/gethttpsforfree</a> provides
+an HTML file which uses JavaScript to make requests to an ACME server and
+obtain certificates. It's a functional user interface, but like lego it
+provides no answer for the automation issue, and is thus impractical given the
+short lifetime of certificates issued by Let's Encrypt.</p>
+
+<h3>
+<a id="comparison-list-of-client-implementations" class="anchor" href="#comparison-list-of-client-implementations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Comparison, list of client implementations</h3>
+
+<table>
+<tr>
+<td></td>
+<th>acmetool</th>
+<th><a href="https://github.com/letsencrypt/letsencrypt">letsencrypt</a></th>
+<th><a href="https://github.com/xenolf/lego">lego</a></th>
+<th><a href="https://github.com/diafygi/gethttpsforfree">gethttpsforfree</a></th>
+</tr>
+<tr>
+<td>Automatic renewal</td>
+<td>Yes</td>
+<td>Not yet</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>State management</td>
+<td>Yes†</td>
+<td>Yes</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Single-file binary</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Quickstart wizard</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Modifies webserver config</td>
+<td>No</td>
+<td>By default</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Non-root support</td>
+<td><a href="https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md">Optional</a></td>
+<td>Optional</td>
+<td>Optional</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Supports Apache</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Supports nginx</td>
+<td>Yes</td>
+<td>Experimental</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Supports HAProxy</td>
+<td>Yes</td>
+<td>No</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Supports any web server</td>
+<td>Yes</td>
+<td>Webroot‡</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Authorization via webroot</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>—</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Authorization via port 80 redirector</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Authorization via proxy</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Authorization via listener§</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Import state from official client</td>
+<td>Yes</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Windows (basic) support</td>
+<td>No</td>
+<td>No</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Windows integration support</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>—</td>
+</tr>
+
+</table>
+
+<p>† acmetool has a different philosophy to state management and configuration to
+the Let's Encrypt client; see the beginning of this README.</p>
+
+<p>‡ The webroot method does not appear to provide any means of reloading the
+webserver once the certificate has been changed, which means auto-renewal
+requires manual intervention.</p>
+
+<p>§ Requires downtime.</p>
+
+<p>This table is maintained in good faith; I believe the above comparison to be
+accurate. If notified of any inaccuracies, I will rectify the table and publish
+a notice of correction here:</p>
+
+<ul>
+<li>This table previously stated that the official Let's Encrypt client doesn't
+support non-root operation. This was incorrect; it can be installed at user
+level and be configured to use user-writable directories.</li>
+</ul>
+
+<h2>
+<a id="licence" class="anchor" href="#licence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Licence</h2>
+
+<pre><code>© 2015 Hugo Landau &lt;hlandau@devever.net&gt;    MIT License
+</code></pre>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="owner">
+      <p><a href="https://github.com/hlandau" class="avatar"><img src="https://avatars3.githubusercontent.com/u/2270010?v=3&amp;s=60" width="48" height="48"></a> <a href="https://github.com/hlandau">hlandau</a> maintains <a href="https://github.com/hlandau/acme">ACME Client Utilities</a></p>
+
+
+      </div>
+      <div class="creds">
+        <small>This page generated using <a href="https://pages.github.com/">GitHub Pages</a><br>theme by <a href="https://twitter.com/jonrohan/">Jon Rohan</a></small>
+      </div>
+    </footer>
+  </div>
+  <div class="current-section">
+    <a href="#top">Scroll to top</a>
+    <a href="https://github.com/hlandau/acme/tarball/master" class="tar">tar</a><a href="https://github.com/hlandau/acme/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
+    <p class="name"></p>
+  </div>
+
+            <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-71169913-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+</body>
+</html>
