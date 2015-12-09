@@ -2,7 +2,7 @@ PROJNAME=github.com/hlandau/acme
 BINARIES=$(PROJNAME)/cmd/acmetool
 
 ###############################################################################
-# v1.8  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
+# v1.10  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
 # This is a standard Makefile for building Go code designed to be copied into
 # other projects. Code below this line is not intended to be modified.
 #
@@ -38,12 +38,8 @@ ifeq ($(V),1)
 endif
 
 ## Buildinfo
-BUILDNAME?=$(shell date -u "%Y%m%d%H%M%S") on $(shell hostname -f)
-BUILDINFO=$(shell (echo built $(BUILDNAME); go list -f '{{range $$imp := .Deps}}{{printf "%s\n" $$imp}}{{end}}' $(1) | sort -u | xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' | awk "{print \"$$GOPATH/src/\" \$$0}" | (while read line; do x="$$line"; while [ ! -e "$$x/.git" -a ! -e "$$x/.hg" ]; do x=$${x%/*}; if [ "$$x" = "" ]; then break; fi; done; echo "$$x"; done) | sort -u | (while read line; do echo git $${line\#$$GOPATH/src/} $$(git -C "$$line" rev-parse HEAD) $$(git -C "$$line" describe --all --dirty=+ --abbrev=99 --always); done)) | base64 -w 0)
-BUILDINFO_FLAG=
-
 ifeq ($(USE_BUILDINFO),1)
-	BUILDINFO_FLAG= -ldflags "-X github.com/hlandau/degoutils/buildinfo.RawBuildInfo=$(call BUILDINFO,$(1))"
+	BUILDINFO_FLAG=-ldflags "$$($$GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $(1))"
 endif
 
 ## Standard Rules
@@ -63,6 +59,7 @@ prebuild-checks:
 		done; \
 		ln -s "$(GOPATH)/src/$(PROJNAME)/Makefile"; \
 		[ -e "$(GOPATH)/src/$(PROJNAME)/_doc" ] && ln -s "$(GOPATH)/src/$(PROJNAME)/_doc" doc; \
+		[ -e "$(GOPATH)/src/$(PROJNAME)/_tpl" ] && ln -s "$(GOPATH)/src/$(PROJNAME)/_tpl" tpl; \
 	fi; \
 	exit 0
 

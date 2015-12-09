@@ -54,18 +54,21 @@ mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
 # Assume that x86 machines don't necessarily have SSE2. Whereas for amd64,
 # require SSE2.
 
-# cgo crosscompile
 REPO=github.com/$TRAVIS_REPO_SLUG
 BINARIES=$REPO/cmd/acmetool
-gox -cgo -osarch 'linux/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+export BUILDNAME="by travis"
+BUILDINFO="$($GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $BINARIES)"
+
+# cgo crosscompile
+gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT1=$?
-GO386=387 gox -cgo -osarch 'linux/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+GO386=387 gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT2=$?
 
 # non-cgo crosscompile
-gox -osarch 'darwin/amd64 linux/arm freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+gox -ldflags "$BUILDINFO" -osarch 'darwin/amd64 linux/arm freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT3=$?
-GO386=387 gox -osarch 'darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+GO386=387 gox -ldflags "$BUILDINFO" -osarch 'darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT4=$?
 
 # Defer exiting to get as much error output as possible upfront.
