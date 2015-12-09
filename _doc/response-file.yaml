@@ -7,6 +7,8 @@
 # This file is YAML. Note that JSON is a subset of YAML.
 "acmetool-quickstart-choose-server": https://acme-staging.api.letsencrypt.org/directory
 "acmetool-quickstart-choose-method": redirector
+# This is only used if "acmetool-quickstart-choose-method" is "webroot".
+"acmetool-quickstart-webroot-path": "/var/www/foo/bar"
 "acme-enter-email": "hostmaster@example.com"
 "acmetool-quickstart-complete": true
 "acmetool-quickstart-install-cronjob": true
