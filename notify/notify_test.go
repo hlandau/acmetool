@@ -9,21 +9,33 @@ import (
 )
 
 const fileTpl = `#!/bin/sh
+%s
 [ -n "$ACME_STATE_DIR" ] || exit 1
 echo NOTIFY-%d >> "$ACME_STATE_DIR/log"
 while read line; do
   echo L-$line >> "$ACME_STATE_DIR/log"
 done`
 
-const answer = `NOTIFY-1
+var answer = []string{
+	`NOTIFY-0
 L-a.b
 L-c.d
 L-e.f.g
-NOTIFY-2
+NOTIFY-1
 L-a.b
 L-c.d
 L-e.f.g
-`
+`,
+	`NOTIFY-0
+L-a.b
+L-c.d
+L-e.f.g
+NOTIFY-3
+L-a.b
+L-c.d
+L-e.f.g
+`,
+}
 
 func TestNotify(t *testing.T) {
 	dir, err := ioutil.TempDir("", "acme-notify-test")
@@ -34,34 +46,34 @@ func TestNotify(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	notifyDir := filepath.Join(dir, "notify")
-	err = os.Mkdir(notifyDir, 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	err = ioutil.WriteFile(filepath.Join(notifyDir, "alpha"), []byte(fmt.Sprintf(fileTpl, 1)), 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for i := 0; i < 2; i++ {
+		err = ReplaceHook(notifyDir, "alpha", fmt.Sprintf(fileTpl, "", i*2+0))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	err = ioutil.WriteFile(filepath.Join(notifyDir, "beta"), []byte(fmt.Sprintf(fileTpl, 2)), 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
+		err = ReplaceHook(notifyDir, "beta", fmt.Sprintf(fileTpl, "#!acmetool-managed!#", i*2+1))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	err = Notify(notifyDir, dir, []string{"a.b", "c.d", "e.f.g"})
-	if err != nil {
-		t.Fatal(err)
-	}
+		os.Remove(filepath.Join(dir, "log"))
 
-	b, err := ioutil.ReadFile(filepath.Join(dir, "log"))
-	if err != nil {
-		t.Fatal(err)
-	}
+		err = Notify(notifyDir, dir, []string{"a.b", "c.d", "e.f.g"})
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	s := string(b)
-	if s != answer {
-		t.Fatalf("mismatch: %v != %v", s, answer)
+		b, err := ioutil.ReadFile(filepath.Join(dir, "log"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		s := string(b)
+		if s != answer[i] {
+			t.Fatalf("mismatch: %v != %v", s, answer[i])
+		}
 	}
 }
 

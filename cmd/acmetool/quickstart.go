@@ -75,7 +75,11 @@ func cmdQuickstart() {
 }
 
 const reloadHookFile = `#!/bin/sh
-##!standard-reload-hook:1!##
+## This file was installed by acmetool. Any updates to this script will
+## overwrite changes you make. If you don't want acmetool to manage
+## this file, remove the following line.
+##!acmetool-managed!##
+
 set -e
 EVENT_NAME="$1"
 SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy"
@@ -105,7 +109,11 @@ if [ -e "/etc/init.d" ]; then
 fi`
 
 const haproxyReloadHookFile = `#!/bin/sh
-##!haproxy-reload-hook:2!##
+## This file was installed by acmetool. Any updates to this script will
+## overwrite changes you make. If you don't want acmetool to manage
+## this file, remove the following line.
+##!acmetool-managed!##
+
 # This file should be executed before 'reload'. So long as it is named
 # 'haproxy' and reload is named 'reload', that is assured.
 
@@ -136,31 +144,12 @@ done
 `
 
 func installDefaultHooks() {
-	path := notify.DefaultHookPath
-
-	err := os.MkdirAll(path, 0755)
-	if err != nil {
-		// fail silently, allow non-root, makes travis work.
-		return
-	}
-
-	f, err := os.OpenFile(filepath.Join(path, "reload"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
-	if err != nil {
-		return
-	}
-
-	defer f.Close()
-	f.Write([]byte(reloadHookFile))
+	notify.ReplaceHook(*hooksFlag, "reload", reloadHookFile)
+	// fail silently, allow non-root, makes travis work.
 }
 
 func installHAProxyHooks() {
-	f, err := os.OpenFile(filepath.Join(notify.DefaultHookPath, "haproxy"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
-	if err != nil {
-		return
-	}
-
-	defer f.Close()
-	f.Write([]byte(strings.Replace(haproxyReloadHookFile, "@@ACME_STATE_DIR@@", *stateFlag, -1)))
+	notify.ReplaceHook(*hooksFlag, "haproxy", strings.Replace(haproxyReloadHookFile, "@@ACME_STATE_DIR@@", *stateFlag, -1))
 }
 
 var errStop = fmt.Errorf("stop")

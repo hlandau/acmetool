@@ -28,8 +28,9 @@ var (
 			PlaceHolder(storage.RecommendedPath).
 			String()
 
-	hooksFlag = kingpin.Flag("hooks", "Path to the notification hooks directory").
+	hooksFlag = kingpin.Flag("hooks", "Path to the notification hooks directory (env: ACME_HOOKS_DIR)").
 			Default(notify.DefaultHookPath).
+			Envar("ACME_HOOKS_DIR").
 			PlaceHolder(notify.DefaultHookPath).
 			String()
 
