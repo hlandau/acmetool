@@ -90,6 +90,10 @@ type Target struct {
 	Priority int `yaml:"priority,omitempty"`
 }
 
+func (t *Target) String() string {
+	return fmt.Sprintf("Target(%s;%s;%d)", strings.Join(t.Names, ","), t.Provider, t.Priority)
+}
+
 // Represents stored certificate information.
 type Certificate struct {
 	// N. URL from which the certificate can be retrieved.
@@ -107,6 +111,10 @@ type Certificate struct {
 
 	// D. ID: formed from hash of certificate URL.
 	// D. Path: formed from ID.
+}
+
+func (c *Certificate) String() string {
+	return fmt.Sprintf("Certificate(%v)", c.ID())
 }
 
 func (c *Certificate) ID() string {
@@ -812,31 +820,42 @@ func (s *Store) Reconcile() error {
 
 func (s *Store) reconcile() error {
 	if s.haveUncachedCertificates() {
+		log.Debug("there are uncached certificates - downloading them")
+
 		err := s.downloadUncachedCertificates()
 		if err != nil {
 			return err
 		}
 
+		log.Debug("reloading after downloading uncached certificates")
 		err = s.load()
+		log.Debugf("finished reloading after downloading uncached certificates (%v)", err)
 		if err != nil {
 			return err
 		}
 		if s.haveUncachedCertificates() {
+			log.Error("failed to download all uncached certificates")
 			return fmt.Errorf("cannot obtain one or more uncached certificates")
 		}
 	}
 
+	log.Debugf("now processing targets")
 	for _, t := range s.targets {
 		c, err := s.findBestCertificateSatisfying(t)
+		log.Debugf("best certificate satisfying %v is %v, err=%v", t, c, err)
 		if err == nil && !s.certificateNeedsRenewing(c) {
+			log.Debug("have best certificate which does not need renewing, skipping target")
 			continue
 		}
 
+		log.Debugf("requesting certificate for target %v", t)
 		err = s.requestCertificateForTarget(t)
+		log.Errore(err, "failed to request certificate for target %v", t)
 		if err != nil {
 			return err
 		}
 	}
+	log.Debugf("done processing targets, reconciliation complete")
 
 	return nil
 }
@@ -865,6 +884,8 @@ func (s *Store) downloadUncachedCertificates() error {
 }
 
 func (s *Store) downloadCertificate(c *Certificate) error {
+	log.Debugf("downloading certificate %v", c)
+
 	col := s.db.Collection("certs/" + c.ID())
 	if col == nil {
 		return fmt.Errorf("cannot get collection")
@@ -951,16 +972,19 @@ func (s *Store) findBestCertificateSatisfying(t *Target) (*Certificate, error) {
 
 func (s *Store) doesCertSatisfy(c *Certificate, t *Target) bool {
 	if len(c.Certificates) == 0 {
+		log.Debugf("certificate %v cannot satisfy %v because it has no actual certificates", c, t)
 		return false
 	}
 
 	if c.Key == nil {
 		// a certificate we don't have the key for is unusable.
+		log.Debugf("certificate %v cannot satisfy %v because we do not have a key for it", c, t)
 		return false
 	}
 
 	cc, err := x509.ParseCertificate(c.Certificates[0])
 	if err != nil {
+		log.Debugf("certificate %v cannot satisfy %v because we cannot parse it: %v", c, t, err)
 		return false
 	}
 
@@ -972,24 +996,30 @@ func (s *Store) doesCertSatisfy(c *Certificate, t *Target) bool {
 	for _, name := range t.Names {
 		_, ok := names[name]
 		if !ok {
+			log.Debugf("certificate %v cannot satisfy %v because required hostname %#v is not listed on it: %#v", c, t, name, cc.DNSNames)
 			return false
 		}
 	}
 
+	log.Debugf("certificate %v satisfies %v", c, t)
 	return true
 }
 
 func (s *Store) certificateNeedsRenewing(c *Certificate) bool {
 	if len(c.Certificates) == 0 {
+		log.Debugf("not renewing %v because it has no actual certificates (???)", c)
 		return false
 	}
 
 	cc, err := x509.ParseCertificate(c.Certificates[0])
 	if err != nil {
+		log.Debugf("not renewing %v because its end certificate is unparseable", c)
 		return false
 	}
 
-	return cc.NotAfter.Before(time.Now().AddDate(0, 0, 30))
+	needsRenewing := cc.NotAfter.Before(time.Now().AddDate(0, 0, 30))
+	log.Debugf("%v needsRenewing=%v notAfter=%v", c, needsRenewing, cc.NotAfter)
+	return needsRenewing
 }
 
 func (s *Store) certBetterThan(a *Certificate, b *Certificate) bool {
@@ -1120,8 +1150,10 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 	}
 
 	for _, name := range authsNeeded {
+		log.Debugf("trying to obtain authorization for %#v", name)
 		err := s.obtainAuthorization(name, t.Account)
 		if err != nil {
+			log.Errore(err, "could not obtain authorization for ", name)
 			return err
 		}
 	}
@@ -1131,8 +1163,10 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 		return err
 	}
 
+	log.Debugf("requesting certificate for %v", t)
 	acrt, err := cl.RequestCertificate(csr)
 	if err != nil {
+		log.Errore(err, "could not request certificate")
 		return err
 	}
 
@@ -1146,11 +1180,13 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 
 	err = fdb.WriteBytes(c, "url", []byte(crt.URL))
 	if err != nil {
+		log.Errore(err, "could not write certificate URL")
 		return err
 	}
 
 	s.certs[certID] = crt
 
+	log.Debugf("downloading certificate which was just requested: %#v", crt.URL)
 	err = s.downloadCertificate(crt)
 	if err != nil {
 		return err

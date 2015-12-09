@@ -82,7 +82,10 @@ func (p TypePreferencer) Copy() TypePreferencer {
 var PreferFast = TypePreferencer{
 	"tls-sni-01": 1,
 	"http-01":    0,
-	"dns-01":     -100,
+
+	// Disable DNS challenges for now. They're practically unusable and the Let's
+	// Encrypt live server doesn't support them at this time anyway.
+	//"dns-01":     -100,
 
 	// Avoid unless necessary. In future we might want to determine whether we
 	// have a key and prefer this accordingly.
