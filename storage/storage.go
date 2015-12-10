@@ -818,6 +818,29 @@ func (s *Store) Reconcile() error {
 	return err
 }
 
+// Error associated with a specific target, for clarity of error messages.
+type TargetSpecificError struct {
+	Target *Target
+	Err    error
+}
+
+func (tse *TargetSpecificError) Error() string {
+	return fmt.Sprintf("error satisfying target %v: %v", tse.Target, tse.Err)
+}
+
+type MultiError []error
+
+func (me MultiError) Error() string {
+	s := ""
+	for _, e := range me {
+		if s != "" {
+			s += "; \n"
+		}
+		s += e.Error()
+	}
+	return "the following errors occurred:\n" + s
+}
+
 func (s *Store) reconcile() error {
 	if s.haveUncachedCertificates() {
 		log.Debug("there are uncached certificates - downloading them")
@@ -840,6 +863,7 @@ func (s *Store) reconcile() error {
 	}
 
 	log.Debugf("now processing targets")
+	var merr MultiError
 	for _, t := range s.targets {
 		c, err := s.findBestCertificateSatisfying(t)
 		log.Debugf("best certificate satisfying %v is %v, err=%v", t, c, err)
@@ -850,12 +874,21 @@ func (s *Store) reconcile() error {
 
 		log.Debugf("requesting certificate for target %v", t)
 		err = s.requestCertificateForTarget(t)
-		log.Errore(err, "failed to request certificate for target %v", t)
+		log.Errore(err, "failed to request certificate for target ", t)
 		if err != nil {
-			return err
+			// do not block satisfaction of other targets just because one fails;
+			// collect errors and return them as one
+			merr = append(merr, &TargetSpecificError{
+				Target: t,
+				Err:    err,
+			})
 		}
 	}
-	log.Debugf("done processing targets, reconciliation complete")
+	log.Debugf("done processing targets, reconciliation complete, %d errors occurred", len(merr))
+
+	if len(merr) != 0 {
+		return merr
+	}
 
 	return nil
 }
