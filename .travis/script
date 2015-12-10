@@ -8,7 +8,7 @@ travis_retry go get \
   github.com/jsha/listenbuddy \
   github.com/letsencrypt/boulder/... \
   github.com/tcnksm/ghr \
-  github.com/mitchellh/gox
+  github.com/hlandau/gox
 
 # Setup DB.
 cd $GOPATH/src/github.com/letsencrypt/boulder
