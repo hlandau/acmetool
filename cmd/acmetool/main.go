@@ -53,6 +53,9 @@ var (
 	redirectorPathFlag = redirectorCmd.Flag("path", "Path to serve challenge files from").String()
 	redirectorGIDFlag  = redirectorCmd.Flag("challenge-gid", "GID to chgrp the challenge path to (optional)").String()
 
+	testNotifyCmd = kingpin.Command("test-notify", "Test-execute notification hooks as though given hostnames were updated")
+	testNotifyArg = testNotifyCmd.Arg("hostname", "hostnames which have been updated").Strings()
+
 	importJWKAccountCmd = kingpin.Command("import-jwk-account", "Import a JWK account key")
 	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
 	importJWKPathArg    = importJWKAccountCmd.Arg("private-key-file", "Path to private_key.json").Required().ExistingFile()
@@ -67,6 +70,7 @@ var (
 func main() {
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
+	notify.DefaultHookPath = *hooksFlag
 	xlogconfig.Init()
 
 	if *batchFlag {
@@ -92,6 +96,8 @@ func main() {
 		cmdQuickstart()
 	case "redirector":
 		cmdRunRedirector()
+	case "test-notify":
+		cmdRunTestNotify()
 	case "import-key":
 		cmdImportKey()
 	case "import-jwk-account":
@@ -180,6 +186,11 @@ func determineWebroot() string {
 	}
 
 	return "/var/run/acme/acme-challenge"
+}
+
+func cmdRunTestNotify() {
+	err := notify.Notify(*hooksFlag, *stateFlag, *testNotifyArg)
+	log.Errore(err, "notify")
 }
 
 // YAML response file loading.
