@@ -43,8 +43,9 @@ var (
 
 	reconcileCmd = kingpin.Command("reconcile", "Reconcile ACME state").Default()
 
-	wantCmd = kingpin.Command("want", "Add a target with one or more hostnames")
-	wantArg = wantCmd.Arg("hostname", "hostnames for which a certificate is desired").Required().Strings()
+	wantCmd       = kingpin.Command("want", "Add a target with one or more hostnames")
+	wantReconcile = wantCmd.Flag("reconcile", "Specify --no-reconcile to skip reconcile after adding target").Default("1").Bool()
+	wantArg       = wantCmd.Arg("hostname", "hostnames for which a certifask some getting started questions (recommended)").Required().Strings()
 
 	quickstartCmd = kingpin.Command("quickstart", "Interactively ask some getting started questions (recommended)")
 	expertFlag    = quickstartCmd.Flag("expert", "Ask more questions in quickstart wizard").Bool()
@@ -91,7 +92,9 @@ func main() {
 		cmdReconcile()
 	case "want":
 		cmdWant()
-		cmdReconcile()
+		if *wantReconcile {
+			cmdReconcile()
+		}
 	case "quickstart":
 		cmdQuickstart()
 	case "redirector":
