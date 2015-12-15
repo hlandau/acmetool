@@ -33,17 +33,6 @@ diff --git a/test/boulder-config.json b/test/boulder-config.json
 index cb3b70a..9b92ea1 100644
 --- a/test/boulder-config.json
 +++ b/test/boulder-config.json
-@@ -113,8 +113,8 @@
-   "pa": {
-     "dbConnect": "mysql+tcp://policy@localhost:3306/boulder_policy_integration",
-     "challenges": {
--      "simpleHttp": true,
--      "dvsni": true,
-+      "simpleHttp": false,
-+      "dvsni": false,
-       "http-01": true,
-       "tls-sni-01": true,
-       "dns-01": true
 @@ -161,9 +161,9 @@
      "userAgent": "boulder",
      "debugAddr": "localhost:8004",
