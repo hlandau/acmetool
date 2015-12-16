@@ -2,7 +2,7 @@ PROJNAME=github.com/hlandau/acme
 BINARIES=$(PROJNAME)/cmd/acmetool
 
 ###############################################################################
-# v1.10  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
+# v1.11  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
 # This is a standard Makefile for building Go code designed to be copied into
 # other projects. Code below this line is not intended to be modified.
 #
@@ -86,3 +86,6 @@ install: all
 	$(call QI,INSTALL,$(BINARIES))for x in $(BINARIES); do \
 		install -Dp $(GOBIN)/`basename "$$x"` $(DESTDIR)$(PREFIX)/bin; \
 	done
+
+update: | .gotten
+	$(call QI,GO-GET,$(PROJNAME))go get -u $(PROJNAME)/...
