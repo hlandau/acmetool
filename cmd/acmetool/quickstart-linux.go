@@ -6,15 +6,15 @@ import (
 	"fmt"
 	sddbus "github.com/coreos/go-systemd/dbus"
 	sdunit "github.com/coreos/go-systemd/unit"
-	sdutil "github.com/coreos/go-systemd/util"
 	"github.com/hlandau/acme/interaction"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
+	"gopkg.in/hlandau/svcutils.v1/systemd" // coreos/go-systemd/util requires cgo
 	"io"
 	"os"
 )
 
 func promptSystemd() {
-	if !sdutil.IsRunningSystemd() {
+	if !systemd.IsRunningSystemd() {
 		log.Debugf("not running systemd")
 		return
 	}
