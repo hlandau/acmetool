@@ -7,6 +7,7 @@ import (
 	"github.com/hlandau/acme/acmeutils"
 	"github.com/hlandau/acme/storage"
 	"github.com/square/go-jose"
+	"golang.org/x/net/context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -133,13 +134,13 @@ func determineLECertificateURL(certFilename string) (string, error) {
 		}
 
 		cl := acmeapi.Client{
-			BaseURL: u,
+			DirectoryURL: u,
 		}
 
 		crt := acmeapi.Certificate{
 			URI: certURL,
 		}
-		err = cl.LoadCertificate(&crt)
+		err = cl.LoadCertificate(&crt, context.TODO())
 		if err != nil {
 			continue
 		}

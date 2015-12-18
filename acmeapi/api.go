@@ -1,4 +1,22 @@
 // Package acmeapi provides an API for accessing ACME servers.
+//
+// Some methods provided correspond exactly to ACME calls, such as
+// NewAuthorization, RespondToChallenge, RequestCertificate or Revoke. Others,
+// such as UpsertRegistration, LoadCertificate or WaitForCertificate,
+// automatically compose requests to provide a simplified interface.
+//
+// For example, LoadCertificate obtains the issuing certificate chain as well.
+// WaitForCertificate polls until a certificate is available.
+// UpsertRegistration determines automatically whether an account key is
+// already registered and registers it if it is not.
+//
+// All methods take Contexts so as to support cancellation and timeouts.
+//
+// If you have an URI for an authorization, challenge or certificate, you
+// can load it by constructing such an object and setting the URI field,
+// then calling the appropriate Load function. (The unexported fields in these
+// structures are used to track Retry-After times for the WaitLoad* functions and
+// are not a barrier to you constructing these objects.)
 package acmeapi
 
 import (
@@ -10,6 +28,7 @@ import (
 	denet "github.com/hlandau/degoutils/net"
 	"github.com/peterhellberg/link"
 	"golang.org/x/net/context"
+	"golang.org/x/net/context/ctxhttp"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -27,11 +46,15 @@ import (
 // Log site.
 var log, Log = xlog.NewQuiet("acme.api")
 
-const LEStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
-const LELiveURL = "https://acme-v01.api.letsencrypt.org/directory"
+const (
+	// Let's Encrypt Live ACME Directory URL.
+	LELiveURL = "https://acme-v01.api.letsencrypt.org/directory"
+	// Let's Encrypt Staging ACME Directory URL.
+	LEStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
+)
 
-// Default provider to use.
-var DefaultBaseURL = LEStagingURL
+// Default provider to use. Currently defaults to the Let's Encrypt staging server.
+var DefaultDirectoryURL = LEStagingURL
 
 type directoryInfo struct {
 	NewReg     string `json:"new-reg"`
@@ -140,6 +163,8 @@ type Authorization struct {
 	Expires      time.Time    `json:"expires,omitempty"` // RFC 3339 (ISO 8601)
 	Challenges   []*Challenge `json:"challenges,omitempty"`
 	Combinations [][]int      `json:"combinations,omitempty"`
+
+	retryAt time.Time
 }
 
 // Represents a certificate which has been, or is about to be, issued.
@@ -147,11 +172,15 @@ type Certificate struct {
 	URI      string `json:"-"`        // The URI of the certificate.
 	Resource string `json:"resource"` // "new-cert"
 
-	CSR         denet.Base64up `json:"csr"` // DER.
-	Certificate []byte         `json:"-"`   // DER.
+	// The certificate data. DER.
+	Certificate []byte `json:"-"`
 
-	// Any required extra certificates, in the correct order.
-	ExtraCertificates [][]byte `json:"-"` // DER.
+	// Any required extra certificates, in DER form in the correct order.
+	ExtraCertificates [][]byte `json:"-"`
+
+	// DER. Consumers of this API will find that this is always nil; it is
+	// used internally when submitting certificate requests.
+	CSR denet.Base64up `json:"csr"`
 
 	retryAt time.Time
 }
@@ -161,23 +190,23 @@ type Certificate struct {
 // You must set at least AccountKey.
 type Client struct {
 	AccountInfo struct {
-		// Account private key.
+		// Account private key. Required.
 		AccountKey crypto.PrivateKey
 
-		// Set of agreement URIs to accept.
+		// Set of agreement URIs to automatically accept.
 		AgreementURIs map[string]struct{}
 
 		// Registration URI, if found. You can set this if known, which will save a
-		// round trip in some cases.
+		// round trip in some cases. Optional.
 		RegistrationURI string
 
 		// Contact URIs. These will be used when registering or when updating a
-		// registration.
+		// registration. Optional.
 		ContactURIs []string
 	}
 
 	// The ACME server directory URL. Defaults to DefaultBaseURL.
-	BaseURL string
+	DirectoryURL string
 
 	// Uses http.DefaultClient if nil.
 	HTTPClient *http.Client
@@ -220,8 +249,8 @@ func newHTTPError(res *http.Response) error {
 	return he
 }
 
-func (c *Client) doReq(method, url string, v, r interface{}) (*http.Response, error) {
-	return c.doReqEx(method, url, nil, v, r)
+func (c *Client) doReq(method, url string, v, r interface{}, ctx context.Context) (*http.Response, error) {
+	return c.doReqEx(method, url, nil, v, r, ctx)
 }
 
 func algorithmFromKey(key crypto.PrivateKey) (jose.SignatureAlgorithm, error) {
@@ -245,7 +274,7 @@ func algorithmFromKey(key crypto.PrivateKey) (jose.SignatureAlgorithm, error) {
 	}
 }
 
-func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interface{}) (*http.Response, error) {
+func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interface{}, ctx context.Context) (*http.Response, error) {
 	if TestingNoTLS && strings.HasPrefix(url, "https:") {
 		url = "http" + url[5:]
 	}
@@ -304,13 +333,8 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	cl := c.HTTPClient
-	if cl == nil {
-		cl = http.DefaultClient
-	}
-
 	log.Debugf("request: %s", url)
-	res, err := cl.Do(req)
+	res, err := ctxhttp.Do(ctx, c.HTTPClient, req)
 	log.Debugf("response: %v %v", res, err)
 	if err != nil {
 		return nil, err
@@ -348,7 +372,10 @@ func ValidURL(u string) bool {
 	return err == nil && (ur.Scheme == "https" || (TestingNoTLS && ur.Scheme == "http"))
 }
 
-// Internal use only.
+// Internal use only. All ACME URLs must use "https" and not "http". However,
+// for testing purposes, if this is set, "https" URLs will be retrieved as
+// though they are "http" URLs. This is useful for testing when a test ACME
+// server doesn't have SSL configured.
 var TestingNoTLS = false
 
 func parseRetryAfter(h http.Header) (t time.Time, ok bool) {
@@ -379,16 +406,16 @@ func retryAtDefault(h http.Header, d time.Duration) time.Time {
 	return time.Now().Add(d)
 }
 
-func (c *Client) getDirectory() (*directoryInfo, error) {
+func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
 	if c.dir != nil {
 		return c.dir, nil
 	}
 
-	if c.BaseURL == "" {
-		c.BaseURL = DefaultBaseURL
+	if c.DirectoryURL == "" {
+		c.DirectoryURL = DefaultDirectoryURL
 	}
 
-	_, err := c.doReq("GET", c.BaseURL, nil, &c.dir)
+	_, err := c.doReq("GET", c.DirectoryURL, nil, &c.dir, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -404,12 +431,12 @@ func (c *Client) getDirectory() (*directoryInfo, error) {
 // API Methods
 
 // Find the registration URI, by registering a new account if necessary.
-func (c *Client) getRegistrationURI() (string, error) {
+func (c *Client) getRegistrationURI(ctx context.Context) (string, error) {
 	if c.AccountInfo.RegistrationURI != "" {
 		return c.AccountInfo.RegistrationURI, nil
 	}
 
-	di, err := c.getDirectory()
+	di, err := c.getDirectory(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -420,7 +447,7 @@ func (c *Client) getRegistrationURI() (string, error) {
 	}
 
 	var resInfo *regInfo
-	res, err := c.doReq("POST", di.NewReg, &reqInfo, &resInfo)
+	res, err := c.doReq("POST", di.NewReg, &reqInfo, &resInfo, ctx)
 	if res == nil {
 		return "", err
 	}
@@ -447,8 +474,8 @@ func (c *Client) getRegistrationURI() (string, error) {
 //
 // If a new agreement is required and it is set in AgreementURIs, it will be
 // agreed to automatically. Otherwise AgreementError will be returned.
-func (c *Client) UpsertRegistration() error {
-	regURI, err := c.getRegistrationURI()
+func (c *Client) UpsertRegistration(ctx context.Context) error {
+	regURI, err := c.getRegistrationURI(ctx)
 	if err != nil {
 		return err
 	}
@@ -459,7 +486,7 @@ func (c *Client) UpsertRegistration() error {
 	}
 
 	var resInfo *regInfo
-	res, err := c.doReq("POST", regURI, &reqInfo, &resInfo)
+	res, err := c.doReq("POST", regURI, &reqInfo, &resInfo, ctx)
 	if err != nil {
 		return err
 	}
@@ -473,7 +500,7 @@ func (c *Client) UpsertRegistration() error {
 			}
 
 			reqInfo.AgreementURI = tosLink.URI
-			_, err = c.doReq("POST", regURI, &reqInfo, &resInfo)
+			_, err = c.doReq("POST", regURI, &reqInfo, &resInfo, ctx)
 			if err != nil {
 				return err
 			}
@@ -484,10 +511,13 @@ func (c *Client) UpsertRegistration() error {
 }
 
 // Load or reload the details of an authorization via the URI.
-func (c *Client) LoadAuthorization(az *Authorization) error {
+//
+// You can load an authorization from only the URI by creating an Authorization
+// with the URI set and then calling this.
+func (c *Client) LoadAuthorization(az *Authorization, ctx context.Context) error {
 	az.Combinations = nil
 
-	_, err := c.doReq("GET", az.URI, nil, az)
+	res, err := c.doReq("GET", az.URI, nil, az, ctx)
 	if err != nil {
 		return err
 	}
@@ -497,7 +527,19 @@ func (c *Client) LoadAuthorization(az *Authorization) error {
 		return err
 	}
 
+	az.retryAt = retryAtDefault(res.Header, 10*time.Second)
 	return nil
+}
+
+// Like LoadAuthorization, but waits the retry time if this is not the first
+// attempt to load this authoization. To be used when polling.
+func (c *Client) WaitLoadAuthorization(az *Authorization, ctx context.Context) error {
+	err := waitUntil(az.retryAt, ctx)
+	if err != nil {
+		return err
+	}
+
+	return c.LoadAuthorization(az, ctx)
 }
 
 func (az *Authorization) validate() error {
@@ -529,8 +571,11 @@ func (az *Authorization) validate() error {
 }
 
 // Load or reload the details of a challenge via the URI.
-func (c *Client) LoadChallenge(ch *Challenge) error {
-	res, err := c.doReq("GET", ch.URI, nil, ch)
+//
+// You can load a challenge from only the URI by creating a Challenge with the
+// URI set and then calling this.
+func (c *Client) LoadChallenge(ch *Challenge, ctx context.Context) error {
+	res, err := c.doReq("GET", ch.URI, nil, ch, ctx)
 	if err != nil {
 		return err
 	}
@@ -552,7 +597,7 @@ func (c *Client) WaitLoadChallenge(ch *Challenge, ctx context.Context) error {
 		return err
 	}
 
-	return c.LoadChallenge(ch)
+	return c.LoadChallenge(ch, ctx)
 }
 
 func (ch *Challenge) validate() error {
@@ -564,8 +609,8 @@ func (ch *Challenge) validate() error {
 }
 
 // Create a new authorization for the given hostname.
-func (c *Client) NewAuthorization(hostname string) (*Authorization, error) {
-	di, err := c.getDirectory()
+func (c *Client) NewAuthorization(hostname string, ctx context.Context) (*Authorization, error) {
+	di, err := c.getDirectory(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -578,7 +623,7 @@ func (c *Client) NewAuthorization(hostname string) (*Authorization, error) {
 		},
 	}
 
-	res, err := c.doReq("POST", di.NewAuthz, az, az)
+	res, err := c.doReq("POST", di.NewAuthz, az, az, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -599,9 +644,12 @@ func (c *Client) NewAuthorization(hostname string) (*Authorization, error) {
 }
 
 // Submit a challenge response. Only the challenge URI is required.
+//
+// The response message is signed with the given key.
+//
 // If responseKey is nil, the account key is used.
-func (c *Client) RespondToChallenge(ch *Challenge, response json.RawMessage, responseKey crypto.PrivateKey) error {
-	_, err := c.doReqEx("POST", ch.URI, responseKey, &response, c)
+func (c *Client) RespondToChallenge(ch *Challenge, response json.RawMessage, responseKey crypto.PrivateKey, ctx context.Context) error {
+	_, err := c.doReqEx("POST", ch.URI, responseKey, &response, c, ctx)
 	if err != nil {
 		return err
 	}
@@ -610,8 +658,8 @@ func (c *Client) RespondToChallenge(ch *Challenge, response json.RawMessage, res
 }
 
 // Request a certificate using a CSR in DER form.
-func (c *Client) RequestCertificate(csrDER []byte) (*Certificate, error) {
-	di, err := c.getDirectory()
+func (c *Client) RequestCertificate(csrDER []byte, ctx context.Context) (*Certificate, error) {
+	di, err := c.getDirectory(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -621,7 +669,7 @@ func (c *Client) RequestCertificate(csrDER []byte) (*Certificate, error) {
 		CSR:      csrDER,
 	}
 
-	res, err := c.doReq("POST", di.NewCert, crt, nil)
+	res, err := c.doReq("POST", di.NewCert, crt, nil, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -638,7 +686,7 @@ func (c *Client) RequestCertificate(csrDER []byte) (*Certificate, error) {
 
 	crt.URI = loc
 
-	err = c.loadCertificate(crt, res)
+	err = c.loadCertificate(crt, res, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -648,18 +696,21 @@ func (c *Client) RequestCertificate(csrDER []byte) (*Certificate, error) {
 
 // Load or reload a certificate.
 //
+// You can load a certificate from its URI by creating a Certificate with the
+// URI set and then calling this.
+//
 // Returns nil if the certificate is not yet ready, but the Certificate field
 // will remain nil.
-func (c *Client) LoadCertificate(crt *Certificate) error {
-	res, err := c.doReq("GET", crt.URI, nil, nil)
+func (c *Client) LoadCertificate(crt *Certificate, ctx context.Context) error {
+	res, err := c.doReq("GET", crt.URI, nil, nil, ctx)
 	if err != nil {
 		return err
 	}
 
-	return c.loadCertificate(crt, res)
+	return c.loadCertificate(crt, res, ctx)
 }
 
-func (c *Client) loadCertificate(crt *Certificate, res *http.Response) error {
+func (c *Client) loadCertificate(crt *Certificate, res *http.Response, ctx context.Context) error {
 	defer res.Body.Close()
 	ct := res.Header.Get("Content-Type")
 	if ct == "application/pkix-cert" {
@@ -669,7 +720,7 @@ func (c *Client) loadCertificate(crt *Certificate, res *http.Response) error {
 		}
 
 		crt.Certificate = der
-		err = c.loadExtraCertificates(crt, res)
+		err = c.loadExtraCertificates(crt, res, ctx)
 		if err != nil {
 			return err
 		}
@@ -682,7 +733,7 @@ func (c *Client) loadCertificate(crt *Certificate, res *http.Response) error {
 	return nil
 }
 
-func (c *Client) loadExtraCertificates(crt *Certificate, res *http.Response) error {
+func (c *Client) loadExtraCertificates(crt *Certificate, res *http.Response, ctx context.Context) error {
 	crt.ExtraCertificates = nil
 
 	for {
@@ -701,7 +752,7 @@ func (c *Client) loadExtraCertificates(crt *Certificate, res *http.Response) err
 		}
 		upURI = crtURI.ResolveReference(upURI)
 
-		res, err = c.doReq("GET", upURI.String(), nil, nil)
+		res, err = c.doReq("GET", upURI.String(), nil, nil, ctx)
 		if err != nil {
 			return err
 		}
@@ -728,21 +779,29 @@ func init() {
 	close(closedChannel)
 }
 
+// Like LoadCertificate, but waits the retry time if this is not the first
+// attempt to load this certificate. To be used when polling.
+//
+// You will almost certainly want WaitForCertificate instead of this.
+func (c *Client) WaitLoadCertificate(crt *Certificate, ctx context.Context) error {
+	err := waitUntil(crt.retryAt, ctx)
+	if err != nil {
+		return err
+	}
+
+	return c.LoadCertificate(crt, ctx)
+}
+
 // Wait for a pending certificate to be issued. If the certificate has already
-// been issued, this is a no-op. Only the URI is required. May be cancelled using
-// the context.
+// been issued, this is a no-op. Only the URI is required. May be cancelled
+// using the context.
 func (c *Client) WaitForCertificate(crt *Certificate, ctx context.Context) error {
 	for {
 		if len(crt.Certificate) > 0 {
 			return nil
 		}
 
-		err := waitUntil(crt.retryAt, ctx)
-		if err != nil {
-			return err
-		}
-
-		err = c.LoadCertificate(crt)
+		err := c.WaitLoadCertificate(crt, ctx)
 		if err != nil {
 			return err
 		}
@@ -781,8 +840,8 @@ func waitUntil(t time.Time, ctx context.Context) error {
 // The revocation key may be the key corresponding to the certificate. If it is
 // nil, the account key is used; in this case, the account must be authorized
 // for all identifiers in the certificate.
-func (c *Client) Revoke(certificateDER []byte, revocationKey crypto.PrivateKey) error {
-	di, err := c.getDirectory()
+func (c *Client) Revoke(certificateDER []byte, revocationKey crypto.PrivateKey, ctx context.Context) error {
+	di, err := c.getDirectory(ctx)
 	if err != nil {
 		return err
 	}
@@ -792,7 +851,7 @@ func (c *Client) Revoke(certificateDER []byte, revocationKey crypto.PrivateKey) 
 		Certificate: certificateDER,
 	}
 
-	res, err := c.doReqEx("POST", di.RevokeCert, revocationKey, req, nil)
+	res, err := c.doReqEx("POST", di.RevokeCert, revocationKey, req, nil, ctx)
 	if err != nil {
 		return err
 	}

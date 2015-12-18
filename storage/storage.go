@@ -178,7 +178,7 @@ func New(path string) (*Store, error) {
 	s := &Store{
 		db:             db,
 		path:           path,
-		defaultBaseURL: acmeapi.DefaultBaseURL,
+		defaultBaseURL: acmeapi.DefaultDirectoryURL,
 	}
 
 	err = s.load()
@@ -585,7 +585,7 @@ func (s *Store) EnsureRegistration() error {
 	}
 
 	cl := s.getAccountClient(a)
-	return solver.AssistedUpsertRegistration(cl, nil)
+	return solver.AssistedUpsertRegistration(cl, nil, context.TODO())
 }
 
 func (s *Store) getAccountByProviderString(p string) (*Account, error) {
@@ -594,7 +594,7 @@ func (s *Store) getAccountByProviderString(p string) (*Account, error) {
 	}
 
 	if p == "" {
-		p = acmeapi.DefaultBaseURL
+		p = acmeapi.DefaultDirectoryURL
 	}
 
 	if !acmeapi.ValidURL(p) {
@@ -1075,7 +1075,7 @@ func (s *Store) certBetterThan(a *Certificate, b *Certificate) bool {
 func (s *Store) getAccountClient(a *Account) *acmeapi.Client {
 	cl := &acmeapi.Client{}
 	cl.AccountInfo.AccountKey = a.PrivateKey
-	cl.BaseURL = a.BaseURL
+	cl.DirectoryURL = a.BaseURL
 	return cl
 }
 
@@ -1125,7 +1125,7 @@ func (s *Store) obtainAuthorization(name string, a *Account) error {
 		return err
 	}
 
-	err = cl.LoadAuthorization(az)
+	err = cl.LoadAuthorization(az, context.TODO())
 	if err != nil {
 		// Try proceeding anyway.
 		return nil
@@ -1172,7 +1172,7 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 	//return fmt.Errorf("not requesting certificate")
 	cl := s.getAccountClient(t.Account)
 
-	err := solver.AssistedUpsertRegistration(cl, nil)
+	err := solver.AssistedUpsertRegistration(cl, nil, context.TODO())
 	if err != nil {
 		return err
 	}
@@ -1197,7 +1197,7 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 	}
 
 	log.Debugf("requesting certificate for %v", t)
-	acrt, err := cl.RequestCertificate(csr)
+	acrt, err := cl.RequestCertificate(csr, context.TODO())
 	if err != nil {
 		log.Errore(err, "could not request certificate")
 		return err

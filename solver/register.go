@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/interaction"
+	"golang.org/x/net/context"
 	"net/mail"
 )
 
@@ -12,13 +13,13 @@ import (
 //
 // The interactor is used to prompt for terms of service agreement, if
 // agreement has not already been obtained. An e. mail address is prompted for.
-func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Interactor) error {
+func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Interactor, ctx context.Context) error {
 	interactor = defaultInteraction(interactor)
 
 	email := ""
 
 	for {
-		err := cl.UpsertRegistration()
+		err := cl.UpsertRegistration(ctx)
 		if err != nil {
 			if e, ok := err.(*acmeapi.AgreementError); ok {
 				res, err := interactor.Prompt(&interaction.Challenge{

@@ -3,6 +3,7 @@ package acmeapi
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"golang.org/x/net/context"
 	"testing"
 )
 
@@ -15,7 +16,7 @@ func TestAPI(t *testing.T) {
 	TestingNoTLS = true
 
 	cl := Client{
-		BaseURL: "https://127.0.0.1:4000/directory",
+		DirectoryURL: "https://127.0.0.1:4000/directory",
 	}
 	cl.AccountInfo.AccountKey = pk
 	cl.AccountInfo.AgreementURIs = map[string]struct{}{
@@ -25,22 +26,22 @@ func TestAPI(t *testing.T) {
 		"mailto:nobody@localhost",
 	}
 
-	err = cl.UpsertRegistration()
+	err = cl.UpsertRegistration(context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't upsert registration: %v", err)
 	}
 
-	auth, err := cl.NewAuthorization("dom1.acmetool-test.devever.net")
+	auth, err := cl.NewAuthorization("dom1.acmetool-test.devever.net", context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't create authorization: %v", err)
 	}
 
-	err = cl.LoadAuthorization(auth)
+	err = cl.LoadAuthorization(auth, context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't load authorization")
 	}
 
-	err = cl.LoadChallenge(auth.Challenges[0])
+	err = cl.LoadChallenge(auth.Challenges[0], context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't load challenge")
 	}

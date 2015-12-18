@@ -55,7 +55,7 @@ func Authorize(c *acmeapi.Client, dnsName string, webPaths []string, interactor 
 }
 
 func (as *authState) authorize() (az *acmeapi.Authorization, fatal bool, err error) {
-	az, err = as.c.NewAuthorization(as.dnsName)
+	az, err = as.c.NewAuthorization(as.dnsName, as.ctx)
 	if err != nil {
 		return nil, true, err
 	}
@@ -133,7 +133,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 
 	defer r.Stop()
 
-	err = c.RespondToChallenge(ch, r.Validation(), r.ValidationSigningKey())
+	err = c.RespondToChallenge(ch, r.Validation(), r.ValidationSigningKey(), ctx)
 	if err != nil {
 		return false /* ??? */, err
 	}
