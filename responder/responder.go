@@ -12,9 +12,19 @@ import "crypto/sha256"
 import "github.com/hlandau/acme/interaction"
 import "github.com/hlandau/xlog"
 
+// Log site.
 var log, Log = xlog.New("acme.responder")
 
 // A Responder implements a challenge type.
+//
+// After successfully instantiating a responder, you should call Start.
+//
+// You should then use the return values of Validation() and
+// ValidationSigningKey() to submit the challenge response.
+//
+// Once the challenge has been completed, as determined by polling, you must
+// call Stop. If RequestDetectedChan() is non-nil, it provides a hint as to
+// when polling may be fruitful.
 type Responder interface {
 	// Become ready to be interrogated by the ACME server.
 	Start(interactor interaction.Interactor) error
@@ -50,8 +60,7 @@ type Config struct {
 	Hostname string
 
 	// "http-01": The http responder may attempt to place challenges in these
-	// locations and perform self-testing if it is unable to listen on port 80.
-	// Optional.
+	// locations. Optional.
 	WebPaths []string
 
 	// "proofOfPossession": The certificates which are acceptable. Each entry is
@@ -85,6 +94,9 @@ func New(rcfg Config) (Responder, error) {
 	return f(rcfg)
 }
 
+// Register a responder type. Allows types other than those innately supported
+// by this package to be supported. Overrides any previously registered
+// responder of the same type.
 func RegisterResponder(typeName string, createFunc func(Config) (Responder, error)) {
 	responderTypes[typeName] = createFunc
 }

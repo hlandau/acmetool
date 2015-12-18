@@ -17,6 +17,13 @@
 // then calling the appropriate Load function. (The unexported fields in these
 // structures are used to track Retry-After times for the WaitLoad* functions and
 // are not a barrier to you constructing these objects.)
+//
+// The following additional packages are likely to be of interest:
+//
+//   https://godoc.org/github.com/hlandau/acme/responder    Challenge type implementations
+//   https://godoc.org/github.com/hlandau/acme/solver       Authorization solver
+//   https://godoc.org/github.com/hlandau/acme/acmeutils    Certificate loading utilities
+//
 package acmeapi
 
 import (

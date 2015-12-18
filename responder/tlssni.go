@@ -108,7 +108,8 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 	return r, nil
 }
 
-// Internal use only.
+// Internal use only. This can be used to change the port the TLSSNI responder
+// listens on for development purposes.
 var InternalTLSSNIPort uint16 = 443
 
 func (r *tlssniResponder) Start(interactor interaction.Interactor) error {
