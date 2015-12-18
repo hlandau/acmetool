@@ -3,6 +3,7 @@ package interaction
 import (
 	"bufio"
 	"fmt"
+	"github.com/hlandau/degoutils/text"
 	"github.com/hlandauf/pb"
 	"os"
 	"strconv"
@@ -202,11 +203,8 @@ func waitYN(prompt string) bool {
 	for {
 		fmt.Fprintf(os.Stderr, "%s [Yn] ", prompt)
 		s, _ := r.ReadString('\n')
-		s = strings.ToLower(strings.TrimSpace(s))
-		if s == "y" || s == "yes" || s == "" {
-			return true
-		} else if s == "n" || s == "no" {
-			return false
+		if v, ok := text.ParseBoolUserDefaultYes(s); ok {
+			return v
 		}
 	}
 }
