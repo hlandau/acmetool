@@ -25,6 +25,8 @@ sudo: false
 services:
   - rabbitmq
 
+before_install:
+  - source ./.travis/before_install
 install:
   - go get -v -t ./...
 script:
