@@ -5,7 +5,7 @@ package storage
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
+	//"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"

@@ -44,7 +44,7 @@ Do you agree to the terms of service set out in the above document?`, e.URI),
 						if err != nil {
 							return err
 						}
-						if email == "" {
+						if email == "-" {
 							return fmt.Errorf("e. mail input cancelled")
 						}
 					}
@@ -53,7 +53,9 @@ Do you agree to the terms of service set out in the above document?`, e.URI),
 						cl.AccountInfo.AgreementURIs = map[string]struct{}{}
 					}
 					cl.AccountInfo.AgreementURIs[e.URI] = struct{}{}
-					cl.AccountInfo.ContactURIs = []string{"mailto:" + email}
+					if email != "" {
+						cl.AccountInfo.ContactURIs = []string{"mailto:" + email}
+					}
 					continue
 				}
 			}
@@ -69,15 +71,19 @@ func getEmail(interactor interaction.Interactor) (string, error) {
 			Title:        "E. Mail Address Required",
 			ResponseType: interaction.RTLineString,
 			Prompt:       "E. mail address: ",
-			Body:         `Please enter an e. mail address where you can be reached.`,
+			Body:         `Please enter an e. mail address where you can be reached. Although entering an e. mail address is optional, it is highly recommended.`,
 			UniqueID:     "acme-enter-email",
 		})
 		if err != nil {
 			return "", err
 		}
 
-		if res.Cancelled {
+		if res.Value == "" {
 			return "", nil
+		}
+
+		if res.Cancelled {
+			return "-", nil
 		}
 
 		addr, err := mail.ParseAddress(res.Value)
