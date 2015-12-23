@@ -33,7 +33,7 @@ wherever you want it), before running acmetool, do the following:
 
 - Change to the user `acme` and run `acmetool quickstart`.
 
-    $ sudo -u acme acmetool quickstart
+        $ sudo -u acme acmetool quickstart
 
   A crontab will be installed automatically as the `acme` user; you may wish to
   examine it.
@@ -41,12 +41,12 @@ wherever you want it), before running acmetool, do the following:
 - As root, make the `hooks` directory root-owned/not group writable once more.
   Ensure that the scripts are root-owned:
 
-    # chown -R root:root /usr/lib*/acme/hooks
-    # chmod 755 /usr/lib*/acme/hooks
+      # chown -R root:root /usr/lib*/acme/hooks
+      # chmod 755 /usr/lib*/acme/hooks
 
   Inspect the hook scripts if you wish. Mark the hook scripts setuid:
 
-    # chmod u+s /usr/lib*/acme/hooks/*
+      # chmod u+s /usr/lib*/acme/hooks/*
 
   UNIX systems don't support setuid shell scripts, so this bit is ignored.
   Rather, acmetool takes it as a flag to tell it to run these scripts via
@@ -61,11 +61,11 @@ wherever you want it), before running acmetool, do the following:
   essential that these have the `NOPASSWD` flag as the scripts must be executable
   noninteractively.
 
-  `# visudo`
+      # visudo
 
   Add the line:
 
-  `acme ALL=(root) NOPASSWD: /usr/.../acme/hooks/`
+      acme ALL=(root) NOPASSWD: /usr/.../acme/hooks/
 
   Replace `...` above with `lib` or `libexec` as appropriate.
 
