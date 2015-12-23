@@ -70,14 +70,12 @@ func LoadPrivateKeyDER(der []byte) (crypto.PrivateKey, error) {
 			return nil, fmt.Errorf("unknown private key type")
 		}
 	}
-	fmt.Printf("p8 %v\n", err)
 
 	epk, err := x509.ParseECPrivateKey(der)
 	if err == nil {
 		return epk, nil
 	}
 
-	fmt.Printf("ec %v\n", err)
 	return nil, fmt.Errorf("failed to parse private key")
 }
 

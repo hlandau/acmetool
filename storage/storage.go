@@ -4,6 +4,8 @@ package storage
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -646,7 +648,8 @@ func (s *Store) createNewCertKey() (crypto.PrivateKey, *Key, error) {
 	return pk, k, nil
 }
 
-func (s *Store) createKey(c *fdb.Collection) (pk *rsa.PrivateKey, keyID string, err error) {
+func (s *Store) createKey(c *fdb.Collection) (pk crypto.PrivateKey, keyID string, err error) {
+	//pk, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	pk, err = rsa.GenerateKey(rand.Reader, clampRSAKeySize(s.preferredRSAKeySize))
 	if err != nil {
 		return
@@ -730,10 +733,19 @@ func (s *Store) ImportAccountKey(providerURL string, privateKey interface{}) err
 // Saves a key as a file named "privkey" inside the given collection.
 func (s *Store) saveKey(c *fdb.Collection, privateKey interface{}) error {
 	var kb []byte
+	var hdr string
 
 	switch v := privateKey.(type) {
 	case *rsa.PrivateKey:
 		kb = x509.MarshalPKCS1PrivateKey(v)
+		hdr = "RSA PRIVATE KEY"
+	case *ecdsa.PrivateKey:
+		var err error
+		kb, err = x509.MarshalECPrivateKey(v)
+		if err != nil {
+			return err
+		}
+		hdr = "EC PRIVATE KEY"
 	default:
 		return fmt.Errorf("unsupported private key type: %T", privateKey)
 	}
@@ -745,7 +757,7 @@ func (s *Store) saveKey(c *fdb.Collection, privateKey interface{}) error {
 	defer f.CloseAbort()
 
 	err = pem.Encode(f, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  hdr,
 		Bytes: kb,
 	})
 	if err != nil {
@@ -1156,8 +1168,7 @@ func (s *Store) obtainAuthorization(name string, a *Account) error {
 
 func (s *Store) createCSR(t *Target) ([]byte, error) {
 	csr := &x509.CertificateRequest{
-		SignatureAlgorithm: x509.SHA256WithRSA,
-		DNSNames:           t.Names,
+		DNSNames: t.Names,
 	}
 
 	pk, _, err := s.createNewCertKey()
@@ -1165,7 +1176,23 @@ func (s *Store) createCSR(t *Target) ([]byte, error) {
 		return nil, err
 	}
 
+	csr.SignatureAlgorithm, err = signatureAlgorithmFromKey(pk)
+	if err != nil {
+		return nil, err
+	}
+
 	return x509.CreateCertificateRequest(rand.Reader, csr, pk)
+}
+
+func signatureAlgorithmFromKey(pk crypto.PrivateKey) (x509.SignatureAlgorithm, error) {
+	switch pk.(type) {
+	case *rsa.PrivateKey:
+		return x509.SHA256WithRSA, nil
+	case *ecdsa.PrivateKey:
+		return x509.ECDSAWithSHA256, nil
+	default:
+		return x509.UnknownSignatureAlgorithm, fmt.Errorf("unknown key type %T", pk)
+	}
 }
 
 func (s *Store) requestCertificateForTarget(t *Target) error {

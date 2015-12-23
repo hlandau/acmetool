@@ -36,6 +36,7 @@ those certificates, keys and account keys (`acmetool import-le`).
 ## Getting Started
 
 [**Binary releases are also available.**](https://github.com/hlandau/acme/releases)
+For Arch Linux users, [an AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
 
 You will need Go installed to build from source.
 

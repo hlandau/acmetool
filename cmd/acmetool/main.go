@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
@@ -69,6 +70,7 @@ var (
 )
 
 func main() {
+	acmeapi.TestingNoTLS = true
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
 	notify.DefaultHookPath = *hooksFlag

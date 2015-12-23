@@ -2,6 +2,7 @@ package storage
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -119,6 +120,8 @@ func determineKeyIDFromCert(c *x509.Certificate) string {
 func getPublicKey(pk crypto.PrivateKey) crypto.PublicKey {
 	switch pkv := pk.(type) {
 	case *rsa.PrivateKey:
+		return &pkv.PublicKey
+	case *ecdsa.PrivateKey:
 		return &pkv.PublicKey
 	default:
 		panic("unsupported key type")

@@ -444,7 +444,7 @@ func promptGettingStarted() {
 		Title: "Quickstart Complete",
 		Body: fmt.Sprintf(`The quickstart process is complete.
 
-Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation: https://github.com/hlandau/acme.t/blob/master/doc/WSCONFIG.md
+Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation: https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md
 
 To request a certificate, run:
     
