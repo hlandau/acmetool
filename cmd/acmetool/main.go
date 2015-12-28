@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
@@ -40,7 +39,7 @@ var (
 
 	stdioFlag = kingpin.Flag("stdio", "Don't attempt to use console dialogs; fall back to stdio prompts").Bool()
 
-	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file").ExistingFile()
+	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file (default: state-dir/conf/responses)").ExistingFile()
 
 	reconcileCmd = kingpin.Command("reconcile", "Reconcile ACME state").Default()
 
@@ -70,7 +69,6 @@ var (
 )
 
 func main() {
-	acmeapi.TestingNoTLS = true
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
 	notify.DefaultHookPath = *hooksFlag
@@ -82,6 +80,13 @@ func main() {
 
 	if *stdioFlag {
 		interaction.NoDialog = true
+	}
+
+	if *responseFileFlag == "" {
+		p := filepath.Join(*stateFlag, "conf/responses")
+		if _, err := os.Stat(p); err == nil {
+			*responseFileFlag = p
+		}
 	}
 
 	if *responseFileFlag != "" {
