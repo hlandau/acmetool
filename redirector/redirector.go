@@ -19,12 +19,14 @@ import (
 
 var log, Log = xlog.New("acme.redirector")
 
+// Configuration for redirector.
 type Config struct {
 	Bind          string `default:":80" usage:"Bind address"`
 	ChallengePath string `default:"/var/run/acme/acme-challenge" usage:"Path containing HTTP challenge files"`
 	ChallengeGID  string `default:"" usage:"GID to chgrp the challenge path to (optional)"`
 }
 
+// Simple HTTP to HTTPS redirector.
 type Redirector struct {
 	cfg          Config
 	httpServer   graceful.Server
@@ -32,6 +34,7 @@ type Redirector struct {
 	stopping     uint32
 }
 
+// Instantiate an HTTP to HTTPS redirector.
 func New(cfg Config) (*Redirector, error) {
 	r := &Redirector{
 		cfg: cfg,
@@ -126,6 +129,7 @@ func (r *Redirector) commonHandler(h http.Handler) http.Handler {
 	})
 }
 
+// Start the redirector.
 func (r *Redirector) Start() error {
 	serveMux := http.NewServeMux()
 	r.httpServer.Handler = r.commonHandler(serveMux)
@@ -149,6 +153,7 @@ func (r *Redirector) Start() error {
 	return nil
 }
 
+// Stop the redirector.
 func (r *Redirector) Stop() error {
 	atomic.StoreUint32(&r.stopping, 1)
 	r.httpServer.Stop(r.httpServer.Timeout)
@@ -156,6 +161,7 @@ func (r *Redirector) Stop() error {
 	return nil
 }
 
+// Respond to a request with a redirect.
 func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 	// Redirect.
 	u := *req.URL
@@ -203,8 +209,16 @@ func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 		// clients supporting acceptably modern versions of TLS and not supporting
 		// HTTP redirects is non-empty is another matter.)
 		ue := html.EscapeString(us)
-		rw.Write([]byte(fmt.Sprintf(`<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><title>Permanently Moved</title></head><body><h1>Permanently Moved</h1><p>This resource has <strong>moved permanently</strong> to <a href="%s">%s</a>.</p></body></html>`, ue, ue)))
+		rw.Write([]byte(fmt.Sprintf(redirBody, ue, ue)))
 	}
 }
+
+const redirBody = `<!DOCTYPE html>\
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">\
+<head><title>Permanently Moved</title></head>\
+<body><h1>Permanently Moved</h1>\
+<p>This resource has <strong>moved permanently</strong> to \
+<a href="%s">%s</a>.</p>\
+</body></html>`
 
 // © 2015 Hugo Landau <hlandau@devever.net>    MIT License
