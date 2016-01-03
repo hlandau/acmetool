@@ -19,7 +19,7 @@ mkdir -p "$OUTDIR" "$ARCHIVEDIR"
 OUTDIR="$(realpath "$OUTDIR")"
 ARCHIVEDIR="$(realpath "$ARCHIVEDIR")"
 ORIGDIR="$(realpath "$ORIGDIR")"
-REVISION=3
+REVISION=4
 
 DATE_R="$(date -R)"
 DISTRO="xenial"
@@ -202,7 +202,7 @@ END
 #############################################################
 cat <<'END' > "$UNPACKDIR/Makefile"
 # Invoked with DESTDIR.
-ARCH := $(shell ./getarch)
+ARCH := $(shell sh ./getarch)
 VERSION := $(shell cat ./version)
 SRCDIR := acmetool-v$(VERSION)-linux_$(ARCH)
 
@@ -238,6 +238,3 @@ esac
 END
 
 echo "$VERSION" > "$UNPACKDIR/version"
-
-# Executable files.
-chmod +x "$DEBIANDIR/rules" "$UNPACKDIR/getarch"
