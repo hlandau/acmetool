@@ -41,7 +41,7 @@ var (
 
 	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file (default: state-dir/conf/responses)").ExistingFile()
 
-	reconcileCmd = kingpin.Command("reconcile", "Reconcile ACME state").Default()
+	reconcileCmd = kingpin.Command("reconcile", reconcileHelp).Default()
 
 	wantCmd       = kingpin.Command("want", "Add a target with one or more hostnames")
 	wantReconcile = wantCmd.Flag("reconcile", "Specify --no-reconcile to skip reconcile after adding target").Default("1").Bool()
@@ -67,6 +67,10 @@ var (
 	importLECmd = kingpin.Command("import-le", "Import a Let's Encrypt client state directory")
 	importLEArg = importLECmd.Arg("le-state-path", "Path to Let's Encrypt state directory").Default("/etc/letsencrypt").ExistingDir()
 )
+
+const reconcileHelp = `Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets.
+
+This is the default command.`
 
 func main() {
 	adaptflag.Adapt()

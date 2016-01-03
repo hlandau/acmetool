@@ -1,0 +1,239 @@
+#!/bin/bash
+# Script to generate files for debbuild causing it to generate a 'source package'
+# to be uploaded to launchpad to generate PPA 'binary packages'. These source packages
+# are just binaries with a build script that outputs them as a 'binary package'.
+# So sue me.
+
+if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+  echo Usage: "$0" "<output-dir>" "<archives-dir>" "<version>"
+  echo "Create a debian build environment suitable for running debuild [-S] in."
+  exit 1
+fi
+
+OUTDIR="$(realpath "$1")"
+ARCHIVEDIR="$(realpath "$2")"
+VERSION="$(echo "$3" | sed 's/^v//g')"
+ORIGDIR="$(dirname "$0")"
+ORIGDIR="$(realpath "$ORIGDIR")"
+REVISION=3
+
+DATE_R="$(date -R)"
+DISTRO="xenial"
+ARCHS="386_cgo amd64_cgo arm arm64"
+
+mkdir -p "$ARCHIVEDIR"
+for ARCH in $ARCHS; do
+  wget -nc -O "$ARCHIVEDIR/acmetool-v$VERSION-linux_$ARCH.tar.gz" "https://github.com/hlandau/acme/releases/download/v$VERSION/acmetool-v$VERSION-linux_$ARCH.tar.gz"
+done
+
+mkdir -p "$OUTDIR/acmetool_$VERSION"
+cd "$OUTDIR/acmetool_$VERSION"
+for ARCH in $ARCHS; do
+  tar xvf "$ARCHIVEDIR/acmetool-v$VERSION-linux_$ARCH.tar.gz"
+done
+
+cd ..
+tar zcvf "acmetool_$VERSION.orig.tar.gz" "acmetool_$VERSION"
+cd "$ORIGDIR"
+
+UNPACKDIR="$OUTDIR/acmetool_$VERSION"
+DEBIANDIR="$UNPACKDIR/debian"
+mkdir -p "$DEBIANDIR/source"
+
+### debian cruft
+#############################################################
+echo 9 > "$DEBIANDIR/compat"
+echo 1.0 > "$DEBIANDIR/source/format"
+
+cat <<END > "$DEBIANDIR/changelog"
+acmetool ($VERSION-$REVISION) $DISTRO; urgency=medium
+
+  * Changelog information not maintained in Debian packaging.
+    See <https://github.com/hlandau/acme/releases>
+
+ -- Hugo Landau <hlandau@devever.net>  $DATE_R
+END
+
+cat <<'END' > "$DEBIANDIR/control"
+Source: acmetool
+Maintainer: Hugo Landau <hlandau@devever.net>
+Section: utils
+Priority: optional
+Standards-Version: 3.9.6
+Build-Depends: debhelper (>= 9), wget, ca-certificates, curl
+
+Package: acmetool
+Architecture: amd64 i386 armhf arm64
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: command line tool for automatically acquiring certificates
+ acmetool is an easy-to-use command line tool for automatically acquiring
+ certificates from ACME servers (such as Let's Encrypt). Designed to flexibly
+ integrate into your webserver setup to enable automatic verification. Unlike
+ the official Let's Encrypt client, this doesn't modify your web server
+ configuration.
+ .
+ You can perform verifications using port 80 or 443 (if you don't yet have a
+ server running on one of them); via webroot; by configuring your webserver to
+ proxy requests for /.well-known/acme-challenge/ to a special port (402) which
+ acmetool can listen on.
+ .
+ acmetool is intended to be "magic-free". All of acmetool's state is stored in
+ a simple, comprehensible directory of flat files.
+ .
+ acmetool is intended to work like "make". The state directory expresses target
+ domain names, and whenever acmetool is invoked, it ensures that valid
+ certificates are available to meet those names. Certificates which will expire
+ soon are renewed. acmetool is thus idempotent and minimises the use of state.
+END
+
+cat <<'END' > "$DEBIANDIR/copyright"
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: acmetool
+Upstream-Contact: Hugo Landau <hlandau@devever.net>
+Source: https://github.com/hlandau/acme
+
+Files: *
+Copyright: 2015, Hugo Landau <hlandau@devever.net>
+License: MIT
+ Copyright © 2015 Hugo Landau <hlandau@devever.net>
+ .
+ Permission is hereby granted, free of charge, to any person obtaining a copy of
+ this software and associated documentation files (the "Software"), to deal in
+ the Software without restriction, including without limitation the rights to
+ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ of the Software, and to permit persons to whom the Software is furnished to do
+ so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
+Files: debian/*
+Copyright: 2015, Christian Pointner <equinox@spreadspace.org>
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see '/usr/share/common-licenses/GPL-3'.
+END
+
+### debian build script
+#############################################################
+cat <<'END' > "$DEBIANDIR/rules"
+#!/usr/bin/make -f
+%:
+	dh $@
+END
+
+### debian miscellaneous files
+#############################################################
+cat <<'END' > "$DEBIANDIR/acmetool.lintian-overrides"
+acmetool: embedded-library usr/bin/acmetool: libyaml
+acmetool: new-package-should-close-itp-bug
+END
+
+cat <<'END' > "$DEBIANDIR/acmetool.dirs"
+/usr/lib/acme
+/var/lib/acme
+END
+
+cat <<'END' > "$DEBIANDIR/acmetool.postrm"
+#!/bin/sh
+# postrm script for acmetool
+
+set -e
+
+if [ "$1" = "purge" ]; then
+  # Remove cron job.
+  if [ -f "/etc/cron.d/acmetool" ]; then
+    rm -f /etc/cron.d/acmetool
+    if [ -x "$(which invoke-rc.d 2>/dev/null)" ]; then
+      invoke-rc.d cron reload || true
+    else
+      /etc/init.d/cron reload || true
+    fi
+  fi
+
+  # Remove managed hooks.
+  if [ -d "/usr/lib/acme/hooks" ]; then
+    for hook in /usr/lib/acme/hooks/*; do
+      grep -q '#!acmetool-managed!#' "$hook" && rm -f "$hook" || true
+    done
+    rmdir --ignore-fail-on-non-empty /usr/lib/acme/hooks || true
+  fi
+
+  # Warn about non-removed data.
+  rmdir --ignore-fail-on-non-empty "/var/lib/acme" || true
+  if [ -d "/var/lib/acme" ]; then
+    echo '╔══════ acmetool purge ══════════════════════════════════════════════╗'
+    echo '║ The acmetool state directory will be kept. If you really want to   ║'
+    echo '║ delete all your certificates and configurations you need to remove ║'
+    echo '║ it manually using the following command:                           ║'
+    echo '║   rm -rf /var/lib/acme                                             ║'
+    echo '╚════════════════════════════════════════════════════════════════════╝'
+  fi
+fi
+
+#DEBHELPER#
+
+exit 0
+END
+
+### "source" build file
+#############################################################
+cat <<'END' > "$UNPACKDIR/Makefile"
+# Invoked with DESTDIR.
+ARCH := $(shell ./getarch)
+VERSION := $(shell cat ./version)
+SRCDIR := acmetool-v$(VERSION)-linux_$(ARCH)
+
+build:
+
+install:
+	install -Dm 755 "$(SRCDIR)/bin/acmetool" "$(DESTDIR)/usr/bin/acmetool"
+	install -Dm 644 ./acme-reload.default "$(DESTDIR)/etc/default/acme-reload"
+	if [ -e "$(SRCDIR)/doc/acmetool.8" ]; then \
+	  install -Dm 644 "$(SRCDIR)/doc/acmetool.8" "$(DESTDIR)/usr/share/man/man8/acmetool.8"; \
+	fi
+
+clean:
+
+END
+
+cat <<'END' > "$UNPACKDIR/acme-reload.default"
+# Space separated list of services to restart after certificates are changed.
+# By default, this is a list of common webservers like apache2, nginx, haproxy,
+# etc. You can append to this list or replace it entirely.
+SERVICES="$SERVICES"
+END
+
+cat <<'END' > "$UNPACKDIR/getarch"
+#!/bin/sh
+set -e
+case "$DEB_BUILD_ARCH" in
+  i386) echo 386_cgo;;
+  amd64) echo amd64_cgo;;
+  armhf) echo arm;;
+  *) echo "$DEB_BUILD_ARCH";;
+esac
+END
+
+echo "$VERSION" > "$UNPACKDIR/version"
+
+# Executable files.
+chmod +x "$DEBIANDIR/rules" "$UNPACKDIR/getarch"

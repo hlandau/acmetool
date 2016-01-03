@@ -18,6 +18,9 @@ addons:
       - gcc-multilib
       - libc6-dev-i386
       - libcap-dev:i386
+      - debhelper
+      - devscripts
+      - shred
   mariadb: "10.0"
 
 sudo: false

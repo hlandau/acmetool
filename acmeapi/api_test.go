@@ -13,10 +13,10 @@ func TestAPI(t *testing.T) {
 		t.Fatalf("couldn't generate key: %v", err)
 	}
 
-	TestingNoTLS = true
+	TestingAllowHTTP = true
 
 	cl := Client{
-		DirectoryURL: "https://127.0.0.1:4000/directory",
+		DirectoryURL: "http://127.0.0.1:4000/directory",
 	}
 	cl.AccountInfo.AccountKey = pk
 	cl.AccountInfo.AgreementURIs = map[string]struct{}{

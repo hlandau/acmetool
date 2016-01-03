@@ -18,12 +18,18 @@ import (
 )
 
 func decodeAccountURLPart(part string) (string, error) {
+	scheme := "https"
+	if strings.HasPrefix(part, "http:") {
+		scheme = "http"
+		part = part[5:]
+	}
+
 	unesc, err := url.QueryUnescape(part)
 	if err != nil {
 		return "", err
 	}
 
-	p := "https://" + unesc
+	p := scheme + "://" + unesc
 	u, err := url.Parse(p)
 	if err != nil {
 		return "", err
@@ -42,17 +48,22 @@ func accountURLPart(directoryURL string) (string, error) {
 		return "", err
 	}
 
-	if u.Scheme != "https" {
-		return "", fmt.Errorf("scheme must be HTTPS")
+	if u.Scheme != "https" && u.Scheme != "http" {
+		return "", fmt.Errorf("scheme must be HTTPS (or HTTP)")
 	}
 
 	directoryURL = u.String()
-	s := directoryURL[8:]
+	s := directoryURL[strings.IndexByte(directoryURL, ':')+3:]
 	if u.Path == "/" {
 		s = s[0 : len(s)-1]
 	}
 
-	return lowerEscapes(url.QueryEscape(s)), nil
+	s = lowerEscapes(url.QueryEscape(s))
+	if u.Scheme == "http" {
+		s = "http:" + s
+	}
+
+	return s, nil
 }
 
 func lowerEscapes(s string) string {

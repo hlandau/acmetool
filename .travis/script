@@ -90,5 +90,13 @@ if [ "$RESULT4" != "0" ]; then
   exit $RESULT4
 fi
 
+# Generate man page.
+"$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-linux_amd64_cgo/bin/acmetool" --help-man > acmetool.8 || echo Failed to generate man page
+
+for x in $GOPATH/releasing/idist/*; do
+  mkdir -p "$x/doc"
+  cp -a acmetool.8 "$x/doc/"
+done
+
 # No point stopping boulder, travis will do it.
 # Don't exit here, we need after_success to run and this script is sourced.

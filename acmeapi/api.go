@@ -44,7 +44,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/xlog"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -87,110 +86,18 @@ type revokeReq struct {
 	Certificate denet.Base64up `json:"certificate"`
 }
 
-// Represents an identifier for which an authorization is desired.
-type Identifier struct {
-	Type  string `json:"type"`  // must be "dns"
-	Value string `json:"value"` // dns: a hostname.
+// Returns true if the URL given is (potentially) a valid ACME resource URL.
+//
+// The URL must be an HTTPS URL.
+func ValidURL(u string) bool {
+	ur, err := url.Parse(u)
+	return err == nil && (ur.Scheme == "https" || (TestingAllowHTTP && ur.Scheme == "http"))
 }
 
-// Represents the status of an authorization or challenge.
-type Status string
-
-const (
-	StatusUnknown    Status = "unknown"
-	StatusPending           = "pending"
-	StatusProcessing        = "processing"
-	StatusValid             = "valid"
-	StatusInvalid           = "invalid"
-	StatusRevoked           = "revoked"
-)
-
-// Returns true iff the status is a valid status.
-func (s Status) Valid() bool {
-	switch s {
-	case "unknown", "pending", "processing", "valid", "invalid", "revoked":
-		return true
-	default:
-		return false
-	}
-}
-
-// Returns true iff the status is a final status.
-func (s Status) Final() bool {
-	switch s {
-	case "valid", "invalid", "revoked":
-		return true
-	default:
-		return false
-	}
-}
-
-func (s *Status) UnmarshalJSON(data []byte) error {
-	var ss string
-	err := json.Unmarshal(data, &ss)
-	if err != nil {
-		return err
-	}
-
-	if !Status(ss).Valid() {
-		return fmt.Errorf("not a valid status: %#v", ss)
-	}
-
-	*s = Status(ss)
-	return nil
-}
-
-// Represents a Challenge which is part of an Authorization.
-type Challenge struct {
-	URI      string `json:"uri"`      // The URI of the challenge.
-	Resource string `json:"resource"` // "challenge"
-
-	Type      string    `json:"type"`
-	Status    Status    `json:"status,omitempty"`
-	Validated time.Time `json:"validated,omitempty"` // RFC 3339
-	Token     string    `json:"token"`
-
-	// tls-sni-01
-	N int `json:"n,omitempty"`
-
-	// proofOfPossession
-	Certs []denet.Base64up `json:"certs,omitempty"`
-
-	retryAt time.Time
-}
-
-// Represents an authorization. You can construct an authorization from only
-// the URI; the authorization information will be fetched automatically.
-type Authorization struct {
-	URI      string `json:"-"`        // The URI of the authorization.
-	Resource string `json:"resource"` // must be "new-authz" or "authz"
-
-	Identifier   Identifier   `json:"identifier"`
-	Status       Status       `json:"status,omitempty"`
-	Expires      time.Time    `json:"expires,omitempty"` // RFC 3339 (ISO 8601)
-	Challenges   []*Challenge `json:"challenges,omitempty"`
-	Combinations [][]int      `json:"combinations,omitempty"`
-
-	retryAt time.Time
-}
-
-// Represents a certificate which has been, or is about to be, issued.
-type Certificate struct {
-	URI      string `json:"-"`        // The URI of the certificate.
-	Resource string `json:"resource"` // "new-cert"
-
-	// The certificate data. DER.
-	Certificate []byte `json:"-"`
-
-	// Any required extra certificates, in DER form in the correct order.
-	ExtraCertificates [][]byte `json:"-"`
-
-	// DER. Consumers of this API will find that this is always nil; it is
-	// used internally when submitting certificate requests.
-	CSR denet.Base64up `json:"csr"`
-
-	retryAt time.Time
-}
+// Internal use only. All ACME URLs must use "https" and not "http". However,
+// for testing purposes, if this is set, "http" URLs will be allowed. This is
+// useful for testing when a test ACME server doesn't have SSL configured.
+var TestingAllowHTTP = false
 
 // Client for making ACME API calls.
 //
@@ -212,7 +119,7 @@ type Client struct {
 		ContactURIs []string
 	}
 
-	// The ACME server directory URL. Defaults to DefaultBaseURL.
+	// The ACME server directory URL. Defaults to DefaultDirectoryURL.
 	DirectoryURL string
 
 	// Uses http.DefaultClient if nil.
@@ -221,39 +128,6 @@ type Client struct {
 	dir         *directoryInfo
 	nonceSource nonceSource
 	initOnce    sync.Once
-}
-
-// Error returned when the account agreement URI does not match the currently required
-// agreement URI.
-type AgreementError struct {
-	URI string // The required agreement URI.
-}
-
-func (e *AgreementError) Error() string {
-	return fmt.Sprintf("Registration requires agreement with the following agreement: %#v", e.URI)
-}
-
-type httpError struct {
-	Res         *http.Response
-	ProblemBody string
-}
-
-func (he *httpError) Error() string {
-	return fmt.Sprintf("HTTP error: %v\n%v\n%v", he.Res.Status, he.Res.Header, he.ProblemBody)
-}
-
-func newHTTPError(res *http.Response) error {
-	he := &httpError{
-		Res: res,
-	}
-	if res.Header.Get("Content-Type") == "application/problem+json" {
-		defer res.Body.Close()
-		b, err := ioutil.ReadAll(res.Body)
-		if err == nil {
-			he.ProblemBody = string(b)
-		}
-	}
-	return he
 }
 
 func (c *Client) doReq(method, url string, v, r interface{}, ctx context.Context) (*http.Response, error) {
@@ -282,9 +156,6 @@ func algorithmFromKey(key crypto.PrivateKey) (jose.SignatureAlgorithm, error) {
 }
 
 func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interface{}, ctx context.Context) (*http.Response, error) {
-	if TestingNoTLS && strings.HasPrefix(url, "https:") {
-		url = "http" + url[5:]
-	}
 	if !ValidURL(url) {
 		return nil, fmt.Errorf("invalid URL: %#v", url)
 	}
@@ -369,48 +240,6 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 	}
 
 	return res, nil
-}
-
-// Returns true if the URL given is (potentially) a valid ACME resource URL.
-//
-// The URL must be an HTTPS URL.
-func ValidURL(u string) bool {
-	ur, err := url.Parse(u)
-	return err == nil && (ur.Scheme == "https" || (TestingNoTLS && ur.Scheme == "http"))
-}
-
-// Internal use only. All ACME URLs must use "https" and not "http". However,
-// for testing purposes, if this is set, "https" URLs will be retrieved as
-// though they are "http" URLs. This is useful for testing when a test ACME
-// server doesn't have SSL configured.
-var TestingNoTLS = false
-
-func parseRetryAfter(h http.Header) (t time.Time, ok bool) {
-	v := h.Get("Retry-After")
-	if v == "" {
-		return time.Time{}, false
-	}
-
-	n, err := strconv.ParseUint(v, 10, 31)
-	if err != nil {
-		t, err = time.Parse(time.RFC1123, v)
-		if err != nil {
-			return time.Time{}, false
-		}
-
-		return t, true
-	}
-
-	return time.Now().Add(time.Duration(n) * time.Second), true
-}
-
-func retryAtDefault(h http.Header, d time.Duration) time.Time {
-	t, ok := parseRetryAfter(h)
-	if ok {
-		return t
-	}
-
-	return time.Now().Add(d)
 }
 
 func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
@@ -550,10 +379,6 @@ func (c *Client) WaitLoadAuthorization(az *Authorization, ctx context.Context) e
 }
 
 func (az *Authorization) validate() error {
-	/*if az.Resource != "authz" {
-		return fmt.Errorf("invalid resource field")
-	}*/
-
 	if len(az.Challenges) == 0 {
 		return fmt.Errorf("no challenges offered")
 	}
@@ -587,11 +412,6 @@ func (c *Client) LoadChallenge(ch *Challenge, ctx context.Context) error {
 		return err
 	}
 
-	err = ch.validate()
-	if err != nil {
-		return err
-	}
-
 	ch.retryAt = retryAtDefault(res.Header, 10*time.Second)
 	return nil
 }
@@ -605,14 +425,6 @@ func (c *Client) WaitLoadChallenge(ch *Challenge, ctx context.Context) error {
 	}
 
 	return c.LoadChallenge(ch, ctx)
-}
-
-func (ch *Challenge) validate() error {
-	/*if ch.Resource != "challenge" {
-		return fmt.Errorf("invalid resource field")
-	}*/
-
-	return nil
 }
 
 // Create a new authorization for the given hostname.
@@ -780,12 +592,6 @@ func (c *Client) loadExtraCertificates(crt *Certificate, res *http.Response, ctx
 	}
 }
 
-var closedChannel = make(chan time.Time)
-
-func init() {
-	close(closedChannel)
-}
-
 // Like LoadCertificate, but waits the retry time if this is not the first
 // attempt to load this certificate. To be used when polling.
 //
@@ -813,33 +619,6 @@ func (c *Client) WaitForCertificate(crt *Certificate, ctx context.Context) error
 			return err
 		}
 	}
-}
-
-// Wait until time t. If t is before the current time, returns immediately.
-// Cancellable via ctx, in which case err is passed through. Otherwise returns
-// nil.
-func waitUntil(t time.Time, ctx context.Context) error {
-	var ch <-chan time.Time
-	ch = closedChannel
-	now := time.Now()
-	if t.After(now) {
-		ch = time.After(t.Sub(now))
-	}
-
-	// make sure ctx.Done() is checked here even when we are using closedChannel,
-	// as select doesn't guarantee any particular priority.
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ch:
-		}
-	}
-
-	return nil
 }
 
 // Revoke the given certificate.

@@ -2,6 +2,7 @@
 // dialogs or stdio.
 package interaction
 
+// Interaction mode. Specifies the type of response requested from the user.
 type ResponseType int
 
 const (

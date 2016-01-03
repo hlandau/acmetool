@@ -11,8 +11,11 @@ import (
 	"strings"
 )
 
+// Log site.
 var log, Log = xlog.New("acme.notify")
 
+// The default hook path is "/usr/lib/acme/hooks" or "/usr/libexec/acme/hooks".
+// The latter is preferred if it exists.
 var DefaultHookPath = "/usr/lib/acme/hooks"
 
 func init() {
@@ -23,6 +26,9 @@ func init() {
 }
 
 // Notifies hook programs that a live symlink has been updated.
+//
+// If hookDirectory is "", DefaultHookPath is used. stateDirectory and
+// hostnames are passed as information to the hooks.
 func Notify(hookDirectory, stateDirectory string, hostnames []string) error {
 	if hookDirectory == "" {
 		hookDirectory = DefaultHookPath
@@ -54,6 +60,8 @@ func Notify(hookDirectory, stateDirectory string, hostnames []string) error {
 	return nil
 }
 
+// Implements functionality similar to the "run-parts" command on many distros.
+// Implementations vary, so it is reimplemented here.
 func runParts(directory string, stdinData []byte, args ...string) error {
 	fi, err := os.Stat(directory)
 	if err != nil {
@@ -65,6 +73,7 @@ func runParts(directory string, stdinData []byte, args ...string) error {
 		return err
 	}
 
+	// Do not execute a world-writable directory.
 	if (fi.Mode() & 02) != 0 {
 		return fmt.Errorf("refusing to execute notification hooks, directory is world-writable: %s", directory)
 	}

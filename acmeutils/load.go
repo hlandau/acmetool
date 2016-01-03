@@ -54,7 +54,8 @@ func LoadPrivateKey(keyPEMBlock []byte) (crypto.PrivateKey, error) {
 	return pk, nil
 }
 
-// Parse a DER private key.
+// Parse a DER private key. The key can be RSA or ECDSA. PKCS8 containers are
+// supported.
 func LoadPrivateKeyDER(der []byte) (crypto.PrivateKey, error) {
 	pk, err := x509.ParsePKCS1PrivateKey(der)
 	if err == nil {

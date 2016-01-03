@@ -19,7 +19,7 @@ func (i *interceptor) Prompt(c *interaction.Challenge) (*interaction.Response, e
 	case "acmetool-quickstart-choose-server":
 		return &interaction.Response{Value: "url"}, nil
 	case "acmetool-quickstart-enter-directory-url":
-		return &interaction.Response{Value: "https://127.0.0.1:4000/directory"}, nil
+		return &interaction.Response{Value: "http://127.0.0.1:4000/directory"}, nil
 	case "acmetool-quickstart-choose-method":
 		return &interaction.Response{Value: "redirector"}, nil
 	case "acme-enter-email":
@@ -44,7 +44,7 @@ func (i *interceptor) Status(info *interaction.StatusInfo) (interaction.StatusSi
 func TestCLI(t *testing.T) {
 	log.Warnf("This test requires a configured Boulder instance listening at http://127.0.0.1:4000/ and the ability to successfully complete challenges. You must change the Boulder configuration to use ports 80 and 5443. Also change the rate limits per certificate name. Consider ensuring that the user you run these tests as can write to /var/run/acme/acme-challenge and that that directory is served on port 80 /.well-known/acme-challenge/")
 
-	acmeapi.TestingNoTLS = true
+	acmeapi.TestingAllowHTTP = true
 
 	interaction.Interceptor = &interceptor{}
 

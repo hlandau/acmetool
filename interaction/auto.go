@@ -8,7 +8,7 @@ import (
 var log, Log = xlog.New("acme.interactor")
 
 // Used by Auto. If this is set, only autoresponses can be used. Any challenge
-// without an autoresponse fails.
+// without an autoresponse fails. --batch.
 var NonInteractive = false
 
 type autoInteractor struct{}
@@ -21,7 +21,7 @@ var Auto Interactor = autoInteractor{}
 // take precedence over this.
 var Interceptor Interactor
 
-// Used by Auto. Do not use the Dialog mode.
+// Used by Auto. Do not use the Dialog mode. --stdio.
 var NoDialog = false
 
 func (autoInteractor) Prompt(c *Challenge) (*Response, error) {

@@ -13,12 +13,14 @@ import (
 
 var log, Log = xlog.New("fdb")
 
+// FDB instance.
 type DB struct {
 	cfg        Config
 	path       string
 	extantDirs map[string]struct{}
 }
 
+// FDB configuration.
 type Config struct {
 	Path        string
 	Permissions []Permission
@@ -102,7 +104,6 @@ func (db *DB) createDirs() error {
 			continue
 		}
 
-		//log.Debugf("making directory %#v with mode: %v", p.Path, p.DirMode)
 		err := os.MkdirAll(filepath.Join(db.path, p.Path), p.DirMode)
 		if err != nil {
 			return err
@@ -275,21 +276,6 @@ func (db *DB) ensurePath(path string) error {
 		mode = perm.DirMode
 	}
 
-	/*
-		for _, p := range db.cfg.Permissions {
-			ok, err := filepath.Match(p.Path, path)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				continue
-			}
-
-			mode = p.DirMode
-			break
-		}
-	*/
-
 	err := os.MkdirAll(filepath.Join(db.path, path), mode)
 	if err != nil {
 		return err
@@ -313,9 +299,6 @@ type Collection struct {
 // Obtain a collection. The collection will be created automatically if it does
 // not already exist. Guaranteed to return a non-nil value.
 func (db *DB) Collection(collectionName string) *Collection {
-	//err := db.ensurePath(collectionName)
-	//log.Errore(err, "cannot ensure path")
-
 	return &Collection{
 		db:   db,
 		name: collectionName,
@@ -326,9 +309,6 @@ func (db *DB) Collection(collectionName string) *Collection {
 // created automatically if it does not already exist. Guaranteed to return a
 // non-nil value.
 func (c *Collection) Collection(name string) *Collection {
-	//err := c.db.ensurePath(c.name + "/" + name)
-	//log.Errore(err, "cannot ensure path")
-
 	return &Collection{
 		db:   c.db,
 		name: c.name + "/" + name,
