@@ -10,16 +10,20 @@ if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
   exit 1
 fi
 
-OUTDIR="$(realpath "$1")"
-ARCHIVEDIR="$(realpath "$2")"
+OUTDIR="$1"
+ARCHIVEDIR="$2"
 VERSION="$(echo "$3" | sed 's/^v//g')"
 ORIGDIR="$(dirname "$0")"
+
+mkdir -p "$OUTDIR" "$ARCHIVEDIR"
+OUTDIR="$(realpath "$OUTDIR")"
+ARCHIVEDIR="$(realpath "$ARCHIVEDIR")"
 ORIGDIR="$(realpath "$ORIGDIR")"
 REVISION=3
 
 DATE_R="$(date -R)"
 DISTRO="xenial"
-ARCHS="386_cgo amd64_cgo arm arm64"
+ARCHS="386_cgo amd64_cgo" #arm arm64
 
 mkdir -p "$ARCHIVEDIR"
 for ARCH in $ARCHS; do
