@@ -19,7 +19,7 @@ mkdir -p "$OUTDIR" "$ARCHIVEDIR"
 OUTDIR="$(realpath "$OUTDIR")"
 ARCHIVEDIR="$(realpath "$ARCHIVEDIR")"
 ORIGDIR="$(realpath "$ORIGDIR")"
-REVISION=4
+REVISION=1
 
 DATE_R="$(date -R)"
 DISTRO="xenial"
