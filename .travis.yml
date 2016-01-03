@@ -20,7 +20,11 @@ addons:
       - libcap-dev:i386
       - debhelper
       - devscripts
-      - shred
+      - realpath
+      - dput
+      - gnupg
+      - lintian
+      - lftp
   mariadb: "10.0"
 
 sudo: false

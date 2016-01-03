@@ -53,6 +53,16 @@ rm -rf "$GNUPGHOME"
 
 echo Uploading Debian source archive...
 cd $GOPATH/releasing/dbuilds
-dput ppa:hlandau/releases ./acmetool_*_source.changes
+#dput ppa:hlandau/releases ./acmetool_*_source.changes
+
+FILES=./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes
+(
+  echo "open -u anonymous,anon@anon ppa.launchpad.net"
+  echo 'cd ~hlandau/testppa'
+  for f in $FILES; do
+    echo "put $f"
+  done
+  echo "quit"
+) | lftp
 
 echo Done
