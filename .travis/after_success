@@ -62,7 +62,7 @@ cd $GOPATH/releasing/dbuilds
 (
   echo 'open ppa.launchpad.net'
   echo 'set passive on'
-  echo 'cd ~hlandau/testppa'
+  echo 'cd ~hlandau/rhea'
   for f in ./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes; do
     echo "put $f"
   done
