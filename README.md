@@ -35,10 +35,31 @@ those certificates, keys and account keys (`acmetool import-le`).
 
 ## Getting Started
 
-[**Binary releases are also available.**](https://github.com/hlandau/acme/releases)
-For Arch Linux users, [an AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
+**Binary releases:** [Binary releases are available.](https://github.com/hlandau/acme/releases)
 
-You will need Go installed to build from source.
+Download the release appropriate for your platform and simply copy the
+`acmetool` binary to `/usr/bin`.
+
+`_cgo` releases are preferred over non-`_cgo` releases where available, but
+non-`_cgo` releases may be more compatible with older OSes.
+
+**Ubuntu users:** A binary release PPA, `ppa:hlandau/rhea` (package `acmetool`) is available.
+```bash
+$ sudo add-apt-repository ppa:hlandau/rhea
+$ sudo apt-get install acmetool
+```
+
+**Arch Linux users:** [An AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
+
+```bash
+$ wget https://aur.archlinux.org/cgit/aur.git/snapshot/acmetool-git.tar.gz
+$ tar xvf acmetool-git.tar.gz
+$ cd acmetool-git
+$ makepkg -s
+$ sudo pacman -U ./acmetool*.pkg.tar.xz
+```
+
+**Building from source:** You will need Go installed to build from source.
 
 If you are on Linux, you will need to make sure the development files for
 `libcap` are installed. This is probably a package for your distro called
@@ -51,7 +72,11 @@ $ make && sudo make install
 
   # (People familiar with Go with a GOPATH setup can alternatively use go get/go install:)
   $ go get github.com/hlandau/acme/cmd/acmetool
+```
 
+### After installation
+
+```bash
 # Run the quickstart wizard. Sets up account, cronjob, etc.
 $ sudo acmetool quickstart
 
@@ -66,8 +91,8 @@ $ sudo acmetool want example.com www.example.com
 $ ls -l /var/lib/acme/live/example.com/
 ```
 
-The `quickstart` subcommand is a recommended wizard which guides you through the
-setup of ACME on your system.
+The `quickstart` subcommand is a recommended wizard
+which guides you through the setup of ACME on your system.
 
 The `want` subcommand states that you want a certificate for the given hostnames.
 (If you want separate certificates for each of the hostnames, run the want
