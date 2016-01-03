@@ -24,7 +24,7 @@ addons:
       - dput
       - gnupg
       - lintian
-      - lftp
+      - ncftp
   mariadb: "10.0"
 
 sudo: false

@@ -43,6 +43,10 @@ export GNUPGHOME="$ACME_DIR/.travis/.gnupg"
 echo Creating Debian source environment...
 $GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_debian_env "$GOPATH/releasing/dbuilds" "$GOPATH/releasing/dist/" "$TRAVIS_TAG"
 
+cat <<'END' > "$HOME/.devscripts"
+DEBSIGN_KEYID="Hugo Landau (2016 PPA Signing) <hlandau@devever.net>"
+END
+
 echo Creating Debian source archive...
 cd $GOPATH/releasing/dbuilds/acmetool_*[0-9]
 debuild -S
@@ -55,14 +59,14 @@ echo Uploading Debian source archive...
 cd $GOPATH/releasing/dbuilds
 #dput ppa:hlandau/releases ./acmetool_*_source.changes
 
-FILES=./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes
 (
-  echo "open -u anonymous,anon@anon ppa.launchpad.net"
+  echo 'open ppa.launchpad.net'
+  echo 'set passive on'
   echo 'cd ~hlandau/testppa'
-  for f in $FILES; do
+  for f in ./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes; do
     echo "put $f"
   done
-  echo "quit"
-) | lftp
+  echo 'quit'
+) | ncftp
 
 echo Done
