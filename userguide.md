@@ -573,12 +573,7 @@ COMMANDS
     doing.
 ```
 
-## FAQ
-
 ## Troubleshooting
 
 Passing `--xlog.severity=debug` increases the logging verbosity of acmetool and
 should be your first troubleshooting strategy.
-
-## Comparison with other clients
-
