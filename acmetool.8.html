@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head>
+<meta charset="utf-8"/>
+<title>acmetool man page</title>
+<style type="text/css">
+pre {
+  overflow: auto;
+  margin: 0;
+}
+
+P.level0, pre.level0 {
+ padding-left: 2em;
+}
+
+P.level1, pre.level1 {
+ padding-left: 4em;
+}
+
+P.level2, pre.level2 {
+ padding-left: 6em;
+}
+
+span.emphasis {
+ font-style: italic;
+}
+
+span.bold {
+ font-weight: bold;
+}
+
+span.manpage {
+ font-weight: bold;
+}
+
+h2.nroffsh {
+ background-color: #e0e0e0;
+}
+
+span.nroffip {
+ font-weight: bold;
+ font-size: 120%;
+ font-family: monospace;
+}
+
+p.roffit {
+ text-align: center;
+ font-size: 80%;
+}
+</style>
+</head><body>
+<a href=".">ACME Client Utilities</a>
+<p class="level0"><a name="NAME"></a><h2 class="nroffsh">NAME</h2>
+<p class="level0">acmetool - request certificates from ACME servers automatically <a name="SYNOPSIS"></a><h2 class="nroffsh">SYNOPSIS</h2>
+<p class="level0">
+<p class="level0"><span Class="bold">acmetool [&lt;flags&gt;] &lt;command&gt; [&lt;args&gt; ...]</span> 
+<p class="level0"><a name="DESCRIPTION"></a><h2 class="nroffsh">DESCRIPTION</h2>
+<p class="level0">\ acmetool is a utility for the automated retrieval, management and renewal of certificates from ACME server such as Let's Encrypt. It emphasises automation, idempotency and the minimisation of state. 
+<p class="level0">You use acmetool by configuring targets (typically using the "want") command. acmetool then requests certificates as necessary to satisify the configured targets. New certificates are requested where existing ones are soon to expire. 
+<p class="level0">acmetool stores its state in a state directory. It can be specified on invocation via the --state option; otherwise, the path in ACME_STATE_DIR is used, or, failing that, the path "/var/lib/acme" (recommended). 
+<p class="level0">The --xlog options control the logging. The --service options control privilege dropping and daemonization and are applicable only to the redirector subcommand. 
+<p class="level0"><a name="OPTIONS"></a><h2 class="nroffsh">OPTIONS</h2>
+<p class="level0">
+<p class="level0"><span Class="bold">--help</span> Show context-sensitive help (also try --help-long and --help-man). 
+<p class="level0"><span Class="bold">--state=/var/lib/acme</span> Path to the state directory (env: ACME_STATE_DIR) 
+<p class="level0"><span Class="bold">--hooks=/usr/lib/acme/hooks</span> Path to the notification hooks directory (env: ACME_HOOKS_DIR) 
+<p class="level0"><span Class="bold">--batch</span> Do not attempt interaction; useful for cron jobs 
+<p class="level0"><span Class="bold">--stdio</span> Don't attempt to use console dialogs; fall back to stdio prompts 
+<p class="level0"><span Class="bold">--response-file=RESPONSE-FILE</span> Read dialog responses from the given file (default: state-dir/conf/responses) 
+<p class="level0"><span Class="bold">--version</span> Print version information 
+<p class="level0"><span Class="bold">--xlog.facility=XLOG.FACILITY</span> syslog facility to use 
+<p class="level0"><span Class="bold">--xlog.syslog</span> log to syslog? 
+<p class="level0"><span Class="bold">--xlog.syslogseverity=XLOG.SYSLOGSEVERITY</span> syslog severity limit 
+<p class="level0"><span Class="bold">--xlog.journal</span> log to systemd journal? 
+<p class="level0"><span Class="bold">--xlog.journalseverity=XLOG.JOURNALSEVERITY</span> systemd journal severity limit 
+<p class="level0"><span Class="bold">--xlog.severity=XLOG.SEVERITY</span> log severity (any syslog severity name or number) 
+<p class="level0"><span Class="bold">--xlog.file=XLOG.FILE</span> log to filename 
+<p class="level0"><span Class="bold">--xlog.fileseverity=XLOG.FILESEVERITY</span> file logging severity limit 
+<p class="level0"><span Class="bold">--xlog.stderr</span> log to stderr? 
+<p class="level0"><span Class="bold">--xlog.stderrseverity=XLOG.STDERRSEVERITY</span> stderr logging severity limit 
+<p class="level0"><span Class="bold">--service.cpuprofile=SERVICE.CPUPROFILE</span> Write CPU profile to file 
+<p class="level0"><span Class="bold">--service.debugserveraddr=SERVICE.DEBUGSERVERADDR</span> Address for debug server to listen on (do not specify a public address) (default: disabled) 
+<p class="level0"><span Class="bold">--service.uid=SERVICE.UID</span> UID to run as (default: don't drop privileges) 
+<p class="level0"><span Class="bold">--service.gid=SERVICE.GID</span> GID to run as (default: don't drop privileges) 
+<p class="level0"><span Class="bold">--service.daemon</span> Run as daemon? (doesn't fork) 
+<p class="level0"><span Class="bold">--service.chroot=SERVICE.CHROOT</span> Chroot to a directory (must set UID, GID) ("/" disables) 
+<p class="level0"><span Class="bold">--service.pidfile=SERVICE.PIDFILE</span> Write PID to file with given filename and hold a write lock 
+<p class="level0"><span Class="bold">--service.fork</span> Fork? (implies -daemon) <a name="SUBCOMMANDS"></a><h2 class="nroffsh">SUBCOMMANDS</h2>
+<p class="level0"><a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">help [&lt;command&gt;...]</span> 
+<p class="level0">Show help. <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">reconcile</span> 
+<p class="level0">Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets. 
+<p class="level0">This is the default command. <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">want [&lt;flags&gt;] &lt;hostname&gt;...</span> 
+<p class="level0">Add a target with one or more hostnames 
+<p class="level0"><span Class="bold">--reconcile</span> Specify --no-reconcile to skip reconcile after adding target <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">quickstart [&lt;flags&gt;]</span> 
+<p class="level0">Interactively ask some getting started questions (recommended) 
+<p class="level0"><span Class="bold">--expert</span> Ask more questions in quickstart wizard <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">redirector [&lt;flags&gt;]</span> 
+<p class="level0">HTTP to HTTPS redirector with challenge response support 
+<p class="level0"><span Class="bold">--path=PATH</span> Path to serve challenge files from 
+<p class="level0"><span Class="bold">--challenge-gid=CHALLENGE-GID</span> GID to chgrp the challenge path to (optional) <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">test-notify [&lt;hostname&gt;...]</span> 
+<p class="level0">Test-execute notification hooks as though given hostnames were updated <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">import-jwk-account &lt;provider-url&gt; &lt;private-key-file&gt;</span> 
+<p class="level0">Import a JWK account key <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">import-key &lt;private-key-file&gt;</span> 
+<p class="level0">Import a certificate private key <a name=""></a><h2 class="nroffsh"></h2>
+<p class="level0"><span Class="bold">import-le [&lt;le-state-path*&gt;]</span> 
+<p class="level0">Import a Let's Encrypt client state directory <a name="AUTHOR"></a><h2 class="nroffsh">AUTHOR</h2>
+<p class="level0">© 2015 Hugo Landau &lt;hlandau@devever.net&gt;  MIT License <a name="SEE"></a><h2 class="nroffsh">SEE ALSO</h2>
+<p class="level0">Documentation: &lt;https://github.com/hlandau/acme&gt; 
+<p class="level0">Report bugs at: &lt;https://github.com/hlandau/acme/issues&gt; </body></html>
