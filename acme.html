@@ -1,0 +1,372 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<div id="TOC">
+<ul>
+<li><a href="#acmetool-users-guide">acmetool User's Guide</a><ul>
+<li><a href="#introduction-design-philosophy">Introduction &amp; Design Philosophy</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#after-installation">After installation</a></li>
+<li><a href="#web-server-configuration">Web server configuration</a></li>
+<li><a href="#root-configured-non-root-operation">Root-configured non-root operation</a><ul>
+<li><a href="#rootless-setup-as-root">Rootless setup as root</a></li>
+</ul></li>
+<li><a href="#challenge-completion-philosophy">Challenge completion philosophy</a></li>
+<li><a href="#the-state-storage-schema">The state storage schema</a></li>
+<li><a href="#response-files">Response files</a></li>
+<li><a href="#command-line-options">Command line options</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#comparison-with-other-clients">Comparison with other clients</a></li>
+</ul></li>
+</ul>
+</div>
+<h1 id="acmetool-users-guide">acmetool User's Guide</h1>
+<h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
+<p>acmetool is an easy-to-use command line tool for automatically acquiring TLS certificates from ACME servers such as Let's Encrypt, designed to flexibly integrate into your webserver setup to enable automatic verification.</p>
+<p><strong>Non-interference.</strong> Unlike the official Let's Encrypt client, this doesn't modify your web server configuration.</p>
+<p><strong>Target-oriented and idempotent.</strong> acmetool is designed to work like “make”: you specify what certificates you want, and acmetool obtains certificates as necessary to satisfy those requirements. If the requirements are already satisfied, acmetool doesn't do anything when invoked. Thus, acmetool is ideally suited for use on a cron job; it will do nothing until certificates are near expiry, and then obtain new ones.</p>
+<p><strong>Clear and minimal state.</strong> acmetool is designed to minimise the use of state and be transparent in the state that it does use. All state, including certificates, is stored in a single directory, by default <code>/var/lib/acme</code>. The schema for this directory is simple, comprehensible and <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">documented.</a></p>
+<p><strong>Stable filenames.</strong> The certificate for a given hostname <code>example.com</code> always lives at <code>/var/lib/acme/live/example.com/{cert,chain,privkey}</code>. This is a symlink to the real certificate directory and gets changed as certificates are renewed.</p>
+<p><strong>Fully automatic renewal.</strong> acmetool can automatically reload your webserver when it changes the target of a <code>live</code> symlink. In conjunction with acmetool's use of stable filenames and idempotent design, this means that renewal can be fully automatic.</p>
+<p><strong>Flexible validation methods.</strong> acmetool supports four different validation methods:</p>
+<ul>
+<li><p><strong>Webroot:</strong> acmetool places challenge files in a given directory, allowing your normal web server to serve them. You must ensure the directory is served at <code>/.well-known/acme-challenge/</code>.</p></li>
+<li><p><strong>Proxy:</strong> When acmetool needs to validate for a domain, it temporarily spins up a built-in web server on port 402 or 4402 (if being used under the non-root validation mode). You configure your web server to proxy requests for <code>/.well-known/acme-challenge/</code> to this server at the same path.</p></li>
+<li><p><strong>Redirector:</strong> If the only thing you want to do with port 80 is redirect people to port 443, you can use acmetool's built in redirector HTTP server. You must ensure that your existing web server does not listen on port 80. acmetool redirects requests to HTTPS, but its control of port 80 ensures it can complete validation.</p></li>
+<li><p><strong>Listen:</strong> Listen on port 80 or 443. This is only really useful for development purposes.</p></li>
+</ul>
+<p><strong>Non-root operation.</strong> If you don't want to trust acmetool, you can setup acmetool to operate without running as root. If you don't have root access to a system, you may still be able to use acmetool by configuring it to use a local directory and webroot mode.</p>
+<h2 id="installation">Installation</h2>
+<p>You can install acmetool by building from source or by using a binary release. Both are easy.</p>
+<p><strong>Installing: using binary releases.</strong> <a href="https://github.com/hlandau/acme/releases">Binary releases are found here.</a> Unpack, copy the binary to <code>/usr/local/bin/acmetool</code> (or wherever you like), and you're done.</p>
+<p><code>_cgo</code> releases are preferred over non-<code>_cgo</code> releases where available, but non-<code>_cgo</code> releases may be moe compatible with older OSes. (The main drawback of non-<code>_cgo</code> releases is that they exhibit reduced functionality in relation to privilege dropping and daemonization functionality for the redirector daemon.)</p>
+<p><strong>Installing: Ubuntu users.</strong> A binary release PPA, <code>ppa:hlandau/rhea</code> (package <code>acmetool</code>) is available.</p>
+<pre class="sh"><code>$ sudo add-apt-repository ppa:hlandau/rhea
+$ sudo apt-get install acmetool</code></pre>
+<p><strong>Installing: Debian users.</strong> TODO</p>
+<p><strong>Installing: Arch Linux users.</strong> <a href="https://aur.archlinux.org/packages/acmetool-git/">An AUR PKGBUILD for building from source is available.</a></p>
+<pre class="sh"><code>$ wget https://aur.archlinux.org/cgit/aur.git/snapshot/acmetool-git.tar.gz
+$ tar xvf acmetool-git.tar.gz
+$ cd acmetool-git
+$ makepkg -s
+$ sudo pacman -U ./acmetool*.pkg.tar.xz</code></pre>
+<!-- **Installing: Alpine Linux users.** TODO -->
+<p><strong>Installing: from source.</strong> Clone, make, make install. You will need Go 1.5.2 or later installed to build from source.</p>
+<p>If you are using Linux, you will need to make sure the development files for <code>libcap</code> are installed. This is probably a package for your distro called <code>libcap-dev</code> or <code>libcap-devel</code> or similar.</p>
+<pre class="sh"><code>$ git clone https://github.com/hlandau/acme
+$ cd acme
+$ make &amp;&amp; sudo make install</code></pre>
+<p><strong>Installing: from source (existing GOPATH).</strong> The Makefile is intended to make things easy for users unfamiliar with Go packaging conventions. If you know what a GOPATH is and have one set up, you can and should instead simply do:</p>
+<pre class="sh"><code>$ go get -u github.com/hlandau/acme/cmd/acmetool
+$ sudo cp $GOPATH/bin/acmetool /usr/local/bin/acmetool</code></pre>
+<p>(Note: Although use of cgo is recommended, building without cgo is supported.)</p>
+<h2 id="after-installation">After installation</h2>
+<p><strong>Initial configuration.</strong> Having installed acmetool, run the quickstart wizard for a guided setup. You may wish to ensure you have <code>dialog</code> in your PATH, but acmetool will fallback to basic stdio prompts if it's not available.</p>
+<pre class="sh"><code>$ sudo acmetool quickstart</code></pre>
+<p>If you don't want to run acmetool as root, see the [non-root setup guide] TODO.</p>
+<p>If you pass <code>--expert</code> to the quickstart command, it will ask you more questions. Currently, the only extra question is your preferred RSA key size. The default is 2048 bits.</p>
+<p>If you want to automate the quickstart process, see the section on response files below.</p>
+<p>It is safe to rerun quickstart at any time.</p>
+<p><strong>Configuring your web server.</strong> Once you've completed the quickstart, you should configure your web server as necessary to enable validation. See the <em>Web server configuration</em> section below.</p>
+<p><strong>Obtaining certificates.</strong> Once everything's ready, simply run:</p>
+<pre class="sh"><code>$ sudo acmetool want example.com www.example.com</code></pre>
+<p>This adds a target desiring a certificate for hostnames <code>example.com</code> and <code>www.example.com</code>. You can specify as many hostnames (SANs) as you like. Whenever you run acmetool in the future, it'll make sure that a certificate for these hostnames is available and not soon to expire.</p>
+<p>acmetool lumps hostnames together in the same certificate. If you want <code>example.com</code> and <code>www.example.com</code> to be separate certificates, use separate <code>want</code> commands to configure them as separate targets:</p>
+<pre class="sh"><code>$ sudo acmetool want example.com
+$ sudo acmetool want www.example.com</code></pre>
+<p>If all went well, your certificate should be available at <code>/var/lib/acme/live/example.com</code>. This is a directory containing PEM files <code>cert</code>, <code>chain</code>, <code>fullchain</code> and <code>privkey</code>. The use of these files varies by application; typically you will use only a subset of these files.</p>
+<p><strong>Troubleshooting.</strong> If all didn't go well, you might find it helpful to run with debug logging:</p>
+<pre class="sh"><code>$ sudo acmetool --xlog.severity=debug</code></pre>
+<p>(There's no need to run “want” again; the targets are recorded even if reconciliation is not successful.)</p>
+<p><strong>Auto-renewal.</strong> acmetool offers to install a cronjob during the quickstart process. This simply runs <code>acmetool --batch</code>, which will idempotently ensure that all configured targets are satisfied by certificates not soon to expire. (<code>--batch</code> here ensures that acmetool doesn't try to ask any questions.)</p>
+<p><strong>Auto-renewal: reloading your webserver.</strong> When acmetool refreshes a certificate, it changes the symlink in <code>live</code> and executes hook scripts to reload your web server or do whatever you want. Specifically, it executes any executable files in <code>/usr/lib/acme/hooks</code> (or <code>/usr/libexec/acme/hooks</code> if on a distro that uses libexec). You can drop your own executable files here, and acmetool will invoke them when it changes certificates. (For information on the calling convention, see <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#notification-hooks">SCHEMA.md</a>.)</p>
+<p><code>acmetool quickstart</code> installs some default hooks applicable to common webservers. These hooks contain the string <code>#!acmetool-managed!#</code>. acmetool reserves the right to overwrite any file containing this string with a newer version of the script, in the event that the default scripts are updated in subsequent versions of acmetool. If you make changes to a default script and do not wish them to be overwritten, you should remove this line to ensure that your changes are not overwritten. However, note that the default hook scripts are designed to be configurable and it will be rare that you need to modify the scripts themselves. If you encounter a situation where you need to change the script itself, you may consider whether it would be appropriate to file an enhancement request. The string <code>#!acmetool-managed!#</code> must be present near the start of the file in order to be detected.</p>
+<p>If you want to disable a default hook entirely, you should replace it with an empty file rather than deleting it, as <code>acmetool quickstart</code> will automatically install absent default hooks.</p>
+<p><strong>Default hook scripts: the <code>reload</code> hook.</strong> The reload hook is a default hook installed by <code>acmetool quickstart</code>. It reloads a list of services using commands specific to the distro. The correct command is detected automatically; <code>service $SERVICE reload</code>, <code>systemctl reload $SERVICE</code>, and <code>/etc/init.d/$SERVICE reload</code> are supported.</p>
+<p>A default list of services is provided which includes the most common webserver service names. This list can be customised using the <code>reload</code> hook configuration file.</p>
+<p>The <code>reload</code> hook configuration file is located at <code>/etc/conf.d/acme-reload</code> or <code>/etc/default/acme-reload</code>; the correct path depends on the conventions of your distro. It is a sourced shell file which can modify the default configuration variables of the <code>reload</code> script. Currently, the only variable is the <code>SERVICES</code> variable, a space-separated list of service names.</p>
+<p>You can overwrite the services list outright, or append to it like so:</p>
+<pre class="sh"><code># Example reload hook configuration file adding a service to the list of
+# services to be restarted.
+SERVICES=&quot;$SERVICES cherokee&quot;</code></pre>
+<p><strong>Default hook scripts: the <code>haproxy</code> hook.</strong> The haproxy hook is a default hook which <code>acmetool quickstart</code> can optionally install. It only offers to install this hook if HAProxy is detected as being installed on the system.</p>
+<p>HAProxy is rather bizarre in its TLS configuration requirements; it requires certificates and private key to be appended together in the same file. <code>acmetool</code> does not support this natively and is unlikely ever to as a default configuration for security reasons. Instead, the <code>haproxy</code> hook creates the necessary files for HAProxy from the certificate and private key files whenever they are updated. Thus, additional copies of the private key are only made when necessary to support HAProxy.</p>
+<p><strong>Inside the state directory.</strong> acmetool aims to minimise the use of state and be transparent about the state it does keep. When you run <code>acmetool want</code>, acmetool does these things:</p>
+<ul>
+<li><p>It configures a new target by writing a YAML file to <code>/var/lib/acme/desired/</code> describing the desired hostnames.</p></li>
+<li><p>It runs the default command, <code>reconcile</code>, to ensure that all targets are met.</p></li>
+</ul>
+<p>To demonstrate, you can replicate the function of <code>acmetool want</code>:</p>
+<pre class="sh"><code>$ sudo touch /var/lib/acme/desired/example.com
+$ sudo acmetool</code></pre>
+<p>Target files live in the <code>desired</code> directory. An empty target file defaults to its filename as the target hostname.</p>
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">More information on the format of the acmetool state directory and target files.</a></p>
+<h2 id="web-server-configuration">Web server configuration</h2>
+<p>What web server configuration you need to do depends on the validation method you have selected.</p>
+<p><strong>Redirector mode.</strong> No configuration required, but ensure that your web server is not listening on port 80 and that the redirector service (<code>acmetool redirector --service.daemon --service.uid=</code><em>uid-to-drop-privileges-to</em>) is started.</p>
+<p><strong>Proxy mode: nginx/tengine.</strong> You can configure nginx/tengine for use with acmetool in proxy mode as follows:</p>
+<pre class="nginx"><code>http {
+  server {
+    ... your configuration ...
+
+    location /.well-known/acme-challenge/ {
+      proxy_pass http://acmetool;
+    }
+  }
+
+  upstream acmetool {
+    # (Change to port 4402 if using non-root mode.)
+    server 127.0.0.1:402;
+  }
+}</code></pre>
+<p>This configuration will need to be repeated for each vhost. You may wish to avoid duplication by placing the applicable configuration in a separate file and including it in each vhost.</p>
+<p><strong>Proxy mode: Apache httpd.</strong></p>
+<div class="sourceCode"><pre class="sourceCode apache"><code class="sourceCode apache"><span class="co"># (Change to port 4402 if using non-root mode.)</span>
+ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://127.0.0.1:402/.well-known/acme-challenge&quot;</span></code></pre></div>
+<p>Ensure you load the modules <code>mod_proxy</code> and <code>mod_proxy_http</code>.</p>
+<p><strong>Webroot mode.</strong> If you don't have a particular webroot path in mind, consider using <code>/var/run/acme/acme-challenge</code> as a recommended standard. <code>acmetool</code> defaults to this as a webroot path if you don't explicitly configure one. (See “Challenge Completion Philosophy” below.)</p>
+<p><strong>Webroot mode: nginx/tengine.</strong></p>
+<pre class="nginx"><code>http {
+  server {
+    location /.well-known/acme-challenge/ {
+      alias /var/run/acme/acme-challenge;
+    }
+  }
+}</code></pre>
+<p>Note that the configuration will need to be repeated for each vhost. You may wish to avoid duplication by placing the applicable configuration in a separate file and including it in each vhost.</p>
+<p><strong>Webroot mode: Apache httpd.</strong></p>
+<div class="sourceCode"><pre class="sourceCode apache"><code class="sourceCode apache">Alias<span class="st"> &quot;/.well-known/acme-challenge/&quot; &quot;/var/run/acme/acme-challenge/&quot;</span>
+<span class="fu">&lt;Directory</span><span class="ot"> &quot;/var/run/acme/acme-challenge&quot;</span><span class="fu">&gt;</span>
+  <span class="ot">AllowOverride</span><span class="ch"> </span><span class="kw">None</span>
+  <span class="ot">Options</span><span class="ch"> </span><span class="kw">None</span>
+
+  <span class="co"># If using Apache 2.4+</span>
+  Require<span class="st"> all granted</span>
+
+  <span class="co"># If using Apache 2.2 and lower</span>
+  <span class="ot">Order</span><span class="ch"> allow, deny</span>
+  Allow<span class="st"> from all</span>
+<span class="fu">&lt;/Directory&gt;</span></code></pre></div>
+<h2 id="root-configured-non-root-operation">Root-configured non-root operation</h2>
+<p>The following steps describe how you can, as root, take a series of steps that allows you to invoke acmetool as a non-root user, thereby limiting your attack surface and the degree to which you trust acmetool.</p>
+<p>It is also possible to use acmetool without you having access to root at all. In this case, place acmetool in a location of your choice and pass the <code>--state</code> and <code>--hooks</code> flags with appropriate paths of your choice to all invocations of acmetool.</p>
+<h3 id="rootless-setup-as-root">Rootless setup as root</h3>
+<p>acmetool has experimental support for root-free operation.</p>
+<p>In order to run root-free, after installing acmetool in <code>/usr/local/bin</code> (or wherever you want it), before running acmetool, do the following:</p>
+<ul>
+<li><p>Create a new user <code>acme</code> <small>(or whatever you want)</small>.</p></li>
+<li><p>Create the directory <code>/var/lib/acme</code> and change the owning user and group to <code>acme</code>. <small>(You can use a different directory, but you must then make sure you pass <code>--state PATH</code> to all invocations of acmetool.)</small></p></li>
+<li><p>Create the directory <code>/usr/lib/acme/hooks</code> <small>(<code>/usr/libexec/acme/hooks</code> on distros which use libexec)</small>. Make it writable by <code>acme</code> for the time being by changing the group to <code>acme</code> and making the directory group-writable. (You can make this read-only after running the quickstart process, which places some shell scripts in here to reload servers. You can audit these scripts yourself or use your own if you wish.)</p></li>
+<li><p>Change to the user <code>acme</code> and run <code>acmetool quickstart</code>.</p>
+<pre><code>$ sudo -u acme acmetool quickstart</code></pre>
+<p>A crontab will be installed automatically as the <code>acme</code> user; you may wish to examine it.</p></li>
+<li><p>As root, make the <code>hooks</code> directory root-owned/not group writable once more. Ensure that the scripts are root-owned:</p>
+<pre class="sh"><code># chown -R root:root /usr/lib*/acme/hooks
+# chmod 755 /usr/lib*/acme/hooks</code></pre>
+<p>Inspect the hook scripts if you wish. Mark the hook scripts setuid:</p>
+<pre class="sh"><code># chmod u+s /usr/lib*/acme/hooks/*</code></pre>
+<p>UNIX systems don't support setuid shell scripts, so this bit is ignored. Rather, acmetool takes it as a flag to tell it to run these scripts via <code>sudo</code>. This is necessary so that web servers, etc. can be reloaded.</p>
+<p>The conditions for running using <code>sudo</code> are that the files have the setuid bit set, that they be owned by root, that they be scripts and not binaries, and that acmetool is not being run as root.</p></li>
+<li><p>Setup sudo. You will need to edit the sudoers file so that the hook scripts (which you have inspected and trust) can be executed by acmetool. It is essential that these have the <code>NOPASSWD</code> flag as the scripts must be executable noninteractively.</p>
+<p><code># visudo</code></p>
+<p>Add the line:</p>
+<p><code>acme ALL=(root) NOPASSWD: /usr/lib/acme/hooks/</code></p></li>
+<li><p>Setup your challenge method:</p>
+<p><strong>Webroot:</strong> Make sure the <code>acme</code> user can write to the webroot directory you configured.</p>
+<p><strong>Redirector:</strong> Make sure the directory <code>/var/run/acme/acme-challenge</code> is writable by the <code>acme</code> user. <code>acmetool</code> puts challenges here because the redirector looks here (internally it's a glorified webroot mode).</p>
+<p>Note that <code>/var/run</code> will be a tmpfs on many modern OSes, so the directory ceases to exist on reboots. The redirector will try to create the directory (as user root, mode 0755) if it doesn't exist. This happens before the redirector drops privileges from root. (It has to run as root initially to bind to port 80.)</p>
+<p>A configuration option has been added to make the redirector ensure that the directory is writable by a certain group when starting up. When this option is used, mode 0775 is used instead and the group owner is changed to a given GID.</p>
+<p>Pass <code>--challenge-gid=GID</code> to <code>acmetool redirector</code> (edit your service manager's configuration, e.g. the systemd unit file), where GID is the numeric group ID of the group owner for the challenge directory (i.e. the GID of the <code>acme</code> group). (Group names rather than IDs may be supported on some platforms, but this is not guaranteed and will vary. Use of a GID is recommended.)</p>
+<p><strong>Proxy:</strong> If you are using the proxy method, you won't be able to listen on port 402 as a non-root user. Use port 4402 instead, which acmetool will try also try to use.</p>
+<p><strong>Listener:</strong> Not usable under non-root operation, as it would not be able to bind to ports 80/443. But this is not really relevant as this mode is not useful for anything other than development anyway.</p></li>
+</ul>
+<h2 id="challenge-completion-philosophy">Challenge completion philosophy</h2>
+<p>acmetool's philosophy to completing challenges is to try absolutely anything that might work. So long as <em>something</em> works, acmetool doesn't care what it was that worked. When <code>acmetool quickstart</code> asks you what method to use, this is asked purely to determine a) whether to ask you for a webroot path (if you selected webroot mode) and b) whether to ask you if you want to install the redirector service (if you selected redirector mode and are using systemd, for which automatic service installation is supported). It doesn't determine what strategies acmetool does or doesn't use, so it's normal to see log output relating to a failure to use methods other than the one you chose.</p>
+<p>acmetool always tries to listen on port 402 and 4402 when completing challenges, in case something proxies to it. It always tries to listen on ports 80 and 443, in case you're not running a webserver yet. And it always tries to place challenge files in any webroot paths you have configured. Finally, it always tries to place challenge files in <code>/var/run/acme/acme-challenge</code>; this serves as a standard location for challenge files, and the redirector daemon works by looking here.</p>
+<p>Failure to complete any of these efforts is non-fatal. Ultimately, all acmetool cares about is that a challenge completes successfully after having attempted all possible preparations. It doesn't know or care <em>why</em> a challenge succeeds, only that it succeeded.</p>
+<p>(For HTTP-based challenges, acmetool self-tests its ability to complete the challenge by issuing a request for the same URL which will be requested by the ACME server, and does not proceed if this does not validate. Thus, HTTP-based challenges will never work if you are running some sort of weird split-horizon configuration where challenge files are retrievable only from the internet but not the local machine.)</p>
+<h2 id="the-state-storage-schema">The state storage schema</h2>
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">The format of acmetool's state directory is documented here.</a></p>
+<h2 id="response-files">Response files</h2>
+<p>It is possible to automatically provide responses to any question acmetool can ask.</p>
+<p>To do this, you provide the <code>--response-file</code> flag, with the path to a YAML file containing response information. <a href="https://github.com/hlandau/acme/blob/master/_doc/response-file.yaml">An example of such a file is here.</a></p>
+<p>If you don't provide a <code>--response-file</code> flag, acmetool will try to look for one at <code>/var/lib/acme/conf/responses</code>. If using a response file, it's recommended that you place it at this location.</p>
+<p>The file specifies key-value pairs. Each key is a prompt ID. (You can find these by grepping the source code for <code>UniqueID</code>.)</p>
+<p>(For messages which simply require acknowledgement, specify <code>true</code> to bypass them. Yes/no prompts should have a boolean value specified. The example response file is demonstrative.)</p>
+<p>You should specify <code>--batch</code> when using a response file to prevent acmetool from trying to prompt the user and fail instead, in case it tries to ask anything which you don't have a response for in your response file.</p>
+<h2 id="command-line-options">Command line options</h2>
+<pre><code>GLOBAL FLAGS
+
+  --state=path
+    Path to the state directory.
+    Defaults to &quot;/var/lib/acme&quot;.
+    Environment variable: ACME_STATE_DIR
+
+  --hooks=path
+    Path to the notification hooks directory.
+    Defaults to &quot;/usr/lib/acme/hooks&quot; or &quot;/usr/libexec/acme/hooks&quot;.
+
+  --batch
+    Prevents acmetool from prompting the user in any way.
+    acmetool can still obtain responses from a response file, if one
+    was provided.
+
+  --stdio
+    Force the use of basic stdio prompts rather than terminal dialogs.
+
+  --response-file=path
+    Path to a YAML response file. See the Response files section of
+    the user&#39;s guide for more information.
+
+  --version
+    Print version information.
+
+  --xlog.severity=debug|info|notice|warning|error|critical|alert|emergency
+    Sets the global log severity. The default severity is NOTICE.
+
+  --xlog.stderr
+    Whether to log to stderr. Enabled by default.
+
+  --xlog.file=path
+    Log to file. Disabled by default.
+
+  --xlog.syslog
+    Log to syslog. Disabled by default.
+
+  --xlog.facility=syslog-facility-name
+    The syslog facility name to use when logging to syslog. Default is &quot;daemon&quot;.
+
+  --xlog.journal
+    Log to journald. Disabled by default.
+
+  --xlog.fileseverity=debug|info|notice|warning|error|critical|alert|emergency
+  --xlog.stderrseverity=debug|info|notice|warning|error|critical|alert|emergency
+  --xlog.syslogseverity=debug|info|notice|warning|error|critical|alert|emergency
+  --xlog.journalseverity=debug|info|notice|warning|error|critical|alert|emergency
+    The log severity used to determine whether to log to stderr/the log
+    file/syslog/journald respectively.
+    The global log severity must also be satisfied. Defaults to DEBUG.
+
+  --service.uid=UID
+    Used by the redirector only. A user ID (or, if supported, a user name)
+    to drop privileges to. Mandatory for the redirector.
+
+  --service.gid=GID
+    If not specified, the GID corresponding to the specified UID is used.
+    If specified, must be a group ID (or, if supported, a group name)
+    to drop privileges to.
+
+  --service.daemon
+    Closes stdio file handles and does not output anything when run.
+    Automatically implied if running under systemd.
+
+  --service.chroot=path
+    Chroots into a path. Recommended. Setting this to &quot;/&quot; disables chrooting.
+    By default, chroots into the configured webroot directory.
+
+  --service.pidfile=path
+    Writes and locks a PID file.
+    By default, doesn&#39;t write a PID file.
+
+  --service.fork
+    Fork emulation. Do not use unless absolutely necessary. Implies --service.daemon.
+
+  --service.cpuprofile=path
+  --service.debugserveraddr=addr
+    Development use only.
+
+COMMANDS
+
+  help [&lt;command&gt;]
+    Show help.
+
+  reconcile
+    Reconcile ACME state. This is the default command.
+
+  want &lt;hostname&gt;...
+    Add a target with one or more hostnames.
+
+  quickstart [flags]
+    Interactively ask some getting started questions (recommended).
+
+    --expert
+      Ask even more questions in the quickstart wizard.
+
+  redirector [flags]
+    HTTP to HTTPS redirector with challenge response support.
+
+    --path=path
+      Path to serve challenge files from.
+      Defaults to /var/run/acme/acme-challenge (recommended).
+
+    --challenge-gid=GID
+      If set, ensure that the given group can write to the challenge
+      directory. Useful if running acmetool as non-root aside from
+      the redirector.
+
+  import-key &lt;key-file&gt;
+    Imports a private key file into the state directory.
+
+    This is useful if you have existing certificates which you want acmetool to
+    consider when determining whether to request new certificates.
+
+  import-le [le-state-path]
+    Import state from the official Let&#39;s Encrypt client. If no
+    path is specified, the default of &quot;/etc/letsencrypt&quot; is used.
+
+  import-jwk-account &lt;provider-URL&gt; &lt;key-file&gt;
+    Imports a JSON JWK account private key file. You must specify
+    the provider directory URL. Don&#39;t use unless you know what you&#39;re
+    doing.</code></pre>
+<h2 id="faq">FAQ</h2>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>Passing <code>--xlog.severity=debug</code> increases the logging verbosity of acmetool and should be your first troubleshooting strategy.</p>
+<h2 id="comparison-with-other-clients">Comparison with other clients</h2>
+</body>
+</html>
