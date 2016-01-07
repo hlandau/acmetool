@@ -55,7 +55,7 @@ You can also [download .deb files manually.](https://launchpad.net/~hlandau/+arc
 (Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
 
 **Debian users:** The Ubuntu binary release PPA also works with Debian:
-```bash
+```
 # echo 'deb http://ppa.launchpad.net/hlandau/rhea/ubuntu xenial main' > /etc/apt/sources.list.d/rhea
 # apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9862409EF124EC763B84972FF5AC9651EDB58DFA
 # apt-get update
