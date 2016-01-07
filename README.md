@@ -46,8 +46,25 @@ non-`_cgo` releases may be more compatible with older OSes.
 **Ubuntu users:** A binary release PPA, `ppa:hlandau/rhea` (package `acmetool`) is available.
 ```bash
 $ sudo add-apt-repository ppa:hlandau/rhea
+$ sudo apt-get update
 $ sudo apt-get install acmetool
 ```
+
+You can also [download .deb files manually.](https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages)
+
+(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
+
+**Debian users:** The Ubuntu binary release PPA also works with Debian:
+```bash
+# echo 'deb http://ppa.launchpad.net/hlandau/rhea/ubuntu xenial main' > /etc/apt/sources.list.d/rhea
+# apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9862409EF124EC763B84972FF5AC9651EDB58DFA
+# apt-get update
+# apt-get install acmetool
+```
+
+You can also [download .deb files manually.](https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages)
+
+(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
 
 **Arch Linux users:** [An AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
 
