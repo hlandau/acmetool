@@ -67,7 +67,7 @@ Maintainer: Hugo Landau <hlandau@devever.net>
 Section: utils
 Priority: optional
 Standards-Version: 3.9.6
-Build-Depends: debhelper (>= 9), wget, ca-certificates, curl
+Build-Depends: debhelper (>= 9), wget, ca-certificates, curl, libcap-dev
 
 Package: acmetool
 Architecture: amd64 i386 armhf arm64
