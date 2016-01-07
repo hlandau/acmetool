@@ -41,8 +41,8 @@ index cb3b70a..9b92ea1 100644
 -      "httpsPort": 5001,
 -      "tlsPort": 5001
 +      "httpPort": 80,
-+      "httpsPort": 5443,
-+      "tlsPort": 5443
++      "httpsPort": 5001,
++      "tlsPort": 5001
      },
      "maxConcurrentRPCServerRequests": 16,
      "amqp": {

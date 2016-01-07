@@ -5,7 +5,6 @@ package storage
 import (
 	"crypto"
 	"crypto/ecdsa"
-	//"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -23,6 +22,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+	"sort"
 	"strings"
 	"time"
 )
@@ -74,10 +74,21 @@ func (a *Authorization) IsValid() bool {
 	return time.Now().Before(a.Expires)
 }
 
-// Represents a stored target descriptor.
-type Target struct {
-	// N. List of SANs to place on any obtained certificate. May include
-	// hostnames (and maybe one day SRV-IDs). May include wildcard hostnames.
+// Represents the "satisfy" section of a target file.
+type TargetSatisfy struct {
+	// N. List of SANs required to satisfy this target. May include hostnames
+	// (and maybe one day SRV-IDs). May include wildcard hostnames, but ACME
+	// doesn't support those yet.
+	Names []string `yaml:"names,omitempty"`
+
+	// D. Reduced name set, after disjunction operation. Derived from Names.
+	ReducedNames []string `yaml:"-"`
+}
+
+// Represents the "request" section of a target file.
+type TargetRequest struct {
+	// N/d. List of SANs to place on any obtained certificate. Defaults to the
+	// names in the satisfy section.
 	Names []string `yaml:"names,omitempty"`
 
 	// N. Currently, this is the provider directory URL. An account matching it
@@ -87,13 +98,28 @@ type Target struct {
 
 	// D. Account to use, determined via Provider string.
 	Account *Account `yaml:"-"`
+}
 
-	// N. Priority as a symlink target.
+// Represents a stored target descriptor.
+type Target struct {
+	// Specifies conditions which must be met.
+	Satisfy TargetSatisfy `yaml:"satisfy,omitempty"`
+
+	// Specifies parameters used when requesting certificates.
+	Request TargetRequest `yaml:"request,omitempty"`
+
+	// N. Priority. See state storage specification.
 	Priority int `yaml:"priority,omitempty"`
+
+	// LEGACY. Names to be satisfied. Moved to Satisfy.Names.
+	LegacyNames []string `yaml:"names,omitempty"`
+
+	// LEGACY. Provider URL to used. Moved to Request.Provider.
+	LegacyProvider string `yaml:"provider,omitempty"`
 }
 
 func (t *Target) String() string {
-	return fmt.Sprintf("Target(%s;%s;%d)", strings.Join(t.Names, ","), t.Provider, t.Priority)
+	return fmt.Sprintf("Target(%s;%s;%d)", strings.Join(t.Satisfy.Names, ","), t.Request.Provider, t.Priority)
 }
 
 // Represents stored certificate information.
@@ -137,16 +163,17 @@ type Key struct {
 type Store struct {
 	db *fdb.DB
 
-	path                string
-	referencedCerts     map[string]struct{}
-	certs               map[string]*Certificate
-	accounts            map[string]*Account
-	keys                map[string]*Key
-	targets             map[string]*Target
-	defaultTarget       *Target // from conf
-	defaultBaseURL      string
-	webrootPaths        []string
-	preferredRSAKeySize int
+	path                  string
+	referencedCerts       map[string]struct{}
+	certs                 map[string]*Certificate // key: certificate ID
+	accounts              map[string]*Account     // key: account ID
+	keys                  map[string]*Key         // key: key ID
+	targets               map[string]*Target      // key: target filename
+	defaultTarget         *Target                 // from conf
+	defaultBaseURL        string
+	webrootPaths          []string
+	preferredRSAKeySize   int
+	hostnameTargetMapping map[string]*Target
 }
 
 const RecommendedPath = "/var/lib/acme"
@@ -208,6 +235,11 @@ func (s *Store) load() error {
 	}
 
 	err = s.loadTargets()
+	if err != nil {
+		return err
+	}
+
+	err = s.disjoinTargets()
 	if err != nil {
 		return err
 	}
@@ -485,7 +517,7 @@ func (s *Store) SetDefaultProvider(providerURL string) error {
 		return fmt.Errorf("invalid provider URL")
 	}
 
-	s.defaultTarget.Provider = providerURL
+	s.defaultTarget.Request.Provider = providerURL
 	return s.saveDefaultTarget()
 }
 
@@ -513,7 +545,9 @@ func (s *Store) loadTargets() error {
 
 	dtgt, err := s.validateTargetInner("target", confc)
 	if err == nil {
-		dtgt.Names = nil
+		dtgt.Satisfy.Names = nil
+		dtgt.Satisfy.ReducedNames = nil
+		dtgt.Request.Names = nil
 		s.defaultTarget = dtgt
 	} else {
 		s.defaultTarget = &Target{}
@@ -559,25 +593,91 @@ func (s *Store) validateTargetInner(desiredKey string, c *fdb.Collection) (*Targ
 		return nil, err
 	}
 
-	if len(tgt.Names) == 0 {
-		tgt.Names = []string{desiredKey}
-	}
-
-	for _, n := range tgt.Names {
-		n = strings.ToLower(n)
-		n = strings.TrimSuffix(n, ".")
-		if !validHostname(n) {
-			return nil, fmt.Errorf("invalid hostname in target %s: %s", desiredKey, n)
+	if len(tgt.Satisfy.Names) == 0 {
+		if len(tgt.LegacyNames) > 0 {
+			tgt.Satisfy.Names = tgt.LegacyNames
+		} else {
+			tgt.Satisfy.Names = []string{desiredKey}
 		}
 	}
 
-	tgt.Account, err = s.getAccountByProviderString(tgt.Provider)
+	if tgt.Request.Provider == "" {
+		tgt.Request.Provider = tgt.LegacyProvider
+	}
+
+	err = normalizeNames(tgt.Satisfy.Names)
+	if err != nil {
+		return nil, fmt.Errorf("invalid target: %s: %v", desiredKey, err)
+	}
+
+	if len(tgt.Request.Names) == 0 {
+		tgt.Request.Names = tgt.Satisfy.Names
+	}
+
+	tgt.Request.Account, err = s.getAccountByProviderString(tgt.Request.Provider)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: tgt.Priority
 	return tgt, nil
+}
+
+func normalizeNames(names []string) error {
+	for i := range names {
+		n := strings.TrimSuffix(strings.ToLower(names[i]), ".")
+		if !validHostname(n) {
+			return fmt.Errorf("invalid hostname: %q", n)
+		}
+
+		names[i] = n
+	}
+
+	return nil
+}
+
+type targetSorter []*Target
+
+func (ts targetSorter) Len() int {
+	return len(ts)
+}
+
+func (ts targetSorter) Swap(i, j int) {
+	ts[i], ts[j] = ts[j], ts[i]
+}
+
+func (ts targetSorter) Less(i, j int) bool {
+	return targetGt(ts[j], ts[i])
+}
+
+func (s *Store) disjoinTargets() error {
+	var targets []*Target
+
+	for _, tgt := range s.targets {
+		targets = append(targets, tgt)
+	}
+
+	sort.Stable(sort.Reverse(targetSorter(targets)))
+
+	// Bijective hostname-target mapping.
+	hostnameTargetMapping := map[string]*Target{}
+	for _, tgt := range targets {
+		tgt.Satisfy.ReducedNames = nil
+		for _, name := range tgt.Satisfy.Names {
+			_, exists := hostnameTargetMapping[name]
+			if !exists {
+				hostnameTargetMapping[name] = tgt
+				tgt.Satisfy.ReducedNames = append(tgt.Satisfy.ReducedNames, name)
+			}
+		}
+	}
+
+	s.hostnameTargetMapping = hostnameTargetMapping
+	for name, tgt := range s.hostnameTargetMapping {
+		log.Debugf("disjoint hostname mapping: %s -> %v", name, tgt)
+	}
+
+	return nil
 }
 
 func (s *Store) EnsureRegistration() error {
@@ -592,7 +692,7 @@ func (s *Store) EnsureRegistration() error {
 
 func (s *Store) getAccountByProviderString(p string) (*Account, error) {
 	if p == "" && s.defaultTarget != nil {
-		p = s.defaultTarget.Provider
+		p = s.defaultTarget.Request.Provider
 	}
 
 	if p == "" {
@@ -780,26 +880,17 @@ func (s *Store) saveKeyUnderID(c *fdb.Collection, privateKey interface{}) (keyID
 }
 
 func (s *Store) linkTargets() error {
-	names := map[string]*Target{}
-
-	for _, tgt := range s.targets {
-		for _, name := range tgt.Names {
-			t2 := names[name]
-			if targetGt(tgt, t2) {
-				names[name] = tgt
-			}
-		}
-	}
-
 	var updatedHostnames []string
 
-	for name, tgt := range names {
+	for name, tgt := range s.hostnameTargetMapping {
 		c, err := s.findBestCertificateSatisfying(tgt)
 		if err == nil {
+			log.Tracef("relink: best certificate satisfying %v is %v", tgt, c)
 			lt := "certs/" + c.ID()
-
 			lnk, err := s.db.Collection("live").ReadLink(name)
+			log.Tracef("link: %s: %v %q %q", name, err, lnk.Target, lt)
 			if err != nil || lnk.Target != lt {
+				log.Debugf("relinking: %v -> %v (was %v)", name, lt, lnk.Target)
 				err = s.db.Collection("live").WriteLink(name, fdb.Link{Target: lt})
 				if err != nil {
 					return err
@@ -1038,7 +1129,7 @@ func (s *Store) doesCertSatisfy(c *Certificate, t *Target) bool {
 		names[name] = struct{}{}
 	}
 
-	for _, name := range t.Names {
+	for _, name := range t.Satisfy.Names {
 		_, ok := names[name]
 		if !ok {
 			log.Debugf("certificate %v cannot satisfy %v because required hostname %#v is not listed on it: %#v", c, t, name, cc.DNSNames)
@@ -1062,9 +1153,21 @@ func (s *Store) certificateNeedsRenewing(c *Certificate) bool {
 		return false
 	}
 
-	needsRenewing := cc.NotAfter.Before(time.Now().AddDate(0, 0, 30))
+	renewSpan := renewTime(cc.NotBefore, cc.NotAfter)
+	needsRenewing := !time.Now().Before(renewSpan)
+
 	log.Debugf("%v needsRenewing=%v notAfter=%v", c, needsRenewing, cc.NotAfter)
 	return needsRenewing
+}
+
+func renewTime(notBefore, notAfter time.Time) time.Time {
+	validityPeriod := notAfter.Sub(notBefore)
+	renewSpan := validityPeriod / 3
+	if renewSpan > 30*24*time.Hour { // close enough to 30 days
+		renewSpan = 30 * 24 * time.Hour
+	}
+
+	return notAfter.Add(-renewSpan)
 }
 
 func (s *Store) certBetterThan(a *Certificate, b *Certificate) bool {
@@ -1168,7 +1271,7 @@ func (s *Store) obtainAuthorization(name string, a *Account) error {
 
 func (s *Store) createCSR(t *Target) ([]byte, error) {
 	csr := &x509.CertificateRequest{
-		DNSNames: t.Names,
+		DNSNames: t.Request.Names,
 	}
 
 	pk, _, err := s.createNewCertKey()
@@ -1197,7 +1300,7 @@ func signatureAlgorithmFromKey(pk crypto.PrivateKey) (x509.SignatureAlgorithm, e
 
 func (s *Store) requestCertificateForTarget(t *Target) error {
 	//return fmt.Errorf("not requesting certificate")
-	cl := s.getAccountClient(t.Account)
+	cl := s.getAccountClient(t.Request.Account)
 
 	err := solver.AssistedUpsertRegistration(cl, nil, context.TODO())
 	if err != nil {
@@ -1211,7 +1314,7 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 
 	for _, name := range authsNeeded {
 		log.Debugf("trying to obtain authorization for %#v", name)
-		err := s.obtainAuthorization(name, t.Account)
+		err := s.obtainAuthorization(name, t.Request.Account)
 		if err != nil {
 			log.Errore(err, "could not obtain authorization for ", name)
 			return err
@@ -1257,11 +1360,11 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 
 func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
 	needed := map[string]struct{}{}
-	for _, n := range t.Names {
+	for _, n := range t.Request.Names {
 		needed[n] = struct{}{}
 	}
 
-	a := t.Account
+	a := t.Request.Account
 	for _, auth := range a.Authorizations {
 		if auth.IsValid() {
 			delete(needed, auth.Name)
@@ -1270,7 +1373,7 @@ func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
 
 	// preserve the order of the names in case the user considers that important
 	var neededs []string
-	for _, name := range t.Names {
+	for _, name := range t.Request.Names {
 		if _, ok := needed[name]; ok {
 			neededs = append(neededs, name)
 		}
@@ -1280,17 +1383,17 @@ func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
 }
 
 func (s *Store) AddTarget(tgt Target) error {
-	if len(tgt.Names) == 0 {
+	if len(tgt.Satisfy.Names) == 0 {
 		return nil
 	}
 
-	for _, n := range tgt.Names {
+	for _, n := range tgt.Satisfy.Names {
 		if !validHostname(n) {
 			return fmt.Errorf("invalid hostname: %v", n)
 		}
 	}
 
-	t := s.findTargetWithAllNames(tgt.Names)
+	t := s.findTargetWithAllNames(tgt.Satisfy.Names)
 	if t != nil {
 		return nil
 	}
@@ -1310,7 +1413,7 @@ func (s *Store) findTargetWithAllNames(names []string) *Target {
 T:
 	for _, t := range s.targets {
 		for _, n := range names {
-			if !containsName(t.Names, n) {
+			if !containsName(t.Satisfy.Names, n) {
 				continue T
 			}
 		}
@@ -1326,8 +1429,8 @@ func (s *Store) makeUniqueTargetName(tgt *Target) string {
 	// We have to use a random name.
 
 	nprefix := ""
-	if len(tgt.Names) > 0 {
-		nprefix = tgt.Names[0] + "-"
+	if len(tgt.Satisfy.Names) > 0 {
+		nprefix = tgt.Satisfy.Names[0] + "-"
 	}
 
 	b := uuid.NewV4().Bytes()

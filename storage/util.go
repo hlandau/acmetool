@@ -227,11 +227,11 @@ func validHostname(name string) bool {
 
 func targetGt(a *Target, b *Target) bool {
 	if a == nil && b == nil {
-		return false
+		return false // equal
 	} else if b == nil {
-		return true
+		return true // a > nil
 	} else if a == nil {
-		return false
+		return false // nil < a
 	}
 
 	if a.Priority > b.Priority {
@@ -240,7 +240,7 @@ func targetGt(a *Target, b *Target) bool {
 		return false
 	}
 
-	return len(a.Names) > len(b.Names)
+	return len(a.Satisfy.Names) > len(b.Satisfy.Names)
 }
 
 func containsName(names []string, name string) bool {

@@ -89,39 +89,138 @@ domains.
 The desired hostnames list is a directory named "desired" inside the State
 Directory, containing zero or more files. Each file represents a target.
 
-Each target has one or more hostnames associated with it. The file is a YAML
-file with the following schema:
+The function of an implementation of this specification is simply this: to
+ensure that currently valid certificates are always provisioned which provide
+for all hostnames expressed across all targets.
 
-    names:
-      (list of strings, one per hostname)
-    provider: (URL of ACME server)
-    priority: (integer, defaults to zero)
+Each target is a YAML file. The file schema looks like this:
 
-If `names` is not specified, the target expresses a single name, which is the
-filename of the file. If that name is not a valid hostname, or if the file
-explicitly specifies zero names, the target is invalid.
+    satisfy:
+      names:
+        - example.com
+        - www.example.com
+        - foo.example.com
 
-If `provider` is not specified, an implementation-specific default ACME server
-URL is used. 
+    request:
+      names:
+        ...
+      provider: (URL of ACME server)
+
+    priority: 0
+
+The target file is principally divided into "satisfy" and "request" sections.
+The satisfy section controls the conditions which must be satisfied by a
+certificate in order to satisfy this target. The request section controls the
+parameters of a new certificate request made to satisfy the target.
+
+**Conditions to be satisfied.** The "satisfy" section can contain the following values:
+
+  - `names`: A list of hostname strings. If not set, and the filename is a valid
+    hostname, defaults to a list containing only that hostname. Hostnames SHOULD
+    be in lowercase with no trailing dot but hostnames not in this form MUST be
+    accepted and so canonicalized.
+
+(The lumping of hostnames into different target files controls when separate
+certificates are issued, and when single certificates with multiple SANs are
+issued. For example, creating two empty files, `example.com` and
+`www.example.com`, would result in two certificates. Creating a single file
+`example.com` which specifies names to be satisfied of `example.com` and
+`www.example.com` would result in one certificate with both names.)
+
+**Certificate request parameters.** The "request" section can contain the following values:
+
+  - `names`: A list of hostname strings. Defaults to the names set under "satisfy".
+    This setting is specified for design parity, but it is not envisioned that
+    a user will ever need to set it explicitly.
+
+  - `provider`: A string which is the URL of an ACME server from which to request
+    certificates. Optional; if not specified, an implementation-specific default
+    ACME server is used.
+
+**Backwards compatibility.** For compatibility with previous versions,
+implementations SHOULD check for keys "names" and "provider" at the root level
+and if present, move them to the "satisfy" and "request" sections respectively.
+
+**Target set disjunction priority.** The "priority" value is special. It is an
+integer defaulting to 0.
+
+**Target set disjunction procedure.** In order to ensure consistent and
+deterministic behaviour, and to minimise the number of certificate requests
+which need to be made in regard of overlapping name sets, the sets of names to
+be satisfied by each target are modified to ensure that the sets are fully
+disjoint. That is, any given hostname must appear in at most one target's list
+of names to be satisfied.
+
+The procedure operates as follows:
+
+- Take the list of targets and sort it in descending order of priority value.
+  For targets with equal priority, tiebreak using the number of hostnames to be
+  satisfied in descending order. Where the number of hostnames is equal, the
+  tiebraker is implementation-specified, but SHOULD be deterministic.
+
+- Now iterate through the targets in that order. Create an empty dictionary
+  mapping hostnames to targets. This dictionary shall be called the
+  Hostname-Target Mapping and should be retained in memory even after the
+  disjunction procedure is completed.
+
+    - For each hostname to be satisfied for a target, if that hostname is not
+      already in the dictionary, add it, pointing to the given target.
+
+    - Copy the list of hostnames to be satisfied by the given target, and
+      remove any hostnames from it which were already in the dictionary (i.e.,
+      where the map does not point to this target). This modified hostname list
+      is called the reduced set of hostnames to be satisfied.
+
+Keep both the full set of hostnames to be satisfied and the reduced set of
+hostnames to be satisfied in memory for each target. The on-disk target files
+are not modified.
 
 Wildcard certificates, if ACME ever supports them, may be indicated just as
 they would be in a certificate. For example, an empty file named
 `*.example.com` could be created in the desired directory.
 
-The function of an implementation of this specification is simply this: to
-ensure that currently valid certificates are always provisioned which provide
-for all hostnames expressed across all targets.
+**Disjunction example.** This section is non-normative. Suppose that the
+following targets were created:
 
-The lumping of hostnames into different target files controls when separate
-certificates are issued, and when single certificates with multiple SANs are
-issued. For example, creating two empty files, `example.com` and
-`www.example.com`, would result in two certificates. Creating a single file
-`example.com` with the following contents would result in one certificate with
-both names:
+    Target 01: a.example.com  b.example.com  c.example.com
+    Target 02: a.example.com  b.example.com
+    Target 03:                b.example.com  c.example.com
+    Target 04: a.example.com                 c.example.com
+    Target 05: a.example.com
+    Target 06:                b.example.com
+    Target 07:                               c.example.com
+    Target 08: c.example.com  d.example.com  e.example.com  f.example.com
+    Target 09: c.example.com  d.example.com
+    Target 10: c.example.com  d.example.com  e.example.com
 
-    names:
-      - example.com
-      - www.example.com
+Suppose that all targets have the default priority zero and have filenames
+"Target 01", etc. The targets would be sorted as follows. The hostnames
+in brackets are not in the reduced set.
+
+    Target 08: c.example.com  d.example.com  e.example.com  f.example.com
+    Target 01: a.example.com  b.example.com [c.example.com]
+    Target 10:[c.example.com][d.example.com][e.example.com]
+    Target 02:[a.example.com][b.example.com]
+    Target 03:               [b.example.com][c.example.com]
+    Target 04:[a.example.com]               [c.example.com]
+    Target 09:[c.example.com][d.example.com]
+    Target 05:[a.example.com]
+    Target 06:               [b.example.com]
+    Target 07:                              [c.example.com]
+
+Suppose that Target 01 was changed to have a priority of 10. The sorted,
+reduced targets would now look like this:
+
+    Target 01: a.example.com  b.example.com  c.example.com
+    Target 08:[c.example.com] d.example.com  e.example.com  f.example.com
+    Target 10:[c.example.com][d.example.com][e.example.com]
+    Target 02:[a.example.com][b.example.com]
+    Target 03:               [b.example.com][c.example.com]
+    Target 04:[a.example.com]               [c.example.com]
+    Target 09:[c.example.com][d.example.com]
+    Target 05:[a.example.com]
+    Target 06:               [b.example.com]
+    Target 07:                              [c.example.com]
 
 ### accounts
 
@@ -224,10 +323,11 @@ more relative symlinks, each of which MUST link to a subdirectory of the
 "certs" directory. The name of each symlink MUST be a hostname which is
 expressed, or was previously expressed by one or more targets.
 
-The "live" directory MUST point to the preferred certificate for each each
-hostname.  Thus an application requiring a certificate for a given hostname can
-unconditionally specify `/var/lib/acme/live/example.com/{cert,privkey}` for the
-certificate, private key, etc.
+The "live" directory MUST point to the Most Preferred Certificate for each
+target, as specified below.  Thus an application requiring a certificate for a
+given hostname can unconditionally specify
+`/var/lib/acme/live/example.com/{cert,privkey}` for the certificate, private
+key, etc.
 
 ### tmp, Rules for State Directory Mutation
 
@@ -255,8 +355,8 @@ following operations:**
 
   - Atomically deleting a file or recursively deleting a directory.
 
-  - Changing file or directory permissions or ownership to conform with
-    security requirements.
+  - Idempotently changing file or directory permissions or ownership to conform
+    with security requirements.
 
 When an ACME client finds files in the "tmp" directory which it did not itself
 open (in its current invocation), it SHOULD delete them. It SHOULD perform this
@@ -364,7 +464,7 @@ Operations
 
 To conform a State Directory means to examine everything in the directory for
 consistency and validity. Permissions are changed as necessary to ensure they
-match the implementation's policy.  The implementation verifies that all
+match the implementation's policy. The implementation verifies that all
 symlinks are unbroken, relative and point to locations within the State
 Directory. Remnant temporary files are deleted. Errors are indicated for any
 malformed directory (e.g. account directory with no private key, etc.)
@@ -373,49 +473,114 @@ This operation is idempotent.
 
 ### Reconcile
 
+A certificate can be described as "satisfying" a target, or as being the Most
+Preferred Certificate for a target. These are distinct classifications, and
+neither implies the other. A certificate might be the Most Preferred
+Certificate for a target even though it does not satisfy it, because it is the
+"least worst option". A certificate might satisfy a target but not be the Most
+Preferred Certificate for it.
+
 The reconcile operation is the actual act of “building” the State Directory.
-Certificates are requested and obtained as necessary to satisfy the targets expressed.
 
-Always perform the Conform operation before performing this operation. If any
-certificates were requested, the Conform operation must be performed afterwards
-as well.
+  - Begin by performing the Conform operation.
 
-If there are any uncached certificates (certificate directories containing only
-an "url" file), cache them, waiting for them to become available if necessary.
+  - If there are any uncached certificates (certificate directories containing
+    only an "url" file), cache them, waiting for them to become available if
+    necessary.
 
-Update the symlinks in the "live" directory to point to the most preferred
-certificate for each hostname. If there is no certificate which satisfies a
-hostname, do not modify any existing link in the "live" directory for that
-hostname.
+  - For each target, satisfy that target.
 
-In some cases there may be multiple satisfactory certificates which support a
-given hostname. In this case the "priority" field in each target description
-file, which defaults to zero, should be used to determine which certificate is
-preferred for a given hostname. Higher priority values are preferred.
+    To satisfy a target:
 
-Use the set of targets to determine what certificates will be necessary, and
-determine what targets are unsatisfied by currently available certificates.
+    - If there exists a certificate satisfying the target, the target is
+      satisfied. Done.
 
-A target is satisfied by a certificate if the hostnames required by the target
-are a subset of the hostnames for which the certificate is valid; if the
-certificate is neither expired nor near expiry; and if the private key for the
-certificate is available within the State Directory.
+    - Otherwise, request a certificate with the hostnames listed under the
+      "request" section of the target. If a certificate cannot be obtained,
+      fail. Satisfy the target again.
 
-The meaning of “near expiry” is implementation-dependent. The RECOMMENDED
-definition of “near expiry” is any certificate expiring in less than 30 days or
-33% of the validity period, whichever is lower.
+      When making certificate requests, use the provider/account information
+      specified in the "request" section.
 
-If there are unsatisfied targets, for each unsatisfied target:
+    To request a certificate:
 
-  - Obtain any necessary authorizations, using the authorization information
-    stored for the account to be used in the State Directory to determine which
-    authorizations definitely do not need to be acquired.
+    - Obtain any necessary authorizations, using the authorization information
+      stored for the account to be used in the State Directory to determine
+      which authorizations definitely do not need to be acquired.
 
-  - Having successfully acquired all authorizations, form an appropriate CSR
-    containing the requested SANs and request a certificate. Write the certificate
-    URL to the State Directory.
+    - Having successfully acquired all necessary authorizations, form an
+      appropriate CSR containing the SANs specified in the "request" section of
+      the applicable target and request a certificate. Write the certificate
+      URL to the State Directory.
 
-If any certificates were requested, perform the Reconcile operation again.
+- Update the "live" directory as follows:
+
+    - For each (hostname, target) pair in the Hostname-Target Mapping, create a
+      symlink for the hostname pointing to the Most Preferred Certificate for
+      the target, if one exists.
+
+- If any certificates were requested while satisfying targets, perform the
+  Reconcile operation again; stop.
+
+- Optionally perform cleanup operations:
+
+    - Delete the certificate directories for any cullable certificates.
+
+    - Delete (optionally, securely erase) the key directories for any cullable
+      private keys.
+
+This operation is idempotent.
+
+**Satisfying targets.** A certifigate satisfies a target if:
+
+  - the private key for the certificate is available in the State Directory, and
+  - the certificate is not known to be revoked, and
+  - all stipulations listed in the "satisfy" section of the target are met:
+
+      - the "names" stipulation is met if the dNSName SANs in a given
+        certificate are a superset of the names specified.
+
+    and
+  - the certificate is not self-signed, and
+  - the current time lies between the Not Before and Not After times, and
+  - the certificate is not near expiry.
+
+**Near expiry.** A certificate is near expiry if the difference between the
+current time and the "Not After" time is less than some implementation-specific
+threshold. The RECOMMENDED threshold is 30 days or 33% of the validity period,
+whichever is lower.
+
+**Most Preferred Certificate.** The Most Preferred Certificate for a given
+target is determined as follows:
+
+  - Certificates which satisfy the target are preferred over certificates that
+    do not satisfy the target.
+
+  - For two certficates neither of which satisfies the target, one is
+    preferred over the other if the first criterion in the list of the
+    criteria for satisfying a target which it does not satisfy is later in
+    the list of criteria than for the other.
+
+    For example, a revoked certificate for which a private key is available
+    is preferred over a certificate for which no private key is available. A
+    self-signed certificate with the right names is preferred over a self or
+    CA-signed certificate with the wrong names. A self-signed certificate is
+    preferred over a revoked certificate. (A revoked certificate may not be
+    exemptible by a user; thus even a self-signed certificate is preferable
+    to a certificate known to be revoked.)
+
+  - Certificates with later "Not After" times are preferred.
+
+**Cullability.** A certificate is cullable if:
+
+  - it is expired, and
+  - after reconcilation, it is unreferenced by any "live" symlink.
+
+A private key is cullable if:
+
+  - it does not relate to any known certificate, and
+  - it was not recently created or imported. The definition of "recently" is
+    implementation-specific.
 
 Identifiers
 -----------
@@ -427,16 +592,21 @@ identifiers. Their identifiers are calculated as follows:
 of the subjectPublicKeyInfo constructed from the private key.
 
 **Account ID:** Take the Directory URL for the ACME server. Take the hostname,
-port (if applicable) and path, stripping the scheme, which must be HTTPS (e.g.
+port (if applicable) and path, stripping the scheme (e.g.
 "example.com/directory"). If the path is "/", strip it ("example.com/" becomes
 "example.com"). URL-encode this string so that any slashes are percent-encoded
 using lowercase hexadecimal. Take this string and append "/" followed by the
 string formed by calculating a Key ID using the account's private key.
 
-  e.g. "example.com%2fdirectory/irq7564p5siu3zngnc2caqygp3v53dfmh6idwtpyfkxojssqglta"
+  e.g. `example.com%2fdirectory/irq7564p5siu3zngnc2caqygp3v53dfmh6idwtpyfkxojssqglta`
 
 Each account directory is thus an account key-specific subdirectory of the
 string formed from the directory URL.
+
+For production use the scheme MUST be "https". In some cases, it may be desirable
+to test using HTTP. Where an HTTP URL is specified, it is prefixed with `http:`. For example:
+
+  `http:example.com%2fdirectory/irq7564p5siu3zngnc2caqygp3v53dfmh6idwtpyfkxojssqglta`
 
 **Certificate ID:** A certificate ID must be assignable before a certificate
 has been issued, when only the public key and certificate URL are known.
@@ -445,9 +615,7 @@ Thus, the Certificate ID shall be the lowercase base32 encoding with padding
 stripped of the SHA256 hash of the certificate URL.
 
 A certificate directory is invalid if the "url" file does not match the
-Certificate ID. In this case it should be treated as though the certificate
-is expired; the directory should be deleted unless it is referenced by a symlink
-in 'live'.
+Certificate ID. Such a directory should be deleted.
 
 Temporary Use of Self-Signed Certificates
 -----------------------------------------
@@ -461,8 +629,8 @@ hostnames) with reduced functionality.
 
 If a client uses such interim self-signed certificates, it MUST create an empty
 'selfsigned' file in the certificate directory to indicate that the certificate
-is a self-signed certificate. The 'url' file MUST NOT exist. The "cert" and
-"fullchain" files MUST be identical, and the "chain" file MUST exist and MUST
+is a self-signed certificate. The 'url' file MUST NOT exist. The 'cert' and
+'fullchain' files MUST be identical, and the 'chain' file MUST exist and MUST
 be an empty file.
 
 The self-signed certificate MAY contain information in it which points out the

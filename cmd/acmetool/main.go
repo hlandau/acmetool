@@ -162,7 +162,9 @@ func cmdWant() {
 	log.Fatale(err, "storage")
 
 	tgt := storage.Target{
-		Names: *wantArg,
+		Satisfy: storage.TargetSatisfy{
+			Names: *wantArg,
+		},
 	}
 
 	err = s.AddTarget(tgt)
