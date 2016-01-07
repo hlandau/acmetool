@@ -62,6 +62,12 @@ echo Uploading Debian source archive for ${distro_name}...
 for distro_name in $UBUNTU_RELEASES; do
   cd "$GOPATH/releasing/dbuilds/$distro_name"
 
+  # The *.orig.tar.gz file we upload must be bit-for-bit identical between different revisions.
+  if [ "$distro_name" != "xenial" ]; then
+    rm ./*.orig.tar.gz
+    ln -s ../xenial/*.orig.tar.gz
+  fi
+
   (
     echo 'open ppa.launchpad.net'
     echo 'set passive on'
@@ -71,7 +77,6 @@ for distro_name in $UBUNTU_RELEASES; do
     done
     echo 'quit'
   ) | ncftp
-
 done
 
 echo Done
