@@ -4,8 +4,8 @@
 # are just binaries with a build script that outputs them as a 'binary package'.
 # So sue me.
 
-if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
-  echo Usage: "$0" "<output-dir>" "<archives-dir>" "<version>"
+if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$4" ]; then
+  echo Usage: "$0" "<output-dir>" "<archives-dir>" "<version>" "<distro-name>"
   echo "Create a debian build environment suitable for running debuild [-S] in."
   exit 1
 fi
@@ -14,15 +14,15 @@ OUTDIR="$1"
 ARCHIVEDIR="$2"
 VERSION="$(echo "$3" | sed 's/^v//g')"
 ORIGDIR="$(dirname "$0")"
+DISTRO="$4"
 
 mkdir -p "$OUTDIR" "$ARCHIVEDIR"
 OUTDIR="$(realpath "$OUTDIR")"
 ARCHIVEDIR="$(realpath "$ARCHIVEDIR")"
 ORIGDIR="$(realpath "$ORIGDIR")"
-REVISION=1
+REVISION="1{$DISTRO}1"
 
 DATE_R="$(date -R)"
-DISTRO="xenial"
 ARCHS="386_cgo amd64_cgo" #arm arm64
 
 mkdir -p "$ARCHIVEDIR"

@@ -33,40 +33,45 @@ travis_retry ghr -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
 echo Preparing Ubuntu PPA signing key...
 cd "$ACME_DIR/.travis"
 wget -c "https://www.devever.net/~hl/f/gnupg-ppa-data.tar.gz.enc"
-openssl aes-256-cbc -K $encrypted_fa74305a4981_key -iv $encrypted_fa74305a4981_iv -in "gnupg-ppa-data.tar.gz.enc" -out "gnupg-ppa-data.tar.gz" -d
+openssl enc -d -aes-256-cbc -md sha256 -salt -pass env:PPA_ENCRYPTION_PASS -in "gnupg-ppa-data.tar.gz.enc" -out "gnupg-ppa-data.tar.gz"
 tar xvf gnupg-ppa-data.tar.gz
 shred -u gnupg-ppa-data.tar.*
 cd "$ACME_DIR"
 export GNUPGHOME="$ACME_DIR/.travis/.gnupg"
 
 # Upload Ubuntu PPA package.
-echo Creating Debian source environment...
-$GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_debian_env "$GOPATH/releasing/dbuilds" "$GOPATH/releasing/dist/" "$TRAVIS_TAG"
-
 cat <<'END' > "$HOME/.devscripts"
 DEBSIGN_KEYID="Hugo Landau (2016 PPA Signing) <hlandau@devever.net>"
 END
 
-echo Creating Debian source archive...
-cd $GOPATH/releasing/dbuilds/acmetool_*[0-9]
-debuild -S
+UBUNTU_RELEASES="xenial precise trusty vivid wily"
+for distro_name in $UBUNTU_RELEASES; do
+  echo Creating Debian source environment for ${distro_name}...
+  $GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_debian_env "$GOPATH/releasing/dbuilds/$distro_name" "$GOPATH/releasing/dist/" "$TRAVIS_TAG" "$distro_name"
+
+  echo Creating Debian source archive for ${distro_name}...
+  cd $GOPATH/releasing/dbuilds/$distro_name/acmetool_*[0-9]
+  debuild -S
+done
 
 echo Deleting keys...
 find "$GNUPGHOME" -type f -exec shred -u '{}' ';'
 rm -rf "$GNUPGHOME"
 
-echo Uploading Debian source archive...
-cd $GOPATH/releasing/dbuilds
-#dput ppa:hlandau/releases ./acmetool_*_source.changes
+echo Uploading Debian source archive for ${distro_name}...
+for distro_name in $UBUNTU_RELEASES; do
+  cd "$GOPATH/releasing/dbuilds/$distro_name"
 
-(
-  echo 'open ppa.launchpad.net'
-  echo 'set passive on'
-  echo 'cd ~hlandau/rhea'
-  for f in ./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes; do
-    echo "put $f"
-  done
-  echo 'quit'
-) | ncftp
+  (
+    echo 'open ppa.launchpad.net'
+    echo 'set passive on'
+    echo 'cd ~hlandau/rhea'
+    for f in ./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes; do
+      echo "put $f"
+    done
+    echo 'quit'
+  ) | ncftp
+
+done
 
 echo Done
