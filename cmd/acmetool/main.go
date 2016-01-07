@@ -45,7 +45,10 @@ var (
 
 	wantCmd       = kingpin.Command("want", "Add a target with one or more hostnames")
 	wantReconcile = wantCmd.Flag("reconcile", "Specify --no-reconcile to skip reconcile after adding target").Default("1").Bool()
-	wantArg       = wantCmd.Arg("hostname", "hostnames for which a certifask some getting started questions (recommended)").Required().Strings()
+	wantArg       = wantCmd.Arg("hostname", "hostnames for which a certicate should be obtained").Required().Strings()
+
+	unwantCmd = kingpin.Command("unwant", "Modify targets to remove any mentions of the given hostnames")
+	unwantArg = unwantCmd.Arg("hostname", "hostnames which should be removed from all target files").Required().Strings()
 
 	quickstartCmd = kingpin.Command("quickstart", "Interactively ask some getting started questions (recommended)")
 	expertFlag    = quickstartCmd.Flag("expert", "Ask more questions in quickstart wizard").Bool()
@@ -106,6 +109,8 @@ func main() {
 		if *wantReconcile {
 			cmdReconcile()
 		}
+	case "unwant":
+		cmdUnwant()
 	case "quickstart":
 		cmdQuickstart()
 	case "redirector":
@@ -169,6 +174,16 @@ func cmdWant() {
 
 	err = s.AddTarget(tgt)
 	log.Fatale(err, "add target")
+}
+
+func cmdUnwant() {
+	s, err := storage.New(*stateFlag)
+	log.Fatale(err, "storage")
+
+	for _, hn := range *unwantArg {
+		err = s.RemoveTargetHostname(hn)
+		log.Fatale(err, "remove target hostname ", hn)
+	}
 }
 
 func cmdRunRedirector() {

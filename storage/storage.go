@@ -91,6 +91,9 @@ type TargetRequest struct {
 	// names in the satisfy section.
 	Names []string `yaml:"names,omitempty"`
 
+	// Used to track whether Names was explicitly specified, for reserialization purposes.
+	implicitNames bool
+
 	// N. Currently, this is the provider directory URL. An account matching it
 	// will be used. At some point, a way to specify a particular account should
 	// probably be added.
@@ -612,6 +615,7 @@ func (s *Store) validateTargetInner(desiredKey string, c *fdb.Collection) (*Targ
 
 	if len(tgt.Request.Names) == 0 {
 		tgt.Request.Names = tgt.Satisfy.Names
+		tgt.Request.implicitNames = true
 	}
 
 	tgt.Request.Account, err = s.getAccountByProviderString(tgt.Request.Provider)
@@ -1382,6 +1386,43 @@ func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
 	return neededs, nil
 }
 
+func (s *Store) RemoveTargetHostname(hostname string) error {
+	for fn, tgt := range s.targets {
+		if !containsName(tgt.Satisfy.Names, hostname) {
+			continue
+		}
+
+		tgt.Satisfy.Names = removeStringFromList(tgt.Satisfy.Names, hostname)
+		tgt.Request.Names = removeStringFromList(tgt.Request.Names, hostname)
+
+		if len(tgt.Satisfy.Names) == 0 {
+			err := s.deleteTarget(fn)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		err := s.serializeTarget(fn, tgt)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func removeStringFromList(ss []string, s string) []string {
+	var r []string
+	for _, x := range ss {
+		if x != s {
+			r = append(r, x)
+		}
+	}
+	return r
+}
+
 func (s *Store) AddTarget(tgt Target) error {
 	if len(tgt.Satisfy.Names) == 0 {
 		return nil
@@ -1398,15 +1439,28 @@ func (s *Store) AddTarget(tgt Target) error {
 		return nil
 	}
 
-	b, err := yaml.Marshal(&tgt)
+	return s.serializeTarget(s.makeUniqueTargetName(&tgt), &tgt)
+}
+
+func (s *Store) serializeTarget(filename string, tgt *Target) error {
+	tcopy := *tgt
+
+	// don't serialize default request names list
+	if tcopy.Request.implicitNames {
+		tcopy.Request.Names = nil
+	}
+
+	b, err := yaml.Marshal(&tcopy)
 	if err != nil {
 		return err
 	}
 
 	c := s.db.Collection("desired")
+	return fdb.WriteBytes(c, filename, b)
+}
 
-	fn := s.makeUniqueTargetName(&tgt)
-	return fdb.WriteBytes(c, fn, b)
+func (s *Store) deleteTarget(filename string) error {
+	return s.db.Collection("desired").Delete(filename)
 }
 
 func (s *Store) findTargetWithAllNames(names []string) *Target {
