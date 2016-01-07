@@ -33,7 +33,7 @@ travis_retry ghr -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
 echo Preparing Ubuntu PPA signing key...
 cd "$ACME_DIR/.travis"
 wget -c "https://www.devever.net/~hl/f/gnupg-ppa-data.tar.gz.enc"
-openssl enc -d -aes-256-cbc -md sha256 -salt -pass env:PPA_ENCRYPTION_PASS -in "gnupg-ppa-data.tar.gz.enc" -out "gnupg-ppa-data.tar.gz"
+openssl enc -d -aes-128-cbc -md sha256 -salt -pass env:PPA_ENCRYPTION_PASS -in "gnupg-ppa-data.tar.gz.enc" -out "gnupg-ppa-data.tar.gz"
 tar xvf gnupg-ppa-data.tar.gz
 shred -u gnupg-ppa-data.tar.*
 cd "$ACME_DIR"

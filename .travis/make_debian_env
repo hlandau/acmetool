@@ -20,7 +20,7 @@ mkdir -p "$OUTDIR" "$ARCHIVEDIR"
 OUTDIR="$(realpath "$OUTDIR")"
 ARCHIVEDIR="$(realpath "$ARCHIVEDIR")"
 ORIGDIR="$(realpath "$ORIGDIR")"
-REVISION="1{$DISTRO}1"
+REVISION="1${DISTRO}1"
 
 DATE_R="$(date -R)"
 ARCHS="386_cgo amd64_cgo" #arm arm64
