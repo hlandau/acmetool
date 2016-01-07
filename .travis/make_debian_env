@@ -37,7 +37,10 @@ for ARCH in $ARCHS; do
 done
 
 cd ..
-tar zcvf "acmetool_$VERSION.orig.tar.gz" "acmetool_$VERSION"
+if [ ! -e "$ARCHIVEDIR/acmetool_$VERSION.orig.tar.gz" ]; then
+  tar zcvf "$ARCHIVEDIR/acmetool_$VERSION.orig.tar.gz" "acmetool_$VERSION"
+fi
+[ -e "./acmetool_$VERSION.orig.tar.gz" ] || ln "$ARCHIVEDIR/acmetool_$VERSION.orig.tar.gz"
 cd "$ORIGDIR"
 
 UNPACKDIR="$OUTDIR/acmetool_$VERSION"
