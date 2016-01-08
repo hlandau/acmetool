@@ -57,7 +57,7 @@ You can configure nginx/tengine to serve such a directory as follows:
 http {
   server {
     location /.well-known/acme-challenge/ {
-      alias /var/run/acme/acme-challenge;
+      alias /var/run/acme/acme-challenge/;
     }
   }
 }
