@@ -14,6 +14,10 @@ func (s *Store) loadWebrootPaths() {
 		webrootPaths[i] = strings.TrimSpace(webrootPaths[i])
 	}
 
+	if len(webrootPaths) == 1 && webrootPaths[0] == "" {
+		webrootPaths = nil
+	}
+
 	s.webrootPaths = webrootPaths
 }
 

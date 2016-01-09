@@ -171,8 +171,10 @@ func cmdStatus() {
 	s, err := storage.New(*stateFlag)
 	log.Fatale(err, "storage")
 
-	err = s.Status()
+	info, err := s.StatusString()
 	log.Fatale(err, "status")
+
+	fmt.Print(info)
 }
 
 func cmdWant() {

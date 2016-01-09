@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -57,6 +58,10 @@ func (a *Account) ID() string {
 // Returns true iff the account is for a given provider URL.
 func (a *Account) MatchesURL(p string) bool {
 	return p == a.BaseURL
+}
+
+func (a *Account) String() string {
+	return fmt.Sprintf("Account(%v)", a.ID())
 }
 
 // Represents an authorization.
@@ -912,10 +917,46 @@ func (s *Store) linkTargets() error {
 	return nil
 }
 
-// Print human readable active configuration to console.
-func (s *Store) Status() error {
-	err := s.status()
-	return err
+// Return a string containing a summary of the stored state.
+func (s *Store) StatusString() (string, error) {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "Settings:\n")
+	fmt.Fprintf(&buf, "  ACME_STATE_DIR: %s\n", s.path)
+	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", notify.DefaultHookPath)
+	fmt.Fprintf(&buf, "  Default directory URL: %s\n", s.defaultBaseURL)
+	fmt.Fprintf(&buf, "  Preferred RSA key size: %v\n", s.preferredRSAKeySize)
+	fmt.Fprintf(&buf, "  Additional webroots:\n")
+	for _, wr := range s.webrootPaths {
+		fmt.Fprintf(&buf, "    %s\n", wr)
+	}
+
+	fmt.Fprintf(&buf, "\nAvailable accounts:\n")
+	for _, a := range s.accounts {
+		fmt.Fprintf(&buf, "  %v\n", a)
+	}
+
+	fmt.Fprintf(&buf, "\n")
+	for _, t := range s.targets {
+		fmt.Fprintf(&buf, "%v:\n", t)
+		c, err := s.findBestCertificateSatisfying(t)
+		if err != nil {
+			fmt.Fprintf(&buf, "  error: %v\n", err)
+			continue
+		}
+
+		renewStr := ""
+		if s.certificateNeedsRenewing(c) {
+			renewStr = " needs-renewing"
+		}
+
+		fmt.Fprintf(&buf, "  best: %v%s\n", c, renewStr)
+	}
+
+	if s.haveUncachedCertificates() {
+		fmt.Fprintf(&buf, "\nThere are uncached certificates.\n")
+	}
+
+	return buf.String(), nil
 }
 
 // Runs the reconcilation operation and reloads state.
@@ -953,45 +994,6 @@ func (me MultiError) Error() string {
 		s += e.Error()
 	}
 	return "the following errors occurred:\n" + s
-}
-
-func (s *Store) status() error {
-	fmt.Println("Global configuration:")
-	fmt.Println("  Path:", s.path)
-	fmt.Println("  Default base URL:", s.defaultBaseURL)
-	fmt.Println("  Default target:", s.defaultTarget)
-	fmt.Println("  Web root paths:", s.webrootPaths)
-	fmt.Println("  Preferred RSA key size:", s.preferredRSAKeySize)
-	fmt.Println()
-	fmt.Println("Configured accounts:")
-	for _, account := range s.accounts {
-		fmt.Println("  ", account.ID())
-	}
-	fmt.Println()
-
-	if s.haveUncachedCertificates() {
-		fmt.Errorf("there are uncached certificates")
-	}
-
-	fmt.Println("Configured targets:")
-	var merr MultiError
-	for _, t := range s.targets {
-		c, err := s.findBestCertificateSatisfying(t)
-		fmt.Printf("  %v : %v, err=%v", t, c, err)
-		if err == nil && !s.certificateNeedsRenewing(c) {
-			fmt.Println("  UP TO DATE\n")
-			continue
-		} else {
-			fmt.Println("  NEEDS RENEW\n")
-		}
-	}
-	log.Debugf("done processing targets, reconciliation complete, %d errors occurred", len(merr))
-
-	if len(merr) != 0 {
-		return merr
-	}
-
-	return nil
 }
 
 func (s *Store) reconcile() error {
