@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-  <title></title>
+  <title>acmetool User's Guide</title>
   <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 div.sourceCode { overflow-x: auto; }
@@ -46,9 +46,11 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
   <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
 <body>
+<div id="header">
+<h1 class="title">acmetool User's Guide</h1>
+</div>
 <div id="TOC">
 <ul>
-<li><a href="#acmetool-users-guide">acmetool User's Guide</a><ul>
 <li><a href="#introduction-design-philosophy">Introduction &amp; Design Philosophy</a></li>
 <li><a href="#installation">Installation</a></li>
 <li><a href="#after-installation">After installation</a></li>
@@ -61,10 +63,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#response-files">Response files</a></li>
 <li><a href="#command-line-options">Command line options</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
-</ul></li>
 </ul>
 </div>
-<h1 id="acmetool-users-guide">acmetool User's Guide</h1>
 <h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
 <p>acmetool is an easy-to-use command line tool for automatically acquiring TLS certificates from ACME servers such as Let's Encrypt, designed to flexibly integrate into your webserver setup to enable automatic verification.</p>
 <p><strong>Non-interference.</strong> Unlike the official Let's Encrypt client, this doesn't modify your web server configuration.</p>

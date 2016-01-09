@@ -1,4 +1,4 @@
-# acmetool User's Guide
+% acmetool User's Guide
 
 ## Introduction & Design Philosophy
 
