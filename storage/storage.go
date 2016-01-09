@@ -11,6 +11,12 @@ import (
 	"encoding/base32"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"sort"
+	"strings"
+	"time"
+
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeutils"
 	"github.com/hlandau/acme/fdb"
@@ -20,11 +26,6 @@ import (
 	"github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
-	"io"
-	"io/ioutil"
-	"sort"
-	"strings"
-	"time"
 )
 
 var log, Log = xlog.New("acme.storage")
@@ -911,6 +912,12 @@ func (s *Store) linkTargets() error {
 	return nil
 }
 
+// Print human readable active configuration to console.
+func (s *Store) Status() error {
+	err := s.status()
+	return err
+}
+
 // Runs the reconcilation operation and reloads state.
 func (s *Store) Reconcile() error {
 	err := s.reconcile()
@@ -946,6 +953,45 @@ func (me MultiError) Error() string {
 		s += e.Error()
 	}
 	return "the following errors occurred:\n" + s
+}
+
+func (s *Store) status() error {
+	fmt.Println("Global configuration:")
+	fmt.Println("  Path:", s.path)
+	fmt.Println("  Default base URL:", s.defaultBaseURL)
+	fmt.Println("  Default target:", s.defaultTarget)
+	fmt.Println("  Web root paths:", s.webrootPaths)
+	fmt.Println("  Preferred RSA key size:", s.preferredRSAKeySize)
+	fmt.Println()
+	fmt.Println("Configured accounts:")
+	for _, account := range s.accounts {
+		fmt.Println("  ", account.ID())
+	}
+	fmt.Println()
+
+	if s.haveUncachedCertificates() {
+		fmt.Errorf("there are uncached certificates")
+	}
+
+	fmt.Println("Configured targets:")
+	var merr MultiError
+	for _, t := range s.targets {
+		c, err := s.findBestCertificateSatisfying(t)
+		fmt.Printf("  %v : %v, err=%v", t, c, err)
+		if err == nil && !s.certificateNeedsRenewing(c) {
+			fmt.Println("  UP TO DATE\n")
+			continue
+		} else {
+			fmt.Println("  NEEDS RENEW\n")
+		}
+	}
+	log.Debugf("done processing targets, reconciliation complete, %d errors occurred", len(merr))
+
+	if len(merr) != 0 {
+		return merr
+	}
+
+	return nil
 }
 
 func (s *Store) reconcile() error {

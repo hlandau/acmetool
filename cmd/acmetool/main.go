@@ -2,6 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
@@ -13,10 +18,6 @@ import (
 	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
 	"gopkg.in/hlandau/service.v2"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var log, Log = xlog.New("acmetool")
@@ -42,6 +43,8 @@ var (
 	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file (default: state-dir/conf/responses)").ExistingFile()
 
 	reconcileCmd = kingpin.Command("reconcile", reconcileHelp).Default()
+
+	statusCmd = kingpin.Command("status", "Show active configuration")
 
 	wantCmd       = kingpin.Command("want", "Add a target with one or more hostnames")
 	wantReconcile = wantCmd.Flag("reconcile", "Specify --no-reconcile to skip reconcile after adding target").Default("1").Bool()
@@ -104,6 +107,8 @@ func main() {
 	switch cmd {
 	case "reconcile":
 		cmdReconcile()
+	case "status":
+		cmdStatus()
 	case "want":
 		cmdWant()
 		if *wantReconcile {
@@ -160,6 +165,14 @@ func cmdReconcile() {
 
 	err = s.Reconcile()
 	log.Fatale(err, "reconcile")
+}
+
+func cmdStatus() {
+	s, err := storage.New(*stateFlag)
+	log.Fatale(err, "storage")
+
+	err = s.Status()
+	log.Fatale(err, "status")
 }
 
 func cmdWant() {
