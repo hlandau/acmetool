@@ -56,7 +56,7 @@ You can also [download .deb files manually.](https://launchpad.net/~hlandau/+arc
 
 **Debian users:** The Ubuntu binary release PPA also works with Debian:
 ```
-# echo 'deb http://ppa.launchpad.net/hlandau/rhea/ubuntu xenial main' > /etc/apt/sources.list.d/rhea
+# echo 'deb http://ppa.launchpad.net/hlandau/rhea/ubuntu xenial main' > /etc/apt/sources.list.d/rhea.list
 # apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9862409EF124EC763B84972FF5AC9651EDB58DFA
 # apt-get update
 # apt-get install acmetool
