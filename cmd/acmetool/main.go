@@ -35,12 +35,12 @@ var (
 			PlaceHolder(notify.DefaultHookPath).
 			String()
 
-	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs").
+	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs. (acmetool can still obtain responses from a response file, if one was provided.)").
 			Bool()
 
 	stdioFlag = kingpin.Flag("stdio", "Don't attempt to use console dialogs; fall back to stdio prompts").Bool()
 
-	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file (default: state-dir/conf/responses)").ExistingFile()
+	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file (default: $ACME_STATE_DIR/conf/responses)").ExistingFile()
 
 	reconcileCmd = kingpin.Command("reconcile", reconcileHelp).Default()
 

@@ -51,8 +51,7 @@ Documentation: <https://github.com/hlandau/acme>
 Report bugs at: <https://github.com/hlandau/acme/issues>
 `
 
-const helpText = `\
-acmetool is a utility for the automated retrieval, management and renewal of
+const helpText = `acmetool is a utility for the automated retrieval, management and renewal of
 certificates from ACME server such as Let's Encrypt. It emphasises automation,
 idempotency and the minimisation of state.
 
