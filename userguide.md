@@ -254,7 +254,7 @@ Ensure you load the modules `mod_proxy` and `mod_proxy_http`.
 http {
   server {
     location /.well-known/acme-challenge/ {
-      alias /var/run/acme/acme-challenge;
+      alias /var/run/acme/acme-challenge/;
     }
   }
 }

@@ -176,7 +176,7 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <pre class="nginx"><code>http {
   server {
     location /.well-known/acme-challenge/ {
-      alias /var/run/acme/acme-challenge;
+      alias /var/run/acme/acme-challenge/;
     }
   }
 }</code></pre>
