@@ -63,6 +63,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#response-files">Response files</a></li>
 <li><a href="#command-line-options">Command line options</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#faq">FAQ</a><ul>
+<li><a href="#ive-selected-the-webrootproxyredirectorlistener-challenge-method-but-im-seeing-log-entries-for-other-methods-or-for-webroots-other-than-the-one-i-configured.">I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.</a></li>
+</ul></li>
 </ul>
 </div>
 <h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
@@ -364,5 +367,9 @@ COMMANDS
     doing.</code></pre>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <p>Passing <code>--xlog.severity=debug</code> increases the logging verbosity of acmetool and should be your first troubleshooting strategy.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="ive-selected-the-webrootproxyredirectorlistener-challenge-method-but-im-seeing-log-entries-for-other-methods-or-for-webroots-other-than-the-one-i-configured.">I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.</h3>
+<p>This is normal. By design, acmetool always tries anything which might work, and these errors are nonfatal as long as <em>something</em> works. The challenge method you select in the quickstart wizard determines only whether to ask you for a webroot path, and whether to install the redirector (if you are using system). The webroot path <code>/var/run/acme/acme-challenge</code>, as a standard location, will always be tried in addition to any webroot you specify, as will proxy and listener mode ports.</p>
+<p>Fore more information, see <a href="http://hlandau.github.io/acme/userguide#challenge-completion-philosophy">challenge completion philosophy</a>.</p>
 </body>
 </html>
