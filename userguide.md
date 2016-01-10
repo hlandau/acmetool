@@ -577,3 +577,17 @@ COMMANDS
 
 Passing `--xlog.severity=debug` increases the logging verbosity of acmetool and
 should be your first troubleshooting strategy.
+
+## FAQ
+
+### I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.
+
+This is normal. By design, acmetool always tries anything which might work, and
+these errors are nonfatal as long as *something* works. The challenge method
+you select in the quickstart wizard determines only whether to ask you for a
+webroot path, and whether to install the redirector (if you are using system).
+The webroot path `/var/run/acme/acme-challenge`, as a standard location, will
+always be tried in addition to any webroot you specify, as will proxy and
+listener mode ports.
+
+Fore more information, see [challenge completion philosophy](http://hlandau.github.io/acme/userguide#challenge-completion-philosophy).
