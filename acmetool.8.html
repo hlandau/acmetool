@@ -54,7 +54,7 @@ p.roffit {
 <p class="level0">
 <p class="level0"><span Class="bold">acmetool [&lt;flags&gt;] &lt;command&gt; [&lt;args&gt; ...]</span> 
 <p class="level0"><a name="DESCRIPTION"></a><h2 class="nroffsh">DESCRIPTION</h2>
-<p class="level0">\ acmetool is a utility for the automated retrieval, management and renewal of certificates from ACME server such as Let's Encrypt. It emphasises automation, idempotency and the minimisation of state. 
+<p class="level0">acmetool is a utility for the automated retrieval, management and renewal of certificates from ACME server such as Let's Encrypt. It emphasises automation, idempotency and the minimisation of state. 
 <p class="level0">You use acmetool by configuring targets (typically using the "want") command. acmetool then requests certificates as necessary to satisify the configured targets. New certificates are requested where existing ones are soon to expire. 
 <p class="level0">acmetool stores its state in a state directory. It can be specified on invocation via the --state option; otherwise, the path in ACME_STATE_DIR is used, or, failing that, the path "/var/lib/acme" (recommended). 
 <p class="level0">The --xlog options control the logging. The --service options control privilege dropping and daemonization and are applicable only to the redirector subcommand. 
