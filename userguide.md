@@ -590,4 +590,4 @@ The webroot path `/var/run/acme/acme-challenge`, as a standard location, will
 always be tried in addition to any webroot you specify, as will proxy and
 listener mode ports.
 
-Fore more information, see [challenge completion philosophy](http://hlandau.github.io/acme/userguide#challenge-completion-philosophy).
+Fore more information, see [challenge completion philosophy](https://hlandau.github.io/acme/userguide#challenge-completion-philosophy).
