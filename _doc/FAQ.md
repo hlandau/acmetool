@@ -1,1 +1,1 @@
-# [This document has moved.](https://hlandau.github.com/acme/userguide#FAQ)
+# [This document has moved.](https://hlandau.github.com/acme/userguide#faq)
