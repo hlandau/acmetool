@@ -195,6 +195,16 @@ func webrootRemoveChallenge(webroots map[string]struct{}, token string) {
 	}
 }
 
+// The standard webroot path, into which the responder always tries to install
+// challenges, not necessarily successfully. This is intended to be a standard,
+// system-wide path to look for challenges at. On POSIX-like systems, it is
+// usually "/var/run/acme/acme-challenge".
+var StandardWebrootPath string
+
+func init() {
+	StandardWebrootPath = "/var/run/acme/acme-challenge"
+}
+
 func (s *httpResponder) getWebroots() map[string]struct{} {
 	webroots := map[string]struct{}{}
 	for _, p := range s.webpaths {
@@ -206,7 +216,7 @@ func (s *httpResponder) getWebroots() map[string]struct{} {
 	// The webroot and redirector models both require us to drop the challenge at
 	// a given path. If a webroot is not specified in the configuration, use an
 	// ephemeral default that the redirector might be using anyway.
-	webroots["/var/run/acme/acme-challenge"] = struct{}{}
+	webroots[StandardWebrootPath] = struct{}{}
 	return webroots
 }
 

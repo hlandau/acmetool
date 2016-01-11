@@ -42,7 +42,7 @@ func (i *interceptor) Status(info *interaction.StatusInfo) (interaction.StatusSi
 }
 
 func TestCLI(t *testing.T) {
-	log.Warnf("This test requires a configured Boulder instance listening at http://127.0.0.1:4000/ and the ability to successfully complete challenges. You must change the Boulder configuration to use ports 80 and 5001. Also change the rate limits per certificate name. Consider ensuring that the user you run these tests as can write to /var/run/acme/acme-challenge and that that directory is served on port 80 /.well-known/acme-challenge/")
+	log.Warnf("This test requires a configured Boulder instance listening at http://127.0.0.1:4000/ and the ability to successfully complete challenges. You must change the Boulder configuration to use ports 80 and 5001. Also change the rate limits per certificate name. Consider ensuring that the user you run these tests as can write to %s and that that directory is served on port 80 /.well-known/acme-challenge/", responder.StandardWebrootPath)
 
 	acmeapi.TestingAllowHTTP = true
 

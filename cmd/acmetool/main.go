@@ -10,6 +10,7 @@ import (
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
+	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/storage"
 	"github.com/hlandau/degoutils/xlogconfig"
 	"github.com/hlandau/xlog"
@@ -231,7 +232,7 @@ func determineWebroot() string {
 		}
 	}
 
-	return "/var/run/acme/acme-challenge"
+	return responder.StandardWebrootPath
 }
 
 func cmdRunTestNotify() {

@@ -22,7 +22,7 @@ var log, Log = xlog.New("acme.redirector")
 // Configuration for redirector.
 type Config struct {
 	Bind          string `default:":80" usage:"Bind address"`
-	ChallengePath string `default:"/var/run/acme/acme-challenge" usage:"Path containing HTTP challenge files"`
+	ChallengePath string `default:"" usage:"Path containing HTTP challenge files"`
 	ChallengeGID  string `default:"" usage:"GID to chgrp the challenge path to (optional)"`
 }
 
