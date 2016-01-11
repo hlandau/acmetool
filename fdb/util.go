@@ -75,4 +75,4 @@ func Uint(c *Collection, name string, bits int) (uint64, error) {
 	return strconv.ParseUint(s, 10, bits)
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

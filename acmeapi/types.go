@@ -112,4 +112,4 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -139,4 +139,4 @@ func runParts(directory string, stdinData []byte, args ...string) error {
 	return nil
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -65,4 +65,4 @@ func TestCLI(t *testing.T) {
 	cmdReconcile()
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

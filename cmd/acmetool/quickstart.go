@@ -567,4 +567,4 @@ The Let's Encrypt Staging Server does not issue publically trusted certificates.
 	return r.Value
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License
