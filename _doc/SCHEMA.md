@@ -58,14 +58,8 @@ that shown below is used.
                             ; a default provider URL. Not all values which are valid
                             ; in a target expression file may be used.
 
-        webroot-path        ; Contains paths to directories where challenge files
-                            ; may be placed in order to potentially expose them over
-                            ; HTTP. One path per line. May be empty.
-
-        rsa-key-size        ; Contains the RSA modulus length in bits to use for new keys
-                            ; and account keys. An ASCII string expressing a decimal integer
-                            ; not less than 2048. Recommended default in absence of this file
-                            ; is 2048.
+        webroot-path        ; DEPRECATED.
+        rsa-key-size        ; DEPRECATED.
 
                             ; Other, implementation-specific files may be placed in conf.
 
@@ -221,6 +215,39 @@ reduced targets would now look like this:
     Target 05:[a.example.com]
     Target 06:               [b.example.com]
     Target 07:                              [c.example.com]
+
+**Extensions for specific implementations: acmetool.** This section is
+non-normative, added as a practicality since this document serves as both
+specification and documentation. acmetool supports the following extensions:
+
+    request:
+      # Determines whether RSA or ECDSA keys are used. ECDSA keys must be
+      # supported by the server. Let's Encrypt does not yet support ECDSA
+      # keys, though support is imminent. Default RSA.
+      key-type: rsa (must be "rsa" or "ecdsa")
+
+      # RSA modulus size when using an RSA key. Default 2048 bits.
+      #
+      # Legacy compatibility: if not present, the number of bits may be
+      # contained in a file "rsa-key-size" inside the conf directory.
+      rsa-bits: 2048
+
+      # ECDSA curve when using an ecdsa key. Default "nistp256".
+      #
+      # It is strongly recommended that you use nistp256. Let's Encrypt
+      # will not support nistp521.
+      ecdsa-curve: nistp256 (must be "nistp256", "nistp384" or "nistp521")
+
+      # Webroot paths to use when requesting certificates. Defaults to none.
+      # This is usually used in the default target file. While you _can_ override
+      # this in a specific target, you should think very carefully by doing so.
+      # In almost all cases, it is better to use symlinks or aliases to ensure
+      # that the same directory is used for all vhosts.
+      #
+      # Legacy compatibility: the file "webroot-path" in the conf directory
+      # contains a list of webroot paths, one per line.
+      webroot-paths:
+        - /some/webroot/path/.well-known/acme-challenge
 
 ### accounts
 

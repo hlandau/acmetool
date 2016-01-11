@@ -107,6 +107,42 @@ type TargetRequest struct {
 
 	// D. Account to use, determined via Provider string.
 	Account *Account `yaml:"-"`
+
+	// Settings relating to the creation of new keys used to request
+	// corresponding certificates.
+	Key TargetRequestKey `yaml:"key,omitempty"`
+
+	// Settings relating to the completion of challenges.
+	Challenge TargetRequestChallenge `yaml:"challenge,omitempty"`
+}
+
+// Settings for keys generated as part of certificate requests.
+type TargetRequestKey struct {
+	// N. Key type to use in making a request. "rsa" or "ecdsa". Default "rsa".
+	Type string `yaml:"type,omitempty"`
+
+	// N. RSA key size to use for new RSA keys. Defaults to 2048 bits.
+	RSASize int `yaml:"rsa-size,omitempty"`
+
+	// N. ECDSA curve. "nistp256" (default), "nistp384" or "nistp521".
+	Curve string `yaml:"curve,omitempty"`
+}
+
+func (k *TargetRequestKey) String() string {
+	switch k.Type {
+	case "", "rsa":
+		return fmt.Sprintf("rsa-%d", clampRSAKeySize(k.RSASize))
+	case "ecdsa":
+		return fmt.Sprintf("ecdsa-%s", clampECDSACurve(k.Curve))
+	default:
+		return k.Type // ...
+	}
+}
+
+// Settings relating to the completion of challenges.
+type TargetRequestChallenge struct {
+	// N. Webroot paths to use when completing challenges.
+	WebrootPaths []string `yaml:"webroot-paths,omitempty"`
 }
 
 // Represents a stored target descriptor.
@@ -129,6 +165,36 @@ type Target struct {
 
 func (t *Target) String() string {
 	return fmt.Sprintf("Target(%s;%s;%d)", strings.Join(t.Satisfy.Names, ","), t.Request.Provider, t.Priority)
+}
+
+// Validates a target for basic sanity. Returns the first error found or nil.
+func (t *Target) Validate() error {
+	if t.Request.Provider != "" && !acmeapi.ValidURL(t.Request.Provider) {
+		return fmt.Errorf("invalid provider URL: %q", t.Request.Provider)
+	}
+
+	return nil
+}
+
+// Returns a copy of the target.
+func (t *Target) Copy() *Target {
+	// A Target contains no pointers to part of the target which should be copied.
+	// i.e. all pointers point to other things not part of the copy. Thus we can
+	// just copy the value. If Target is ever changed to reference any component
+	// of itself via pointer, this must be changed!
+	tt := *t
+	return &tt
+}
+
+// Returns a copy of the target, but zeroes any very specific fields
+// like names.
+func (t *Target) CopyGeneric() *Target {
+	tt := t.Copy()
+	tt.Satisfy.Names = nil
+	tt.Satisfy.ReducedNames = nil
+	tt.Request.Names = nil
+	tt.LegacyNames = nil
+	return tt
 }
 
 // Represents stored certificate information.
@@ -179,9 +245,6 @@ type Store struct {
 	keys                  map[string]*Key         // key: key ID
 	targets               map[string]*Target      // key: target filename
 	defaultTarget         *Target                 // from conf
-	defaultBaseURL        string
-	webrootPaths          []string
-	preferredRSAKeySize   int
 	hostnameTargetMapping map[string]*Target
 }
 
@@ -225,9 +288,8 @@ func New(path string) (*Store, error) {
 	}
 
 	s := &Store{
-		db:             db,
-		path:           path,
-		defaultBaseURL: acmeapi.DefaultDirectoryURL,
+		db:   db,
+		path: path,
 	}
 
 	err = s.load()
@@ -531,17 +593,25 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 	return nil
 }
 
-// Set the default provider directory URL.
-func (s *Store) SetDefaultProvider(providerURL string) error {
-	if !acmeapi.ValidURL(providerURL) {
-		return fmt.Errorf("invalid provider URL")
-	}
-
-	s.defaultTarget.Request.Provider = providerURL
-	return s.saveDefaultTarget()
+// Return the default target. Persist changes to the default target by calling SaveDefaultTarget.
+func (s *Store) DefaultTarget() *Target {
+	return s.defaultTarget
 }
 
-func (s *Store) saveDefaultTarget() error {
+// Set the default provider directory URL.
+func (s *Store) SetDefaultProvider(providerURL string) error {
+	s.defaultTarget.Request.Provider = providerURL
+	return s.SaveDefaultTarget()
+}
+
+func (s *Store) SaveDefaultTarget() error {
+	// Some basic validation.
+	err := s.defaultTarget.Validate()
+	if err != nil {
+		return err
+	}
+
+	// Save.
 	confc := s.db.Collection("conf")
 
 	b, err := yaml.Marshal(s.defaultTarget)
@@ -563,7 +633,7 @@ func (s *Store) loadTargets() error {
 	// default target
 	confc := s.db.Collection("conf")
 
-	dtgt, err := s.validateTargetInner("target", confc)
+	dtgt, err := s.validateTargetInner("target", confc, true)
 	if err == nil {
 		dtgt.Satisfy.Names = nil
 		dtgt.Satisfy.ReducedNames = nil
@@ -592,7 +662,7 @@ func (s *Store) loadTargets() error {
 }
 
 func (s *Store) validateTarget(desiredKey string, c *fdb.Collection) error {
-	tgt, err := s.validateTargetInner(desiredKey, c)
+	tgt, err := s.validateTargetInner(desiredKey, c, false)
 	if err != nil {
 		return err
 	}
@@ -601,13 +671,19 @@ func (s *Store) validateTarget(desiredKey string, c *fdb.Collection) error {
 	return nil
 }
 
-func (s *Store) validateTargetInner(desiredKey string, c *fdb.Collection) (*Target, error) {
+func (s *Store) validateTargetInner(desiredKey string, c *fdb.Collection, loadingDefault bool) (*Target, error) {
 	b, err := fdb.Bytes(c.Open(desiredKey))
 	if err != nil {
 		return nil, err
 	}
 
-	tgt := &Target{}
+	var tgt *Target
+	if loadingDefault {
+		tgt = &Target{}
+	} else {
+		tgt = s.defaultTarget.CopyGeneric()
+	}
+
 	err = yaml.Unmarshal(b, tgt)
 	if err != nil {
 		return nil, err
@@ -739,7 +815,7 @@ func (s *Store) createNewAccount(baseURL string) (*Account, error) {
 		return nil, err
 	}
 
-	pk, keyID, err := s.createKey(s.db.Collection("accounts/" + u))
+	pk, keyID, err := s.createKey(s.db.Collection("accounts/"+u), &TargetRequestKey{}) // TODO
 	if err != nil {
 		return nil, err
 	}
@@ -754,8 +830,8 @@ func (s *Store) createNewAccount(baseURL string) (*Account, error) {
 	return a, nil
 }
 
-func (s *Store) createNewCertKey() (crypto.PrivateKey, *Key, error) {
-	pk, keyID, err := s.createKey(s.db.Collection("keys"))
+func (s *Store) createNewCertKey(trk *TargetRequestKey) (crypto.PrivateKey, *Key, error) {
+	pk, keyID, err := s.createKey(s.db.Collection("keys"), trk)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -769,9 +845,16 @@ func (s *Store) createNewCertKey() (crypto.PrivateKey, *Key, error) {
 	return pk, k, nil
 }
 
-func (s *Store) createKey(c *fdb.Collection) (pk crypto.PrivateKey, keyID string, err error) {
-	//pk, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	pk, err = rsa.GenerateKey(rand.Reader, clampRSAKeySize(s.preferredRSAKeySize))
+func (s *Store) createKey(c *fdb.Collection, trk *TargetRequestKey) (pk crypto.PrivateKey, keyID string, err error) {
+	switch trk.Type {
+	default:
+		fallthrough // ...
+	case "", "rsa":
+		pk, err = rsa.GenerateKey(rand.Reader, clampRSAKeySize(trk.RSASize))
+	case "ecdsa":
+		pk, err = ecdsa.GenerateKey(getECDSACurve(trk.Curve), rand.Reader)
+	}
+
 	if err != nil {
 		return
 	}
@@ -934,10 +1017,10 @@ func (s *Store) StatusString() (string, error) {
 	fmt.Fprintf(&buf, "Settings:\n")
 	fmt.Fprintf(&buf, "  ACME_STATE_DIR: %s\n", s.path)
 	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", notify.DefaultHookPath)
-	fmt.Fprintf(&buf, "  Default directory URL: %s\n", s.defaultBaseURL)
-	fmt.Fprintf(&buf, "  Preferred RSA key size: %v\n", s.preferredRSAKeySize)
+	fmt.Fprintf(&buf, "  Default directory URL: %s\n", s.defaultTarget.Request.Provider)
+	fmt.Fprintf(&buf, "  Preferred key type: %v\n", &s.defaultTarget.Request.Key)
 	fmt.Fprintf(&buf, "  Additional webroots:\n")
-	for _, wr := range s.webrootPaths {
+	for _, wr := range s.defaultTarget.Request.Challenge.WebrootPaths {
 		fmt.Fprintf(&buf, "    %s\n", wr)
 	}
 
@@ -1295,10 +1378,10 @@ func (s *Store) getPriorKey(publicKey crypto.PublicKey) (crypto.PrivateKey, erro
 	return privateKey, nil
 }
 
-func (s *Store) obtainAuthorization(name string, a *Account) error {
+func (s *Store) obtainAuthorization(name string, a *Account, trc *TargetRequestChallenge) error {
 	cl := s.getAccountClient(a)
 
-	az, err := solver.Authorize(cl, name, s.webrootPaths, nil, s.getPriorKey, context.TODO())
+	az, err := solver.Authorize(cl, name, trc.WebrootPaths, nil, s.getPriorKey, context.TODO())
 	if err != nil {
 		return err
 	}
@@ -1337,7 +1420,7 @@ func (s *Store) createCSR(t *Target) ([]byte, error) {
 		DNSNames: t.Request.Names,
 	}
 
-	pk, _, err := s.createNewCertKey()
+	pk, _, err := s.createNewCertKey(&t.Request.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -1377,7 +1460,7 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 
 	for _, name := range authsNeeded {
 		log.Debugf("trying to obtain authorization for %#v", name)
-		err := s.obtainAuthorization(name, t.Request.Account)
+		err := s.obtainAuthorization(name, t.Request.Account, &t.Request.Challenge)
 		if err != nil {
 			log.Errore(err, "could not obtain authorization for ", name)
 			return err

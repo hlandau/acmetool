@@ -28,7 +28,8 @@ func cmdQuickstart() {
 
 	rsaKeySize := promptRSAKeySize()
 	if rsaKeySize != 0 {
-		err = s.SetPreferredRSAKeySize(rsaKeySize)
+		s.DefaultTarget().Request.Key.RSASize = rsaKeySize
+		err = s.SaveDefaultTarget()
 		log.Fatale(err, "set preferred RSA Key size")
 	}
 
@@ -44,7 +45,8 @@ func cmdQuickstart() {
 		log.Fatale(err, "couldn't create webroot path")
 	}
 
-	err = s.SetWebrootPaths([]string{webroot})
+	s.DefaultTarget().Request.Challenge.WebrootPaths = []string{webroot}
+	err = s.SaveDefaultTarget()
 	log.Fatale(err, "set webroot path")
 
 	prog, err := interaction.Auto.Status(&interaction.StatusInfo{

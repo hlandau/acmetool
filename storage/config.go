@@ -1,12 +1,17 @@
 package storage
 
 import (
-	"fmt"
+	"crypto/elliptic"
 	"github.com/hlandau/acme/fdb"
 	"strings"
 )
 
 func (s *Store) loadWebrootPaths() {
+	if len(s.defaultTarget.Request.Challenge.WebrootPaths) != 0 {
+		// Path list in default target file takes precedence.
+		return
+	}
+
 	webrootPath, _ := fdb.String(s.db.Collection("conf").Open("webroot-path")) // ignore errors
 	webrootPath = strings.TrimSpace(webrootPath)
 	webrootPaths := strings.Split(webrootPath, "\n")
@@ -18,65 +23,68 @@ func (s *Store) loadWebrootPaths() {
 		webrootPaths = nil
 	}
 
-	s.webrootPaths = webrootPaths
+	s.defaultTarget.Request.Challenge.WebrootPaths = webrootPaths
 }
 
 func (s *Store) loadRSAKeySize() {
-	s.preferredRSAKeySize = 2048
+	if s.defaultTarget.Request.Key.RSASize != 0 {
+		// setting in default target file takes precedence
+		return
+	}
+
 	n, err := fdb.Uint(s.db.Collection("conf"), "rsa-key-size", 31)
 	if err != nil {
 		return
 	}
 
-	s.preferredRSAKeySize = int(n)
+	s.defaultTarget.Request.Key.RSASize = int(n)
 
 	if nn := clampRSAKeySize(int(n)); nn != int(n) {
-		log.Warnf("An RSA key size of %d is not supported; must have 2048 <= size <= 4096; clamping at %d", n, nn)
+		log.Warnf("An RSA key size of %d is not supported; must have %d <= size <= %d; clamping at %d", n, minRSASize, maxRSASize, nn)
 	}
 }
 
+const (
+	minRSASize     = 2048
+	defaultRSASize = 2048
+	maxRSASize     = 4096
+)
+
 func clampRSAKeySize(sz int) int {
-	if sz < 2048 {
-		return 2048
+	if sz == 0 {
+		return defaultRSASize
 	}
-	if sz > 4096 {
-		return 4096
+	if sz < minRSASize {
+		return minRSASize
+	}
+	if sz > maxRSASize {
+		return maxRSASize
 	}
 	return sz
 }
 
-// Get the preferred webroot paths.
-func (s *Store) WebrootPaths() []string {
-	return s.webrootPaths
-}
+const defaultCurve = "nistp256"
 
-// Set the preferred webroot paths.
-func (s *Store) SetWebrootPaths(paths []string) error {
-	confc := s.db.Collection("conf")
-
-	err := fdb.WriteBytes(confc, "webroot-path", []byte(strings.Join(paths, "\n")))
-	if err != nil {
-		return err
+// Make sure the curve name is valid and use a default curve name. "clamp" is
+// not the sanest name here but is consistent with clampRSAKeySize.
+func clampECDSACurve(curveName string) string {
+	switch curveName {
+	case "nistp256", "nistp384", "nistp521":
+		return curveName
+	default:
+		return defaultCurve
 	}
-
-	s.webrootPaths = paths
-	return nil
 }
 
-// Gets the preferred RSA key size, in bits.
-func (s *Store) PreferredRSAKeySize() int {
-	return s.preferredRSAKeySize
-}
-
-// Set the preferred RSA key size. The size is not validated here, as it is
-// clamped later and a higher preferred size may become available in future
-// releases.
-func (s *Store) SetPreferredRSAKeySize(keySize int) error {
-	err := fdb.WriteBytes(s.db.Collection("conf"), "rsa-key-size", []byte(fmt.Sprintf("%d", keySize)))
-	if err != nil {
-		return err
+func getECDSACurve(curveName string) elliptic.Curve {
+	switch clampECDSACurve(curveName) {
+	case "nistp256":
+		return elliptic.P256()
+	case "nistp384":
+		return elliptic.P384()
+	case "nistp521":
+		return elliptic.P521()
+	default:
+		return nil
 	}
-
-	s.preferredRSAKeySize = keySize
-	return nil
 }
