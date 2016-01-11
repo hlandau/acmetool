@@ -988,20 +988,23 @@ func (s *Store) linkTargets() error {
 
 	for name, tgt := range s.hostnameTargetMapping {
 		c, err := s.findBestCertificateSatisfying(tgt)
-		if err == nil {
-			log.Tracef("relink: best certificate satisfying %v is %v", tgt, c)
-			lt := "certs/" + c.ID()
-			lnk, err := s.db.Collection("live").ReadLink(name)
-			log.Tracef("link: %s: %v %q %q", name, err, lnk.Target, lt)
-			if err != nil || lnk.Target != lt {
-				log.Debugf("relinking: %v -> %v (was %v)", name, lt, lnk.Target)
-				err = s.db.Collection("live").WriteLink(name, fdb.Link{Target: lt})
-				if err != nil {
-					return err
-				}
+		if err != nil {
+			log.Debugf("could not find certificate satisfying %v: %v", tgt, err)
+			continue
+		}
 
-				updatedHostnames = append(updatedHostnames, name)
+		log.Tracef("relink: best certificate satisfying %v is %v", tgt, c)
+		lt := "certs/" + c.ID()
+		lnk, err := s.db.Collection("live").ReadLink(name)
+		log.Tracef("link: %s: %v %q %q", name, err, lnk.Target, lt)
+		if err != nil || lnk.Target != lt {
+			log.Debugf("relinking: %v -> %v (was %v)", name, lt, lnk.Target)
+			err = s.db.Collection("live").WriteLink(name, fdb.Link{Target: lt})
+			if err != nil {
+				return err
 			}
+
+			updatedHostnames = append(updatedHostnames, name)
 		}
 	}
 
@@ -1240,13 +1243,23 @@ func (s *Store) findBestCertificateSatisfying(t *Target) (*Certificate, error) {
 	var bestCert *Certificate
 
 	for _, c := range s.certs {
-		if s.doesCertSatisfy(c, t) && (bestCert == nil || s.certBetterThan(c, bestCert)) {
-			bestCert = c
+		if s.doesCertSatisfy(c, t) {
+			isBetterThan, err := s.certBetterThan(c, bestCert)
+			if err != nil {
+				return nil, err
+			}
+
+			if isBetterThan {
+				log.Tracef("findBestCertificateSatisfying: %v > %v", c, bestCert)
+				bestCert = c
+			} else {
+				log.Tracef("findBestCertificateSatisfying: %v <= %v", c, bestCert)
+			}
 		}
 	}
 
 	if bestCert == nil {
-		return nil, fmt.Errorf("no certificate satisifes this target")
+		return nil, fmt.Errorf("no certificate satisfies this target")
 	}
 
 	return bestCert, nil
@@ -1316,21 +1329,28 @@ func renewTime(notBefore, notAfter time.Time) time.Time {
 	return notAfter.Add(-renewSpan)
 }
 
-func (s *Store) certBetterThan(a *Certificate, b *Certificate) bool {
-	if len(a.Certificates) <= len(b.Certificates) || len(b.Certificates) == 0 {
-		return false
+func (s *Store) certBetterThan(a *Certificate, b *Certificate) (bool, error) {
+	if b == nil || a == nil {
+		return (b == nil && a != nil), nil
+	}
+
+	if len(a.Certificates) == 0 || len(b.Certificates) == 0 {
+		return false, fmt.Errorf("need two certificates to compare")
 	}
 
 	ac, err := x509.ParseCertificate(a.Certificates[0])
 	bc, err2 := x509.ParseCertificate(b.Certificates[0])
 	if err != nil || err2 != nil {
 		if err == nil && err2 != nil {
-			return true
+			log.Tracef("certBetterThan: parseable certificate is better than non-parseable certificate")
+			return true, nil
 		}
-		return false
+		return false, nil
 	}
 
-	return ac.NotAfter.After(bc.NotAfter)
+	isAfter := ac.NotAfter.After(bc.NotAfter)
+	log.Tracef("certBetterThan: (%v > %v)=%v", ac.NotAfter, bc.NotAfter, isAfter)
+	return isAfter, nil
 }
 
 func (s *Store) getAccountClient(a *Account) *acmeapi.Client {
