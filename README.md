@@ -243,6 +243,18 @@ a notice of correction here:
     support non-root operation. This was incorrect; it can be installed at user
     level and be configured to use user-writable directories.
 
+## Documentation & Support
+
+For more documentation see:
+- [User Guide](https://hlandau.github.io/acme/userguide)
+- [Troubleshooting](https://hlandau.github.io/acme/userguide#troubleshooting)
+- [FAQ](https://hlandau.github.io/acme/userguide#faq)
+- [manpage](https://hlandau.github.io/acme/acmetool.8)
+
+If your question or issue isn't resolved by any of the above, file an issue.
+
+IRC: [#acmetool](irc://chat.freenode.net/#acmetool) on [Freenode](http://freenode.net/).
+
 ## Licence
 
     © 2015 Hugo Landau <hlandau@devever.net>    MIT License
