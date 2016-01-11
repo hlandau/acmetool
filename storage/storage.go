@@ -185,7 +185,18 @@ type Store struct {
 	hostnameTargetMapping map[string]*Target
 }
 
-const RecommendedPath = "/var/lib/acme"
+// The recommended path is the hardcoded, default, recommended path to be used
+// for a system-wide state storage directory. It may vary by system and
+// platform. On most POSIX-like systems, it is "/var/lib/acme". Specific builds
+// might customise it.
+var RecommendedPath string
+
+func init() {
+	// Allow the path to be overridden at build time.
+	if RecommendedPath == "" {
+		RecommendedPath = "/var/lib/acme"
+	}
+}
 
 var storePermissions = []fdb.Permission{
 	{Path: ".", DirMode: 0755, FileMode: 0644},

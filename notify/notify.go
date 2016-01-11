@@ -14,15 +14,23 @@ import (
 // Log site.
 var log, Log = xlog.New("acme.notify")
 
-// The default hook path is "/usr/lib/acme/hooks" or "/usr/libexec/acme/hooks".
-// The latter is preferred if it exists.
-var DefaultHookPath = "/usr/lib/acme/hooks"
+// The default hook path is the path at which executable hooks are looked for
+// for notification purposes. On POSIX-like systems, this is usually
+// "/usr/lib/acme/hooks" (or "/usr/libexec/acme/hooks" if /usr/libexec exists).
+var DefaultHookPath string
 
 func init() {
-	lePath := "/usr/libexec/acme/hooks"
-	if _, err := os.Stat(lePath); err == nil {
-		DefaultHookPath = lePath
+	// Allow overriding at build time.
+	p := DefaultHookPath
+	if p == "" {
+		p = "/usr/lib/acme/hooks"
 	}
+
+	if _, err := os.Stat("/usr/libexec"); strings.HasPrefix(p, "/usr/lib/") && err == nil {
+		p = "/usr/libexec" + p[8:]
+	}
+
+	DefaultHookPath = p
 }
 
 // Notifies hook programs that a live symlink has been updated.

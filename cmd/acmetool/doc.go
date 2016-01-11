@@ -1,6 +1,10 @@
 package main
 
-import "gopkg.in/alecthomas/kingpin.v2"
+import (
+	"fmt"
+	"github.com/hlandau/acme/storage"
+	"gopkg.in/alecthomas/kingpin.v2"
+)
 
 const manPageTemplate = `{{define "FormatFlags"}}\
 {{range .Flags}}\
@@ -51,7 +55,7 @@ Documentation: <https://github.com/hlandau/acme>
 Report bugs at: <https://github.com/hlandau/acme/issues>
 `
 
-const helpText = `acmetool is a utility for the automated retrieval, management and renewal of
+var helpText = fmt.Sprintf(`acmetool is a utility for the automated retrieval, management and renewal of
 certificates from ACME server such as Let's Encrypt. It emphasises automation,
 idempotency and the minimisation of state.
 
@@ -61,11 +65,11 @@ targets. New certificates are requested where existing ones are soon to expire.
 
 acmetool stores its state in a state directory. It can be specified on
 invocation via the --state option; otherwise, the path in ACME_STATE_DIR is
-used, or, failing that, the path "/var/lib/acme" (recommended).
+used, or, failing that, the path "%s" (recommended).
 
 The --xlog options control the logging. The --service options control privilege
 dropping and daemonization and are applicable only to the redirector subcommand.
-`
+`, storage.RecommendedPath)
 
 func init() {
 	kingpin.CommandLine.Help = helpText
