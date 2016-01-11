@@ -202,7 +202,9 @@ func webrootRemoveChallenge(webroots map[string]struct{}, token string) {
 var StandardWebrootPath string
 
 func init() {
-	StandardWebrootPath = "/var/run/acme/acme-challenge"
+	if StandardWebrootPath == "" {
+		StandardWebrootPath = "/var/run/acme/acme-challenge"
+	}
 }
 
 func (s *httpResponder) getWebroots() map[string]struct{} {
