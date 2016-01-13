@@ -126,7 +126,7 @@ type TargetRequestKey struct {
 	RSASize int `yaml:"rsa-size,omitempty"`
 
 	// N. ECDSA curve. "nistp256" (default), "nistp384" or "nistp521".
-	Curve string `yaml:"curve,omitempty"`
+	ECDSACurve string `yaml:"ecdsa-curve,omitempty"`
 }
 
 func (k *TargetRequestKey) String() string {
@@ -134,7 +134,7 @@ func (k *TargetRequestKey) String() string {
 	case "", "rsa":
 		return fmt.Sprintf("rsa-%d", clampRSAKeySize(k.RSASize))
 	case "ecdsa":
-		return fmt.Sprintf("ecdsa-%s", clampECDSACurve(k.Curve))
+		return fmt.Sprintf("ecdsa-%s", clampECDSACurve(k.ECDSACurve))
 	default:
 		return k.Type // ...
 	}
@@ -856,7 +856,7 @@ func (s *Store) createKey(c *fdb.Collection, trk *TargetRequestKey) (pk crypto.P
 	case "", "rsa":
 		pk, err = rsa.GenerateKey(rand.Reader, clampRSAKeySize(trk.RSASize))
 	case "ecdsa":
-		pk, err = ecdsa.GenerateKey(getECDSACurve(trk.Curve), rand.Reader)
+		pk, err = ecdsa.GenerateKey(getECDSACurve(trk.ECDSACurve), rand.Reader)
 	}
 
 	if err != nil {
