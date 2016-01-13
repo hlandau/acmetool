@@ -26,26 +26,41 @@ func cmdQuickstart() {
 	err = s.SetDefaultProvider(serverURL)
 	log.Fatale(err, "set provider URL")
 
-	rsaKeySize := promptRSAKeySize()
-	if rsaKeySize != 0 {
-		s.DefaultTarget().Request.Key.RSASize = rsaKeySize
-		err = s.SaveDefaultTarget()
-		log.Fatale(err, "set preferred RSA Key size")
+	// key type
+	keyType := promptKeyType()
+	switch keyType {
+	case "rsa":
+		s.DefaultTarget().Request.Key.Type = "rsa"
+		rsaKeySize := promptRSAKeySize()
+		if rsaKeySize != 0 {
+			s.DefaultTarget().Request.Key.RSASize = rsaKeySize
+			err = s.SaveDefaultTarget()
+			log.Fatale(err, "set preferred RSA Key size")
+		}
+	case "ecdsa":
+		s.DefaultTarget().Request.Key.Type = "ecdsa"
+		ecdsaCurve := promptECDSACurve()
+		if ecdsaCurve != "" {
+			s.DefaultTarget().Request.Key.ECDSACurve = ecdsaCurve
+			err = s.SaveDefaultTarget()
+			log.Fatale(err, "set preferred ECDSA curve")
+		}
 	}
 
+	// hook method
 	method := promptHookMethod()
-	webroot := ""
+	var webroot []string
 	switch method {
 	case "webroot":
-		webroot = promptWebrootDir()
+		webroot = []string{promptWebrootDir()}
 	}
 
-	if webroot != "" {
-		err = os.MkdirAll(webroot, 0755)
+	if len(webroot) != 0 {
+		err = os.MkdirAll(webroot[0], 0755)
 		log.Fatale(err, "couldn't create webroot path")
 	}
 
-	s.DefaultTarget().Request.Challenge.WebrootPaths = []string{webroot}
+	s.DefaultTarget().Request.Challenge.WebrootPaths = webroot
 	err = s.SaveDefaultTarget()
 	log.Fatale(err, "set webroot path")
 
@@ -321,6 +336,17 @@ func setUserCron(b []byte) error {
 }
 
 func promptInstallHAProxyHooks() bool {
+	// Always install if the hook is already installed.
+	hooksPath := *hooksFlag
+	if hooksPath == "" {
+		hooksPath = notify.DefaultHookPath
+	}
+
+	if _, err := os.Stat(filepath.Join(hooksPath, "haproxy")); err == nil {
+		return true
+	}
+
+	// Prompt.
 	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Install HAProxy hooks?",
 		Body: fmt.Sprintf(`You appear to have HAProxy installed. By default, acmetool doesn't support HAProxy too well because HAProxy requires the certificate chain, private key (and custom Diffie-Hellman parameters, if used) to be placed in the same file.
@@ -391,6 +417,75 @@ Leave blank to use the recommended value, currently 2048.`,
 	}
 
 	return int(n)
+}
+
+func promptKeyType() string {
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
+		Title: "Key Type Selection",
+		Body: `Select the type of keys you want to use for account keys and certificates.
+
+If in doubt, select RSA.`,
+		ResponseType: interaction.RTSelect,
+		Options: []interaction.Option{
+			{
+				Title: "RSA",
+				Value: "rsa",
+			},
+			{
+				Title: "ECDSA",
+				Value: "ecdsa",
+			},
+		},
+		UniqueID: "acmetool-quickstart-key-type",
+		Implicit: !*expertFlag,
+	})
+	if err != nil {
+		return "rsa"
+	}
+
+	if r.Cancelled {
+		os.Exit(1)
+		return ""
+	}
+
+	return r.Value
+}
+
+func promptECDSACurve() string {
+	r, err := interaction.Auto.Prompt(&interaction.Challenge{
+		Title: "ECDSA Curve Selection",
+		Body: `Please select the ECDSA curve to use for keys and account keys.
+
+NOTE: nistp521 is not as well supported as the others and is not supported
+by Let's Encrypt.`,
+		ResponseType: interaction.RTSelect,
+		Options: []interaction.Option{
+			{
+				Title: "NIST P-256 (recommended)",
+				Value: "nistp256",
+			},
+			{
+				Title: "NIST P-384",
+				Value: "nistp384",
+			},
+			{
+				Title: "NIST P-521 (limited support)",
+				Value: "nistp521",
+			},
+		},
+		UniqueID: "acmetool-quickstart-ecdsa-curve",
+		Implicit: !*expertFlag,
+	})
+	if err != nil {
+		return ""
+	}
+
+	if r.Cancelled {
+		os.Exit(1)
+		return ""
+	}
+
+	return r.Value
 }
 
 func promptWebrootDir() string {
