@@ -60,7 +60,7 @@ const (
 )
 
 // Default provider to use. Currently defaults to the Let's Encrypt staging server.
-var DefaultDirectoryURL = LEStagingURL
+var DefaultDirectoryURL = LELiveURL
 
 type directoryInfo struct {
 	NewReg     string `json:"new-reg"`
