@@ -239,6 +239,9 @@ specification and documentation. acmetool supports the following extensions:
         # will not support nistp521.
         ecdsa-curve: nistp256 (must be "nistp256", "nistp384" or "nistp521")
 
+      # Request OCSP Must Staple in certificates. Defaults to false.
+      ocsp-must-staple: true
+
       challenge:
         # Webroot paths to use when requesting certificates. Defaults to none.
         # This is usually used in the default target file. While you _can_ override

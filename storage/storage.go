@@ -9,6 +9,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/base32"
 	"encoding/pem"
 	"fmt"
@@ -115,6 +117,9 @@ type TargetRequest struct {
 
 	// Settings relating to the completion of challenges.
 	Challenge TargetRequestChallenge `yaml:"challenge,omitempty"`
+
+	// N. Request OCSP Must Staple in CSRs?
+	OCSPMustStaple bool `yaml:"ocsp-must-staple,omitempty"`
 }
 
 // Settings for keys generated as part of certificate requests.
@@ -1445,9 +1450,21 @@ func (s *Store) obtainAuthorization(name string, a *Account, trc *TargetRequestC
 	return nil
 }
 
+var (
+	oidTLSFeature          = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 1, 24}
+	mustStapleFeatureValue = []byte{0x30, 0x03, 0x02, 0x01, 0x05}
+)
+
 func (s *Store) createCSR(t *Target) ([]byte, error) {
 	csr := &x509.CertificateRequest{
 		DNSNames: t.Request.Names,
+	}
+
+	if t.Request.OCSPMustStaple {
+		csr.Extensions = append(csr.Extensions, pkix.Extension{
+			Id:    oidTLSFeature,
+			Value: mustStapleFeatureValue,
+		})
 	}
 
 	pk, _, err := s.createNewCertKey(&t.Request.Key)
