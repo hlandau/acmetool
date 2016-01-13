@@ -14,21 +14,21 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 type httpResponder struct {
+	rcfg Config
+
 	serveMux            *http.ServeMux
 	response            []byte
 	requestDetectedChan chan struct{}
 	stopFuncs           []func()
 	ka                  []byte
 	validation          []byte
-	hostname            string
-	webpaths            []string
-	token               string
 	filePath            string
 	notifySupported     bool // is notify supported?
 	listening           bool
@@ -36,11 +36,9 @@ type httpResponder struct {
 
 func newHTTP(rcfg Config) (Responder, error) {
 	s := &httpResponder{
+		rcfg:                rcfg,
 		serveMux:            http.NewServeMux(),
 		requestDetectedChan: make(chan struct{}, 1),
-		hostname:            rcfg.Hostname,
-		webpaths:            rcfg.WebPaths,
-		token:               rcfg.Token,
 		notifySupported:     true,
 	}
 
@@ -100,14 +98,14 @@ func (s *httpResponder) Start(interactor interaction.Interactor) error {
 // Test that the challenge is reachable at the given hostname. If a hostname
 // was not provided, this test is skipped.
 func (s *httpResponder) selfTest() error {
-	if s.hostname == "" {
+	if s.rcfg.Hostname == "" {
 		return nil
 	}
 
 	u := url.URL{
 		Scheme: "http",
-		Host:   s.hostname,
-		Path:   "/.well-known/acme-challenge/" + s.token,
+		Host:   s.rcfg.Hostname,
+		Path:   "/.well-known/acme-challenge/" + s.rcfg.Token,
 	}
 
 	res, err := http.Get(u.String())
@@ -209,7 +207,7 @@ func init() {
 
 func (s *httpResponder) getWebroots() map[string]struct{} {
 	webroots := map[string]struct{}{}
-	for _, p := range s.webpaths {
+	for _, p := range s.rcfg.ChallengeConfig.WebPaths {
 		if p != "" {
 			webroots[strings.TrimRight(p, "/")] = struct{}{}
 		}
@@ -222,17 +220,46 @@ func (s *httpResponder) getWebroots() map[string]struct{} {
 	return webroots
 }
 
+func parseListenAddrs(addrs []string) map[string]struct{} {
+	m := map[string]struct{}{}
+
+	for _, s := range addrs {
+		n, err := strconv.ParseUint(s, 10, 16)
+		if err == nil {
+			m[fmt.Sprintf("[::1]:%d", n)] = struct{}{}
+			m[fmt.Sprintf("127.0.0.1:%d", n)] = struct{}{}
+			continue
+		}
+
+		ta, err := net.ResolveTCPAddr("tcp", s)
+		if err != nil {
+			log.Warnf("invalid listen addr: %q: %v", s, err)
+			continue
+		}
+
+		m[ta.String()] = struct{}{}
+	}
+
+	return m
+}
+
 func (s *httpResponder) startListeners() error {
 	// Here's our brute force method: listen on everything that might work.
-	s.startListener(":80")
-	s.startListener("127.0.0.1:402")
-	s.startListener("[::1]:402")
-	s.startListener("127.0.0.1:4402")
-	s.startListener("[::1]:4402")
+	addrs := parseListenAddrs(s.rcfg.ChallengeConfig.HTTPPorts)
+	addrs["[::1]:80"] = struct{}{}
+	addrs["127.0.0.1:80"] = struct{}{}
+	addrs["[::1]:402"] = struct{}{}
+	addrs["127.0.0.1:402"] = struct{}{}
+	addrs["[::1]:4402"] = struct{}{}
+	addrs["127.0.0.1:4402"] = struct{}{}
+
+	for k := range addrs {
+		s.startListener(k)
+	}
 
 	// Even if none of the listeners managed to start, the webroot or redirector
 	// methods might work.
-	webrootWriteChallenge(s.getWebroots(), s.token, s.ka)
+	webrootWriteChallenge(s.getWebroots(), s.rcfg.Token, s.ka)
 
 	return nil
 }
@@ -251,6 +278,8 @@ func (s *httpResponder) startListener(addr string) error {
 		log.Debuge(err, "failed to listen on ", svr.Addr)
 		return err
 	}
+
+	log.Debugf("listening on %v", svr.Addr)
 
 	go func() {
 		defer l.Close()
@@ -283,7 +312,7 @@ func (s *httpResponder) Stop() error {
 	s.stopFuncs = nil
 
 	// Try and remove challenges.
-	webrootRemoveChallenge(s.getWebroots(), s.token)
+	webrootRemoveChallenge(s.getWebroots(), s.rcfg.Token)
 
 	return nil
 }
@@ -308,4 +337,4 @@ func init() {
 	RegisterResponder("http-01", newHTTP)
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

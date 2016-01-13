@@ -22,6 +22,7 @@ import (
 	"github.com/hlandau/acme/acmeutils"
 	"github.com/hlandau/acme/fdb"
 	"github.com/hlandau/acme/notify"
+	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/solver"
 	"github.com/hlandau/xlog"
 	"github.com/satori/go.uuid"
@@ -143,6 +144,9 @@ func (k *TargetRequestKey) String() string {
 type TargetRequestChallenge struct {
 	// N. Webroot paths to use when completing challenges.
 	WebrootPaths []string `yaml:"webroot-paths,omitempty"`
+
+	// N. Ports to listen on when completing challenges.
+	HTTPPorts []string `yaml:"http-ports,omitempty"`
 }
 
 // Represents a stored target descriptor.
@@ -1401,7 +1405,13 @@ func (s *Store) getPriorKey(publicKey crypto.PublicKey) (crypto.PrivateKey, erro
 func (s *Store) obtainAuthorization(name string, a *Account, trc *TargetRequestChallenge) error {
 	cl := s.getAccountClient(a)
 
-	az, err := solver.Authorize(cl, name, trc.WebrootPaths, nil, s.getPriorKey, context.TODO())
+	ccfg := responder.ChallengeConfig{
+		WebPaths:     trc.WebrootPaths,
+		HTTPPorts:    trc.HTTPPorts,
+		PriorKeyFunc: s.getPriorKey,
+	}
+
+	az, err := solver.Authorize(cl, name, ccfg, nil, context.TODO())
 	if err != nil {
 		return err
 	}

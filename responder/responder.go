@@ -48,6 +48,8 @@ type Responder interface {
 
 // Used to instantiate a responder.
 type Config struct {
+	// Information about the challenge to be completed.
+
 	Type       string            // The responder type to be used. e.g. "http-01".
 	AccountKey crypto.PrivateKey // The account private key.
 	Token      string            // The challenge token.
@@ -59,13 +61,23 @@ type Config struct {
 	// proofOfPossession.
 	Hostname string
 
+	// "proofOfPossession": The certificates which are acceptable. Each entry is
+	// a DER X.509 certificate.
+	AcceptableCertificates [][]byte
+
+	ChallengeConfig ChallengeConfig
+}
+
+// Information used to complete challenges, other than information provided by
+// the ACME server.
+type ChallengeConfig struct {
 	// "http-01": The http responder may attempt to place challenges in these
 	// locations. Optional.
 	WebPaths []string
 
-	// "proofOfPossession": The certificates which are acceptable. Each entry is
-	// a DER X.509 certificate.
-	AcceptableCertificates [][]byte
+	// "http-01": The http responder may attempt to listen on these addresses.
+	// Optional.
+	HTTPPorts []string
 
 	// "proofOfPossession": Function which returns the private key for a given
 	// public key.  This may be called multiple times for a given challenge as

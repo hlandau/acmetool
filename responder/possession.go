@@ -22,11 +22,11 @@ func (rcfg *Config) findAcceptablePrivateKey() (crypto.PrivateKey, error) {
 			continue
 		}
 
-		if rcfg.PriorKeyFunc == nil {
+		if rcfg.ChallengeConfig.PriorKeyFunc == nil {
 			continue
 		}
 
-		pk, err := rcfg.PriorKeyFunc(crt.PublicKey)
+		pk, err := rcfg.ChallengeConfig.PriorKeyFunc(crt.PublicKey)
 		if err != nil {
 			return nil, err
 		}

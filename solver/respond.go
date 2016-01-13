@@ -22,24 +22,25 @@ type authState struct {
 	c            *acmeapi.Client
 	dnsName      string
 	interactor   interaction.Interactor
+	ccfg         responder.ChallengeConfig
 	ctx          context.Context
 	pref         TypePreferencer
 	webPaths     []string
+	listenAddrs  []string
 	priorKeyFunc responder.PriorKeyFunc
 }
 
 // Attempts to authorize a hostname using the given client. webPaths,
 // interactor and priorKeyFunc are passed to responders. Returns the
 // successfully validated authorization on success.
-func Authorize(c *acmeapi.Client, dnsName string, webPaths []string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (*acmeapi.Authorization, error) {
+func Authorize(c *acmeapi.Client, dnsName string, ccfg responder.ChallengeConfig, interactor interaction.Interactor, ctx context.Context) (*acmeapi.Authorization, error) {
 	as := authState{
-		c:            c,
-		dnsName:      dnsName,
-		interactor:   defaultInteraction(interactor),
-		ctx:          ctx,
-		pref:         PreferFast.Copy(),
-		webPaths:     webPaths,
-		priorKeyFunc: priorKeyFunc,
+		c:          c,
+		dnsName:    dnsName,
+		interactor: defaultInteraction(interactor),
+		ctx:        ctx,
+		pref:       PreferFast.Copy(),
+		ccfg:       ccfg,
 	}
 
 	for {
@@ -80,7 +81,7 @@ func (as *authState) authorize() (az *acmeapi.Authorization, fatal bool, err err
 func (as *authState) attemptCombination(az *acmeapi.Authorization, combination []int) (invalidated bool, err error) {
 	for _, i := range combination {
 		ch := az.Challenges[i]
-		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.webPaths, as.interactor, as.priorKeyFunc, as.ctx)
+		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.ccfg, as.interactor, as.ctx)
 		if err != nil {
 			delete(as.pref, ch.Type)
 			return invalidated, err
@@ -99,7 +100,7 @@ func (as *authState) attemptCombination(az *acmeapi.Authorization, combination [
 // The return value indicates whether the whole authorization has been invalidated
 // (set to "failed" status) as a result of an error. In this case a new authorization
 // must be created.
-func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string, webPaths []string, interactor interaction.Interactor, priorKeyFunc responder.PriorKeyFunc, ctx context.Context) (invalidated bool, err error) {
+func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string, ccfg responder.ChallengeConfig, interactor interaction.Interactor, ctx context.Context) (invalidated bool, err error) {
 	log.Debugf("attempting challenge type %s", ch.Type)
 
 	var certs [][]byte
@@ -113,9 +114,8 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 		N:                      ch.N,
 		AccountKey:             c.AccountInfo.AccountKey,
 		Hostname:               dnsName,
-		WebPaths:               webPaths,
 		AcceptableCertificates: certs,
-		PriorKeyFunc:           priorKeyFunc,
+		ChallengeConfig:        ccfg,
 	})
 
 	if err != nil {
@@ -172,4 +172,4 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 	return false, nil
 }
 
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -224,30 +224,40 @@ specification and documentation. acmetool supports the following extensions:
       # Determines whether RSA or ECDSA keys are used. ECDSA keys must be
       # supported by the server. Let's Encrypt does not yet support ECDSA
       # keys, though support is imminent. Default RSA.
-      key-type: rsa (must be "rsa" or "ecdsa")
+      key:
+        type: rsa (must be "rsa" or "ecdsa")
 
-      # RSA modulus size when using an RSA key. Default 2048 bits.
-      #
-      # Legacy compatibility: if not present, the number of bits may be
-      # contained in a file "rsa-key-size" inside the conf directory.
-      rsa-bits: 2048
+        # RSA modulus size when using an RSA key. Default 2048 bits.
+        #
+        # Legacy compatibility: if not present, the number of bits may be
+        # contained in a file "rsa-key-size" inside the conf directory.
+        rsa-bits: 2048
 
-      # ECDSA curve when using an ecdsa key. Default "nistp256".
-      #
-      # It is strongly recommended that you use nistp256. Let's Encrypt
-      # will not support nistp521.
-      ecdsa-curve: nistp256 (must be "nistp256", "nistp384" or "nistp521")
+        # ECDSA curve when using an ecdsa key. Default "nistp256".
+        #
+        # It is strongly recommended that you use nistp256. Let's Encrypt
+        # will not support nistp521.
+        ecdsa-curve: nistp256 (must be "nistp256", "nistp384" or "nistp521")
 
-      # Webroot paths to use when requesting certificates. Defaults to none.
-      # This is usually used in the default target file. While you _can_ override
-      # this in a specific target, you should think very carefully by doing so.
-      # In almost all cases, it is better to use symlinks or aliases to ensure
-      # that the same directory is used for all vhosts.
-      #
-      # Legacy compatibility: the file "webroot-path" in the conf directory
-      # contains a list of webroot paths, one per line.
-      webroot-paths:
-        - /some/webroot/path/.well-known/acme-challenge
+      challenge:
+        # Webroot paths to use when requesting certificates. Defaults to none.
+        # This is usually used in the default target file. While you _can_ override
+        # this in a specific target, you should think very carefully by doing so.
+        # In almost all cases, it is better to use symlinks or aliases to ensure
+        # that the same directory is used for all vhosts.
+        #
+        # Legacy compatibility: the file "webroot-path" in the conf directory
+        # contains a list of webroot paths, one per line.
+        webroot-paths:
+          - /some/webroot/path/.well-known/acme-challenge
+
+        # A list of additional ports to listen on. Each item can be a port
+        # number, or an explicit bind address (e.g. "[::1]:402"). Specifying a
+        # port number x is equivalent to specifying "[::1]:x" and "127.0.0.1:x".
+        http-ports:
+          - 80
+          - 402
+          - 4402
 
 ### accounts
 
