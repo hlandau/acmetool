@@ -33,6 +33,12 @@ root.](https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md) If you have
 existing certificates issued using the official client, acmetool can import
 those certificates, keys and account keys (`acmetool import-le`).
 
+acmetool supports both RSA and ECDSA keys and certificates. acmetool's
+notification hooks system allows you to write arbitrary shell scripts to be
+executed when new certificates are obtained. By default, this is used to reload
+webservers automatically, but it can also be used to distribute certificates to
+other servers or for other purposes.
+
 ## Getting Started
 
 **Binary releases:** [Binary releases are available.](https://github.com/hlandau/acme/releases)
