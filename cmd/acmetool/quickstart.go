@@ -129,7 +129,8 @@ set -e
 # Don't do anything if HAProxy is not installed.
 which haproxy >/dev/null 2>/dev/null || exit 0
 
-# Create coalesced files.
+# Create coalesced files and a haproxy repository.
+mkdir -p "$ACME_STATE_DIR/haproxy"
 umask 0077
 while read name; do
   certdir="$ACME_STATE_DIR/live/$name"
@@ -142,6 +143,8 @@ while read name; do
   else
     cat "$certdir/privkey" "$certdir/fullchain" > "$certdir/haproxy"
   fi
+
+  [ -h "$ACME_STATE_DIR/haproxy/$name" ] || ln -s "../live/$name/haproxy" "$ACME_STATE_DIR/haproxy/$name"
 done
 `
 
