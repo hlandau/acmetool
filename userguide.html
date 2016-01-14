@@ -1,63 +1,37 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" id="userguide">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="Content-Style-Type" content="text/css" />
-  <meta name="generator" content="pandoc" />
-  <title>acmetool User's Guide</title>
-  <style type="text/css">code{white-space: pre;}</style>
-  <style type="text/css">
-div.sourceCode { overflow-x: auto; }
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code > span.dt { color: #902000; } /* DataType */
-code > span.dv { color: #40a070; } /* DecVal */
-code > span.bn { color: #40a070; } /* BaseN */
-code > span.fl { color: #40a070; } /* Float */
-code > span.ch { color: #4070a0; } /* Char */
-code > span.st { color: #4070a0; } /* String */
-code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code > span.ot { color: #007020; } /* Other */
-code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code > span.fu { color: #06287e; } /* Function */
-code > span.er { color: #ff0000; font-weight: bold; } /* Error */
-code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-code > span.cn { color: #880000; } /* Constant */
-code > span.sc { color: #4070a0; } /* SpecialChar */
-code > span.vs { color: #4070a0; } /* VerbatimString */
-code > span.ss { color: #bb6688; } /* SpecialString */
-code > span.im { } /* Import */
-code > span.va { color: #19177c; } /* Variable */
-code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code > span.op { color: #666666; } /* Operator */
-code > span.bu { } /* BuiltIn */
-code > span.ex { } /* Extension */
-code > span.pp { color: #bc7a00; } /* Preprocessor */
-code > span.at { color: #7d9029; } /* Attribute */
-code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-  </style>
-  <link rel="stylesheet" href="style.css" type="text/css" />
+  <meta charset="utf-8"/>
+  <title>User's Guide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+  <link rel="stylesheet" href="style.css"/>
+  
 </head>
 <body>
-<div id="header">
-<h1 class="title">acmetool User's Guide</h1>
+
+<div id="logo">
+  <h1><a href="."><img src="img/acmetool-logo-black.png" alt="acmetool - Let's Encrypt Client" /></a></h1>
 </div>
-<div id="TOC">
+<nav id="tnav">
 <ul>
+  <li><a href="userguide">User's Guide</a></li>
+  <li><a href="acmetool.8">man acmetool</a></li>
+  <li><a href="https://github.com/hlandau/acme/blob/master/README.md">README</a></li>
+  <li><a href="https://github.com/hlandau/acme/releases">Download Binaries</a></li>
+  <li><a href="https://github.com/hlandau/acme">Source Code</a></li>
+</ul>
+</nav>
+
+<div id="obody">
+<header>
+<h1 class="title">User's Guide</h1>
+</header>
+
+<nav id="TOC"><ul>
 <li><a href="#introduction-design-philosophy">Introduction &amp; Design Philosophy</a></li>
 <li><a href="#installation">Installation</a></li>
 <li><a href="#after-installation">After installation</a></li>
 <li><a href="#web-server-configuration">Web server configuration</a></li>
-<li><a href="#root-configured-non-root-operation">Root-configured non-root operation</a><ul>
-<li><a href="#rootless-setup-as-root">Rootless setup as root</a></li>
-</ul></li>
 <li><a href="#challenge-completion-philosophy">Challenge completion philosophy</a></li>
 <li><a href="#the-state-storage-schema">The state storage schema</a></li>
 <li><a href="#response-files">Response files</a></li>
@@ -66,8 +40,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#faq">FAQ</a><ul>
 <li><a href="#ive-selected-the-webrootproxyredirectorlistener-challenge-method-but-im-seeing-log-entries-for-other-methods-or-for-webroots-other-than-the-one-i-configured.">I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.</a></li>
 </ul></li>
-</ul>
-</div>
+<li><a href="#annex-root-configured-non-root-operation">Annex: Root-configured non-root operation</a><ul>
+<li><a href="#rootless-setup-as-root">Rootless setup as root</a></li>
+</ul></li>
+</ul></nav>
 <h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
 <p>acmetool is an easy-to-use command line tool for automatically acquiring TLS certificates from ACME servers such as Let's Encrypt, designed to flexibly integrate into your webserver setup to enable automatic verification.</p>
 <p><strong>Non-interference.</strong> Unlike the official Let's Encrypt client, this doesn't modify your web server configuration.</p>
@@ -194,7 +170,29 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
   <span class="ot">Order</span><span class="ch"> allow, deny</span>
   Allow<span class="st"> from all</span>
 <span class="fu">&lt;/Directory&gt;</span></code></pre></div>
-<h2 id="root-configured-non-root-operation">Root-configured non-root operation</h2>
+<h2 id="challenge-completion-philosophy">Challenge completion philosophy</h2>
+<p>acmetool's philosophy to completing challenges is to try absolutely anything that might work. So long as <em>something</em> works, acmetool doesn't care what it was that worked. When <code>acmetool quickstart</code> asks you what method to use, this is asked purely to determine a) whether to ask you for a webroot path (if you selected webroot mode) and b) whether to ask you if you want to install the redirector service (if you selected redirector mode and are using systemd, for which automatic service installation is supported). It doesn't determine what strategies acmetool does or doesn't use, so it's normal to see log output relating to a failure to use methods other than the one you chose.</p>
+<p>acmetool always tries to listen on port 402 and 4402 when completing challenges, in case something proxies to it. It always tries to listen on ports 80 and 443, in case you're not running a webserver yet. And it always tries to place challenge files in any webroot paths you have configured. Finally, it always tries to place challenge files in <code>/var/run/acme/acme-challenge</code>; this serves as a standard location for challenge files, and the redirector daemon works by looking here.</p>
+<p>Failure to complete any of these efforts is non-fatal. Ultimately, all acmetool cares about is that a challenge completes successfully after having attempted all possible preparations. It doesn't know or care <em>why</em> a challenge succeeds, only that it succeeded.</p>
+<p>(For HTTP-based challenges, acmetool self-tests its ability to complete the challenge by issuing a request for the same URL which will be requested by the ACME server, and does not proceed if this does not validate. Thus, HTTP-based challenges will never work if you are running some sort of weird split-horizon configuration where challenge files are retrievable only from the internet but not the local machine.)</p>
+<h2 id="the-state-storage-schema">The state storage schema</h2>
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">The format of acmetool's state directory is documented here.</a></p>
+<h2 id="response-files">Response files</h2>
+<p>It is possible to automatically provide responses to any question acmetool can ask.</p>
+<p>To do this, you provide the <code>--response-file</code> flag, with the path to a YAML file containing response information. <a href="https://github.com/hlandau/acme/blob/master/_doc/response-file.yaml">An example of such a file is here.</a></p>
+<p>If you don't provide a <code>--response-file</code> flag, acmetool will try to look for one at <code>/var/lib/acme/conf/responses</code>. If using a response file, it's recommended that you place it at this location.</p>
+<p>The file specifies key-value pairs. Each key is a prompt ID. (You can find these by grepping the source code for <code>UniqueID</code>.)</p>
+<p>(For messages which simply require acknowledgement, specify <code>true</code> to bypass them. Yes/no prompts should have a boolean value specified. The example response file is demonstrative.)</p>
+<p>You should specify <code>--batch</code> when using a response file to prevent acmetool from trying to prompt the user and fail instead, in case it tries to ask anything which you don't have a response for in your response file.</p>
+<h2 id="command-line-options">Command line options</h2>
+<p><a href="acmetool.8">See the acmetool(8) manual page.</a></p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>Passing <code>--xlog.severity=debug</code> increases the logging verbosity of acmetool and should be your first troubleshooting strategy.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="ive-selected-the-webrootproxyredirectorlistener-challenge-method-but-im-seeing-log-entries-for-other-methods-or-for-webroots-other-than-the-one-i-configured.">I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.</h3>
+<p>This is normal. By design, acmetool always tries anything which might work, and these errors are nonfatal as long as <em>something</em> works. The challenge method you select in the quickstart wizard determines only whether to ask you for a webroot path, and whether to install the redirector (if you are using system). The webroot path <code>/var/run/acme/acme-challenge</code>, as a standard location, will always be tried in addition to any webroot you specify, as will proxy and listener mode ports.</p>
+<p>Fore more information, see <a href="https://hlandau.github.io/acme/userguide#challenge-completion-philosophy">challenge completion philosophy</a>.</p>
+<h2 id="annex-root-configured-non-root-operation">Annex: Root-configured non-root operation</h2>
 <p>The following steps describe how you can, as root, take a series of steps that allows you to invoke acmetool as a non-root user, thereby limiting your attack surface and the degree to which you trust acmetool.</p>
 <p>It is also possible to use acmetool without you having access to root at all. In this case, place acmetool in a location of your choice and pass the <code>--state</code> and <code>--hooks</code> flags with appropriate paths of your choice to all invocations of acmetool.</p>
 <h3 id="rootless-setup-as-root">Rootless setup as root</h3>
@@ -227,27 +225,7 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p><strong>Proxy:</strong> If you are using the proxy method, you won't be able to listen on port 402 as a non-root user. Use port 4402 instead, which acmetool will try also try to use.</p>
 <p><strong>Listener:</strong> Not usable under non-root operation, as it would not be able to bind to ports 80/443. But this is not really relevant as this mode is not useful for anything other than development anyway.</p></li>
 </ul>
-<h2 id="challenge-completion-philosophy">Challenge completion philosophy</h2>
-<p>acmetool's philosophy to completing challenges is to try absolutely anything that might work. So long as <em>something</em> works, acmetool doesn't care what it was that worked. When <code>acmetool quickstart</code> asks you what method to use, this is asked purely to determine a) whether to ask you for a webroot path (if you selected webroot mode) and b) whether to ask you if you want to install the redirector service (if you selected redirector mode and are using systemd, for which automatic service installation is supported). It doesn't determine what strategies acmetool does or doesn't use, so it's normal to see log output relating to a failure to use methods other than the one you chose.</p>
-<p>acmetool always tries to listen on port 402 and 4402 when completing challenges, in case something proxies to it. It always tries to listen on ports 80 and 443, in case you're not running a webserver yet. And it always tries to place challenge files in any webroot paths you have configured. Finally, it always tries to place challenge files in <code>/var/run/acme/acme-challenge</code>; this serves as a standard location for challenge files, and the redirector daemon works by looking here.</p>
-<p>Failure to complete any of these efforts is non-fatal. Ultimately, all acmetool cares about is that a challenge completes successfully after having attempted all possible preparations. It doesn't know or care <em>why</em> a challenge succeeds, only that it succeeded.</p>
-<p>(For HTTP-based challenges, acmetool self-tests its ability to complete the challenge by issuing a request for the same URL which will be requested by the ACME server, and does not proceed if this does not validate. Thus, HTTP-based challenges will never work if you are running some sort of weird split-horizon configuration where challenge files are retrievable only from the internet but not the local machine.)</p>
-<h2 id="the-state-storage-schema">The state storage schema</h2>
-<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">The format of acmetool's state directory is documented here.</a></p>
-<h2 id="response-files">Response files</h2>
-<p>It is possible to automatically provide responses to any question acmetool can ask.</p>
-<p>To do this, you provide the <code>--response-file</code> flag, with the path to a YAML file containing response information. <a href="https://github.com/hlandau/acme/blob/master/_doc/response-file.yaml">An example of such a file is here.</a></p>
-<p>If you don't provide a <code>--response-file</code> flag, acmetool will try to look for one at <code>/var/lib/acme/conf/responses</code>. If using a response file, it's recommended that you place it at this location.</p>
-<p>The file specifies key-value pairs. Each key is a prompt ID. (You can find these by grepping the source code for <code>UniqueID</code>.)</p>
-<p>(For messages which simply require acknowledgement, specify <code>true</code> to bypass them. Yes/no prompts should have a boolean value specified. The example response file is demonstrative.)</p>
-<p>You should specify <code>--batch</code> when using a response file to prevent acmetool from trying to prompt the user and fail instead, in case it tries to ask anything which you don't have a response for in your response file.</p>
-<h2 id="command-line-options">Command line options</h2>
-<p><a href="acmetool.8">See the acmetool(8) manual page.</a></p>
-<h2 id="troubleshooting">Troubleshooting</h2>
-<p>Passing <code>--xlog.severity=debug</code> increases the logging verbosity of acmetool and should be your first troubleshooting strategy.</p>
-<h2 id="faq">FAQ</h2>
-<h3 id="ive-selected-the-webrootproxyredirectorlistener-challenge-method-but-im-seeing-log-entries-for-other-methods-or-for-webroots-other-than-the-one-i-configured.">I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.</h3>
-<p>This is normal. By design, acmetool always tries anything which might work, and these errors are nonfatal as long as <em>something</em> works. The challenge method you select in the quickstart wizard determines only whether to ask you for a webroot path, and whether to install the redirector (if you are using system). The webroot path <code>/var/run/acme/acme-challenge</code>, as a standard location, will always be tried in addition to any webroot you specify, as will proxy and listener mode ports.</p>
-<p>Fore more information, see <a href="https://hlandau.github.io/acme/userguide#challenge-completion-philosophy">challenge completion philosophy</a>.</p>
+</div>
+
 </body>
 </html>

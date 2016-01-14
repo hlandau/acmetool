@@ -1,2 +1,33 @@
-#TOC { float: right; background-color: #e0e0e0; padding: 0.5em; margin: 0.5em; }
+#logo { text-align: center; margin-top: 1em; }
+html#index #logo { margin-top: 10em; }
+a img { border: none; }
+h1 { text-align: center; margin: 0 auto; }
+
+h2 { margin-top: 2em; }
+h2::before { content: "█ "; position: absolute; color: #000; margin-left: -2ex; }
+
+nav#tnav > ul { list-style: none; text-align: center; }
+nav#tnav > ul > li { display: inline-block; padding: 0; margin: 0; }
+nav#tnav > ul > li:not(:first-child)::before { content: "· "; }
+a:link { color: #00a; text-decoration: none; }
+
+#obody { margin: 0 5em; }
+
+#TOC { float: right; background-color: #e0e0e0; padding: 0.5em; margin: 0.5em; margin-bottom: 2em; }
 #TOC > ul { list-style: none; margin: 0; padding: 0; }
+
+/* manpage */
+html#manpage p { padding-left: 2em; }
+
+span.bold { font-weight: bold; }
+span.manpage { font-weight: bold; }
+span.emphasis { font-style: italic; }
+pre { overflow: auto; margin: 0; }
+
+span.nroffip {
+ font-weight: bold;
+ font-size: 120%;
+ font-family: monospace;
+}
+
+p.roffit { text-align: center; font-size: 80%; }

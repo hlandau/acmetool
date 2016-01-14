@@ -1,4 +1,4 @@
-% acmetool User's Guide
+% User's Guide
 
 ## Introduction & Design Philosophy
 
@@ -279,7 +279,88 @@ Alias "/.well-known/acme-challenge/" "/var/run/acme/acme-challenge/"
 </Directory>
 ```
 
-## Root-configured non-root operation
+## Challenge completion philosophy
+
+acmetool's philosophy to completing challenges is to try absolutely anything
+that might work. So long as *something* works, acmetool doesn't care what it
+was that worked. When `acmetool quickstart` asks you what method to use, this
+is asked purely to determine a) whether to ask you for a webroot path (if you
+selected webroot mode) and b) whether to ask you if you want to install the
+redirector service (if you selected redirector mode and are using systemd, for
+which automatic service installation is supported). It doesn't determine what
+strategies acmetool does or doesn't use, so it's normal to see log output
+relating to a failure to use methods other than the one you chose.
+
+acmetool always tries to listen on port 402 and 4402 when completing
+challenges, in case something proxies to it. It always tries to listen on ports
+80 and 443, in case you're not running a webserver yet. And it always tries to
+place challenge files in any webroot paths you have configured. Finally, it
+always tries to place challenge files in `/var/run/acme/acme-challenge`; this
+serves as a standard location for challenge files, and the redirector daemon
+works by looking here.
+
+Failure to complete any of these efforts is non-fatal. Ultimately, all
+acmetool cares about is that a challenge completes successfully after having
+attempted all possible preparations. It doesn't know or care *why* a challenge
+succeeds, only that it succeeded.
+
+(For HTTP-based challenges, acmetool self-tests its ability to complete the
+challenge by issuing a request for the same URL which will be requested by the
+ACME server, and does not proceed if this does not validate. Thus, HTTP-based
+challenges will never work if you are running some sort of weird split-horizon
+configuration where challenge files are retrievable only from the internet but
+not the local machine.)
+
+## The state storage schema
+
+[The format of acmetool's state directory is documented here.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
+
+## Response files
+
+It is possible to automatically provide responses to any question acmetool can ask.
+
+To do this, you provide the `--response-file` flag, with the path to a YAML file
+containing response information. [An example of such a file is here.](https://github.com/hlandau/acme/blob/master/_doc/response-file.yaml)
+
+If you don't provide a `--response-file` flag, acmetool will try to look for
+one at `/var/lib/acme/conf/responses`. If using a response file, it's recommended
+that you place it at this location.
+
+The file specifies key-value pairs. Each key is a prompt ID. (You can find
+these by grepping the source code for `UniqueID`.)
+
+(For messages which simply require acknowledgement, specify `true` to bypass
+them. Yes/no prompts should have a boolean value specified. The example
+response file is demonstrative.)
+
+You should specify `--batch` when using a response file to prevent acmetool
+from trying to prompt the user and fail instead, in case it tries to ask anything
+which you don't have a response for in your response file.
+
+## Command line options
+
+[See the acmetool(8) manual page.](acmetool.8)
+
+## Troubleshooting
+
+Passing `--xlog.severity=debug` increases the logging verbosity of acmetool and
+should be your first troubleshooting strategy.
+
+## FAQ
+
+### I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.
+
+This is normal. By design, acmetool always tries anything which might work, and
+these errors are nonfatal as long as *something* works. The challenge method
+you select in the quickstart wizard determines only whether to ask you for a
+webroot path, and whether to install the redirector (if you are using system).
+The webroot path `/var/run/acme/acme-challenge`, as a standard location, will
+always be tried in addition to any webroot you specify, as will proxy and
+listener mode ports.
+
+Fore more information, see [challenge completion philosophy](https://hlandau.github.io/acme/userguide#challenge-completion-philosophy).
+
+## Annex: Root-configured non-root operation
 
 The following steps describe how you can, as root, take a series of steps that allows
 you to invoke acmetool as a non-root user, thereby limiting your attack surface and
@@ -387,83 +468,4 @@ wherever you want it), before running acmetool, do the following:
     to bind to ports 80/443. But this is not really relevant as this mode is
     not useful for anything other than development anyway.
 
-## Challenge completion philosophy
 
-acmetool's philosophy to completing challenges is to try absolutely anything
-that might work. So long as *something* works, acmetool doesn't care what it
-was that worked. When `acmetool quickstart` asks you what method to use, this
-is asked purely to determine a) whether to ask you for a webroot path (if you
-selected webroot mode) and b) whether to ask you if you want to install the
-redirector service (if you selected redirector mode and are using systemd, for
-which automatic service installation is supported). It doesn't determine what
-strategies acmetool does or doesn't use, so it's normal to see log output
-relating to a failure to use methods other than the one you chose.
-
-acmetool always tries to listen on port 402 and 4402 when completing
-challenges, in case something proxies to it. It always tries to listen on ports
-80 and 443, in case you're not running a webserver yet. And it always tries to
-place challenge files in any webroot paths you have configured. Finally, it
-always tries to place challenge files in `/var/run/acme/acme-challenge`; this
-serves as a standard location for challenge files, and the redirector daemon
-works by looking here.
-
-Failure to complete any of these efforts is non-fatal. Ultimately, all
-acmetool cares about is that a challenge completes successfully after having
-attempted all possible preparations. It doesn't know or care *why* a challenge
-succeeds, only that it succeeded.
-
-(For HTTP-based challenges, acmetool self-tests its ability to complete the
-challenge by issuing a request for the same URL which will be requested by the
-ACME server, and does not proceed if this does not validate. Thus, HTTP-based
-challenges will never work if you are running some sort of weird split-horizon
-configuration where challenge files are retrievable only from the internet but
-not the local machine.)
-
-## The state storage schema
-
-[The format of acmetool's state directory is documented here.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
-
-## Response files
-
-It is possible to automatically provide responses to any question acmetool can ask.
-
-To do this, you provide the `--response-file` flag, with the path to a YAML file
-containing response information. [An example of such a file is here.](https://github.com/hlandau/acme/blob/master/_doc/response-file.yaml)
-
-If you don't provide a `--response-file` flag, acmetool will try to look for
-one at `/var/lib/acme/conf/responses`. If using a response file, it's recommended
-that you place it at this location.
-
-The file specifies key-value pairs. Each key is a prompt ID. (You can find
-these by grepping the source code for `UniqueID`.)
-
-(For messages which simply require acknowledgement, specify `true` to bypass
-them. Yes/no prompts should have a boolean value specified. The example
-response file is demonstrative.)
-
-You should specify `--batch` when using a response file to prevent acmetool
-from trying to prompt the user and fail instead, in case it tries to ask anything
-which you don't have a response for in your response file.
-
-## Command line options
-
-[See the acmetool(8) manual page.](acmetool.8)
-
-## Troubleshooting
-
-Passing `--xlog.severity=debug` increases the logging verbosity of acmetool and
-should be your first troubleshooting strategy.
-
-## FAQ
-
-### I've selected the (webroot/proxy/redirector/listener) challenge method, but I'm seeing log entries for other methods, or for webroots other than the one I configured.
-
-This is normal. By design, acmetool always tries anything which might work, and
-these errors are nonfatal as long as *something* works. The challenge method
-you select in the quickstart wizard determines only whether to ask you for a
-webroot path, and whether to install the redirector (if you are using system).
-The webroot path `/var/run/acme/acme-challenge`, as a standard location, will
-always be tried in addition to any webroot you specify, as will proxy and
-listener mode ports.
-
-Fore more information, see [challenge completion philosophy](https://hlandau.github.io/acme/userguide#challenge-completion-philosophy).
