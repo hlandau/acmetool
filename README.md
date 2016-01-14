@@ -1,4 +1,4 @@
-# ACME Client Utilities [![Build Status](https://travis-ci.org/hlandau/acme.svg?branch=master)](https://travis-ci.org/hlandau/acme) [![Issue Stats](http://issuestats.com/github/hlandau/acme/badge/issue)](http://issuestats.com/github/hlandau/acme)
+# ![acmetool](https://hlandau.github.io/acme/img/acmetool-logo.png) [![Build Status](https://travis-ci.org/hlandau/acme.svg?branch=master)](https://travis-ci.org/hlandau/acme) [![Issue Stats](http://issuestats.com/github/hlandau/acme/badge/issue)](http://issuestats.com/github/hlandau/acme)
 
 acmetool is an easy-to-use command line tool for automatically acquiring
 certificates from ACME servers (such as Let's Encrypt). Designed to flexibly
@@ -213,6 +213,9 @@ short lifetime of certificates issued by Let's Encrypt.
 <table>
 <tr><td></td><th>acmetool</th><th><a href="https://github.com/letsencrypt/letsencrypt">letsencrypt</a></th><th><a href="https://github.com/xenolf/lego">lego</a></th><th><a href="https://github.com/diafygi/gethttpsforfree">gethttpsforfree</a></th></tr>
 <tr><td>Automatic renewal</td><td>Yes</td><td>Not yet</td><td>No</td><td>No</td></tr>
+<tr><td>SAN support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>ECC support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+<!--<tr><td>OCSP Must Staple support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>-->
 <tr><td>State management</td><td>Yes†</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Quickstart wizard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
