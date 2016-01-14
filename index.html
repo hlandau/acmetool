@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta charset="utf-8" />
     <title>ACME Client Utilities</title>
+    <style type="text/css">/*<![CDATA[*/
+     #logo { text-align: center; margin-top: 10em; }
+     nav > ul { list-style: none; text-align: center; }
+     nav > ul > li { display: inline-block; padding: 0; margin: 0; }
+     nav > ul > li:not(:first-child)::before { content: "· "; }
+     a:link { color: #00a; text-decoration: none; }
+    ]]></style>
   </head>
   <body>
-    <ul>
-      <li><a href="userguide">acmetool User's Guide</a></li>
-      <li><a href="acmetool.8">acmetool manpage</a></li>
-      <li><a href="https://github.com/hlandau/acme/blob/master/README.md">acmetool README</a></li>
-      <li><a href="https://github.com/hlandau/acme/releases">Download Binaries</a></li>
-      <li><a href="https://github.com/hlandau/acme">Source Code</a></li>
-    </ul>
+    <div id="logo">
+      <h1><img src="img/acmetool-logo-black.png" alt="acmetool - Let's Encrypt Client" /></h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="userguide">User's Guide</a></li>
+        <li><a href="acmetool.8">man acmetool</a></li>
+        <li><a href="https://github.com/hlandau/acme/blob/master/README.md">README</a></li>
+        <li><a href="https://github.com/hlandau/acme/releases">Download Binaries</a></li>
+        <li><a href="https://github.com/hlandau/acme">Source Code</a></li>
+      </ul>
+    </nav>
   </body>
 </html>
