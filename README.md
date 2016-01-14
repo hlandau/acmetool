@@ -1,6 +1,8 @@
-# <img src="https://hlandau.github.io/acme/img/acmetool-logo.png" alt="acmetool" align="center" />
+# <div align="center"><img src="https://hlandau.github.io/acme/img/acmetool-logo-black.png" alt="acmetool" /></div>
 
-[![Build Status](https://travis-ci.org/hlandau/acme.svg?branch=master)](https://travis-ci.org/hlandau/acme) [![Issue Stats](http://issuestats.com/github/hlandau/acme/badge/issue)](http://issuestats.com/github/hlandau/acme)
+<p align="center"><a href="https://travis-ci.org/hlandau/acme"><img src="https://travis-ci.org/hlandau/acme.svg?branch=master" alt="Build Status" /></a> <a href="http://issuestats.com/github/hlandau/acme"><img src="http://issuestats.com/github/hlandau/acme/badge/issue?style=flat" alt="Issue Stats" /></a><br/>
+<a href="https://github.com/hlandau/acme/releases"><img src="https://img.shields.io/github/downloads/hlandau/acme/total.svg" alt="[download count]" /></a> <a href="https://github.com/hlandau/acme/releases"><img src="https://img.shields.io/github/release/hlandau/acme.svg" alt="[version]" /></a>
+</p>
 
 acmetool is an easy-to-use command line tool for automatically acquiring
 certificates from ACME servers (such as Let's Encrypt). Designed to flexibly
