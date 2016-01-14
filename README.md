@@ -105,10 +105,11 @@ $ make && sudo make install
 
 ```bash
 # Run the quickstart wizard. Sets up account, cronjob, etc.
+# (If you want to use ECDSA keys or set RSA key size, pass "--expert".)
 $ sudo acmetool quickstart
 
 # Configure your webserver to serve challenges if necessary.
-# See https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md
+# See https://hlandau.github.io/acme/userguide#web-server-configuration
 $ ...
 
 # Request the hostnames you want:
@@ -118,8 +119,8 @@ $ sudo acmetool want example.com www.example.com
 $ ls -l /var/lib/acme/live/example.com/
 ```
 
-The `quickstart` subcommand is a recommended wizard
-which guides you through the setup of ACME on your system.
+The `quickstart` subcommand is a recommended wizard which guides you through
+the setup of ACME on your system.
 
 The `want` subcommand states that you want a certificate for the given hostnames.
 (If you want separate certificates for each of the hostnames, run the want
