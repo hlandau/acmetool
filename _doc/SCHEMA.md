@@ -439,54 +439,94 @@ they MUST NOT break if the State Directory were to be moved). Implementations
 SHOULD verify these properties for any symlinks they encounter in the State
 Directory.
 
-Notification Hooks
-------------------
+Hooks
+-----
 
-It is desirable for system services to be able to be notified when the
-certificate pointed to by a symlink in the "live" directory has changed. This
-is realised using a separate directory, the ACME Hooks Directory.
+It is desirable to provide extensibility in certain circumstances via the means
+of hooks. These hooks are implemented using executable shell scripts or
+binaries external to an implementation. Several types of hook are defined.
 
-On UNIX-like systems, this directory SHOULD be "/usr/lib/acme/hooks", except
-for systems which use "/usr/libexec", which SHOULD use
-"/usr/libexec/acme/hooks".
+All hooks are kept in a separate directory, the ACME Hooks Directory. The
+RECOMMENDED path is `/usr/lib/acme/hooks`, except for systems which use
+`/usr/libexec`, which SHOULD use `/usr/libexec/acme/hooks`.
 
-The hooks directory MUST contain only executable objects (i.e. executable files
-or symlinks to them).
+The hooks directory MUST contain only executable objects (i.e. executable
+scripts or binaries or symlinks to them). However, implementations SHOULD
+ignore non-executable objects. "Executable" here means executable in practical
+terms, and does not refer merely to the file having the executable bits set in
+its mode, which is a necessary but not sufficient condition.
 
-An ACME client SHOULD invoke notification hooks whenever it has updated a
-symlink in the "live" directory.
+### Calling Convention
 
-An ACME client MUST invoke the notification hooks as follows: Take the list of
-objects in the hooks directory and sort them in ascending lexicographical
-order. Execute each object in that order. If execution of an object fails, execution
-of subsequent objects MUST continue.
+An ACME client MUST invoke hooks as follows: Take the list of objects in
+the hooks directory and sort them in ascending lexicographical order
+by filename. Execute each object in that order. If execution of an object
+fails, execution of subsequent objects MUST continue.
 
-Each object invoked MUST have the following command line arguments passed:
+The first argument when invoking a hook is always the event type causing
+invocation of the hook.
 
-  - The first command line argument shall be the string "live-updated".
+When invoking a hook, the environment variable `ACME_STATE_DIR` MUST be set to
+the absolute path of the State Directory.
 
-The following environment variable MUST be set for the purposes of the invocation:
+A hook is invoked successfully if it exits with exit code 0. A hook which exits
+with exit code 42 indicates a lack of support for the event type. Any other
+exit code indicates an error.
 
-  - "ACME\_STATE\_DIR" shall be set to the absolute path of the State Directory.
+### sudo Protocol
+
+It may be desirable for an implementation to run as an unprivileged user. In
+this case, it is necessary to have some way to elevate notification hooks
+so they can perform privileged operations such as restarting system services.
+Since most POSIX systems do not support the setuid bit on scripts, the use
+of "sudo" is suggested.
+
+When an implementation is not running as root, and executes a hook, and that
+hook is owned by root, and it has the setuid bit set, and the OS does not (as
+currently configured) support setuid on scripts, and the "sudo" command is
+available, and the file begins with the characters "#!", execute "sudo -n --
+FILE EVENT-TYPE ARGS...", where FILE is the absolute path to the file and ARGS
+are dictated by hook event type. Success is not guaranteed as the system
+administrator must have configured the sudoers file to allow this operation.
+
+### live-updated
+
+The "live-updated" hook is invoked when one or more symlinks in the "live"
+directory are created or updated. There are no arguments.
 
 Each object invoked MUST have passed to stdin a list of the names of the
 symlinks in the "live" directory which have changed target, i.e. the hostnames
 for which the preferred certificate has changed. The hostnames are separated by
 newlines, and the final hostname also ends with a newline.
 
-It may be desirable for an implementation to run as an unprivileged user. In this case,
-it is necessary to have some way to elevate notification hooks so they can restart
-system services. Since most POSIX systems do not support the setuid bit on scripts,
-the use of "sudo" is suggested. The protocol is as follows.
+### challenge-http-start, challenge-http-stop
 
-When an implementation is not running as root, and is executing a notification
-hook, and that hook is owned by root, and it has the setuid bit set, and the OS
-does not (as currently configured) support setuid on scripts, and the "sudo"
-command is available, and the file begins with the characters "#!", execute
-"sudo -n -- FILE ARGS...", where FILE is the absolute path to the file and ARGS
-are dictated by the notification protocol. Success is not guaranteed as the
-system administrator must have configured the sudoers file to allow this
-operation.
+These hooks are invoked when an HTTP challenge attempt begins and ends.
+They can be used to install challenge files at arbitrary locations.
+
+The first argument is the hostname to which the challenge relates.
+
+The second argument is the filename of the target file causing the challenge to
+be completed.
+
+The third argument is the filename which must be provisioned under
+`/.well-known/acme-challenge/`.
+
+The required contents of the file is passed as stdin.
+
+A hook should exit with exit code 0 only if it successfully installs or removes
+the challenge file. For `challenge-http-start`, an implementation may consider
+such an exit to authoritatively indicate that it is now feasible to complete
+the challenge.
+
+Example call:
+
+```sh
+echo evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA.nP1qzpXGymHBrUEepNY9HCsQk7K8KhOypzEt62jcerQ | \
+ACME_STATE_DIR=/var/lib/acme /usr/lib/acme/hooks/foo \
+  challenge-http-start example.com some-target-file \
+  evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA
+```
 
 SRV-ID
 ------
