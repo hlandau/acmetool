@@ -39,6 +39,8 @@ that shown below is used.
           fullchain         ; Contains the certificate and the necessary chaining certificates
           privkey           ; Symlink to a key privkey file
           url               ; URL of the certificate
+          revoke            ; Empty file indicating certificate should be revoked
+          revoked           ; Empty file indicating certificate has been revoked
 
       keys/
         (key ID)/
@@ -528,6 +530,13 @@ The reconcile operation is the actual act of “building” the State Directory.
     only an "url" file), cache them, waiting for them to become available if
     necessary.
 
+  - If there are any certificates marked for revocation (meaning that a
+    "revoke" file exists in the certificate directory), but which are not
+    marked as being revoked (meaning that a "revoked" file exists in the
+    certificate directory), request revocation of the certificate and, having
+    obtained confirmation of that revocation, create an empty file "revoked" in
+    the certificate directory.
+
   - For each target, satisfy that target.
 
     To satisfy a target:
@@ -621,6 +630,11 @@ A private key is cullable if:
   - it does not relate to any known certificate, and
   - it was not recently created or imported. The definition of "recently" is
     implementation-specific.
+
+### Revocation
+
+A certificate is revoked by creating an empty file "revoke" in the certificate
+directory and reconciling.
 
 Identifiers
 -----------
