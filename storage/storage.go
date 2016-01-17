@@ -21,7 +21,8 @@ import (
 	"time"
 
 	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/acmeutils"
+	"github.com/hlandau/acme/acmeapi/acmeendpoints"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"github.com/hlandau/acme/fdb"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/responder"
@@ -211,6 +212,12 @@ type Certificate struct {
 	// N. URL from which the certificate can be retrieved.
 	URL string
 
+	// N. Whether this certificate should be revoked.
+	RevocationDesired bool
+
+	// N (for now). Whether this certificate has been revoked.
+	Revoked bool
+
 	// D. Certificate data retrieved from URL, plus chained certificates.
 	// The end certificate comes first, the root last, etc.
 	Certificates [][]byte
@@ -235,12 +242,17 @@ func (c *Certificate) ID() string {
 
 // Represents a stored key.
 type Key struct {
-	// N. The key. Not kept in memory as there's no need to.
+	// N. The key.
+	PrivateKey crypto.PrivateKey
 
 	// D. ID: Derived from the key itself.
 	ID string
 
 	// D. Path: formed from ID.
+}
+
+func (k *Key) String() string {
+	return fmt.Sprintf("Key(%v)", k.ID)
 }
 
 // ACME client store.
@@ -518,7 +530,8 @@ func (s *Store) validateKey(keyID string, kc *fdb.Collection) error {
 	}
 
 	k := &Key{
-		ID: actualKeyID,
+		ID:         actualKeyID,
+		PrivateKey: pk,
 	}
 
 	s.keys[actualKeyID] = k
@@ -565,9 +578,11 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 	}
 
 	crt := &Certificate{
-		URL:          ss,
-		Certificates: nil,
-		Cached:       false,
+		URL:               ss,
+		Certificates:      nil,
+		Cached:            false,
+		RevocationDesired: fdb.Exists(c, "revoke"),
+		Revoked:           fdb.Exists(c, "revoked"),
 	}
 
 	fullchain, err := fdb.Bytes(c.Open("fullchain"))
@@ -802,7 +817,7 @@ func (s *Store) getAccountByProviderString(p string) (*Account, error) {
 	}
 
 	if p == "" {
-		p = acmeapi.DefaultDirectoryURL
+		p = acmeendpoints.DefaultEndpoint.DirectoryURL
 	}
 
 	if !acmeapi.ValidURL(p) {
@@ -1123,6 +1138,9 @@ func (s *Store) reconcile() error {
 		}
 	}
 
+	err := s.processPendingRevocations()
+	log.Errore(err, "could not process pending revocations")
+
 	log.Debugf("now processing targets")
 	var merr MultiError
 	for _, t := range s.targets {
@@ -1248,6 +1266,144 @@ func (s *Store) downloadCertificate(c *Certificate) error {
 	return nil
 }
 
+// Try to revoke the certificate with the given certificate ID.
+// If a key ID is given, revoke all certificates with using key ID.
+func (s *Store) RevokeByCertificateOrKeyID(certID string) error {
+	c, ok := s.certs[certID]
+	if !ok {
+		return s.revokeByKeyID(certID)
+	}
+
+	if c.Revoked {
+		log.Warnf("%v already revoked", c)
+		return nil
+	}
+
+	col := s.db.Collection("certs/" + c.ID())
+	err := fdb.CreateEmpty(col, "revoke")
+	if err != nil {
+		return err
+	}
+
+	c.RevocationDesired = true
+	return nil
+}
+
+func (s *Store) revokeByKeyID(keyID string) error {
+	k, ok := s.keys[keyID]
+	if !ok {
+		return fmt.Errorf("cannot find certificate or key with given ID: %q", keyID)
+	}
+
+	var merr MultiError
+	for _, c := range s.certs {
+		if c.Key != k {
+			continue
+		}
+
+		err := s.RevokeByCertificateOrKeyID(c.ID())
+		if err != nil {
+			merr = append(merr, fmt.Errorf("failed to mark %v for revocation: %v", c, err))
+		}
+	}
+
+	if len(merr) > 0 {
+		return merr
+	}
+
+	return nil
+}
+
+func (s *Store) processPendingRevocations() error {
+	var me MultiError
+
+	for _, c := range s.certs {
+		if c.Revoked || !c.RevocationDesired {
+			continue
+		}
+
+		err := s.revokeCertificate(c)
+		if err != nil {
+			me = append(me, fmt.Errorf("failed to revoke %v: %v", c, err))
+			continue
+		}
+	}
+
+	if len(me) > 0 {
+		return me
+	}
+
+	return nil
+}
+
+func (s *Store) revokeCertificate(c *Certificate) error {
+	err := s.revokeCertificateInner(c)
+	if err != nil {
+		return err
+	}
+
+	col := s.db.Collection("certs/" + c.ID())
+	fdb.CreateEmpty(col, "revoked") // ignore errors
+
+	c.Revoked = true
+	return nil
+}
+
+func (s *Store) revokeCertificateInner(c *Certificate) error {
+	if len(c.Certificates) == 0 {
+		return fmt.Errorf("no certificates in certificate: %v", c)
+	}
+
+	endCertificate := c.Certificates[0]
+
+	crt, err := x509.ParseCertificate(endCertificate)
+	if err != nil {
+		return err
+	}
+
+	// Get the endpoint which issued the certificate.
+	endpoint, err := acmeendpoints.CertificateToEndpoint(s.getGenericClient(), crt, context.TODO())
+	if err != nil {
+		return fmt.Errorf("could not map certificate to endpoint: %v", err)
+	}
+
+	// In order to revoke a certificate, one needs either the private
+	// key of the certificate, or the account key with authorizations
+	// for all names on the certificate. Try and find the private key
+	// first.
+	var client *acmeapi.Client
+	var revocationKey crypto.PrivateKey
+	if c.Key != nil {
+		revocationKey = c.Key.PrivateKey
+		client = &acmeapi.Client{
+			DirectoryURL: endpoint.DirectoryURL,
+		}
+	}
+
+	if revocationKey == nil {
+		acct, err := s.getAccountByProviderString(endpoint.DirectoryURL)
+		if err != nil {
+			return err
+		}
+
+		client = s.getAccountClient(acct)
+
+		// If we have no private key for the certificate, obtain all necessary
+		// authorizations.
+		err = s.getRevocationAuthorizations(acct, crt)
+		if err != nil {
+			return err
+		}
+	}
+
+	return client.Revoke(endCertificate, revocationKey, context.TODO())
+}
+
+func (s *Store) getRevocationAuthorizations(acct *Account, crt *x509.Certificate) error {
+	log.Debugf("obtaining authorizations to facilitate revocation")
+	return s.obtainNecessaryAuthorizations(crt.DNSNames, acct, &s.defaultTarget.Request.Challenge)
+}
+
 func (s *Store) findBestCertificateSatisfying(t *Target) (*Certificate, error) {
 	var bestCert *Certificate
 
@@ -1275,6 +1431,11 @@ func (s *Store) findBestCertificateSatisfying(t *Target) (*Certificate, error) {
 }
 
 func (s *Store) doesCertSatisfy(c *Certificate, t *Target) bool {
+	if c.Revoked {
+		log.Debugf("certificate %v cannot satisfy %v because it is revoked", c, t)
+		return false
+	}
+
 	if len(c.Certificates) == 0 {
 		log.Debugf("certificate %v cannot satisfy %v because it has no actual certificates", c, t)
 		return false
@@ -1362,8 +1523,12 @@ func (s *Store) certBetterThan(a *Certificate, b *Certificate) (bool, error) {
 	return isAfter, nil
 }
 
+func (s *Store) getGenericClient() *acmeapi.Client {
+	return &acmeapi.Client{}
+}
+
 func (s *Store) getAccountClient(a *Account) *acmeapi.Client {
-	cl := &acmeapi.Client{}
+	cl := s.getGenericClient()
 	cl.AccountInfo.AccountKey = a.PrivateKey
 	cl.DirectoryURL = a.BaseURL
 	return cl
@@ -1491,6 +1656,24 @@ func signatureAlgorithmFromKey(pk crypto.PrivateKey) (x509.SignatureAlgorithm, e
 	}
 }
 
+func (s *Store) obtainNecessaryAuthorizations(names []string, account *Account, ccfg *TargetRequestChallenge) error {
+	authsNeeded, err := s.determineNecessaryAuthorizations(names, account)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range authsNeeded {
+		log.Debugf("trying to obtain authorization for %#v", name)
+		err := s.obtainAuthorization(name, account, ccfg)
+		if err != nil {
+			log.Errore(err, "could not obtain authorization for ", name)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Store) requestCertificateForTarget(t *Target) error {
 	//return fmt.Errorf("not requesting certificate")
 	cl := s.getAccountClient(t.Request.Account)
@@ -1500,18 +1683,9 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 		return err
 	}
 
-	authsNeeded, err := s.determineNecessaryAuthorizations(t)
+	err = s.obtainNecessaryAuthorizations(t.Request.Names, t.Request.Account, &t.Request.Challenge)
 	if err != nil {
 		return err
-	}
-
-	for _, name := range authsNeeded {
-		log.Debugf("trying to obtain authorization for %#v", name)
-		err := s.obtainAuthorization(name, t.Request.Account, &t.Request.Challenge)
-		if err != nil {
-			log.Errore(err, "could not obtain authorization for ", name)
-			return err
-		}
 	}
 
 	csr, err := s.createCSR(t)
@@ -1551,13 +1725,12 @@ func (s *Store) requestCertificateForTarget(t *Target) error {
 	return nil
 }
 
-func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
+func (s *Store) determineNecessaryAuthorizations(names []string, a *Account) ([]string, error) {
 	needed := map[string]struct{}{}
-	for _, n := range t.Request.Names {
+	for _, n := range names {
 		needed[n] = struct{}{}
 	}
 
-	a := t.Request.Account
 	for _, auth := range a.Authorizations {
 		if auth.IsValid() {
 			delete(needed, auth.Name)
@@ -1566,7 +1739,7 @@ func (s *Store) determineNecessaryAuthorizations(t *Target) ([]string, error) {
 
 	// preserve the order of the names in case the user considers that important
 	var neededs []string
-	for _, name := range t.Request.Names {
+	for _, name := range names {
 		if _, ok := needed[name]; ok {
 			neededs = append(neededs, name)
 		}

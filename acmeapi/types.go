@@ -4,8 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	denet "github.com/hlandau/degoutils/net"
+	"github.com/square/go-jose"
 	"time"
 )
+
+// Represents an account registration.
+type Registration struct {
+	URI      string `json:"-"`        // The URI of the registration.
+	Resource string `json:"resource"` // must be "new-reg" or "reg"
+
+	Key *jose.JsonWebKey `json:"key,omitempty"` // Account Key
+
+	ContactURIs  []string `json:"contact,omitempty"`   // Contact URIs
+	AgreementURI string   `json:"agreement,omitempty"` // ToS URI
+
+	AuthorizationsURL string `json:"authorizations,omitempty"`
+	CertificatesURL   string `json:"certificates,omitempty"`
+
+	// This is not actually part of the registration, but it
+	// is provided when loading a registration for convenience
+	// as it is returned in the HTTP headers. It is the URI
+	// of the current agreement required.
+	LatestAgreementURI string `json:"-"`
+}
 
 // Represents a Challenge which is part of an Authorization.
 type Challenge struct {

@@ -26,7 +26,7 @@ func TestAPI(t *testing.T) {
 		"mailto:nobody@localhost",
 	}
 
-	err = cl.UpsertRegistration(context.TODO())
+	err = cl.AgreeRegistration(context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't upsert registration: %v", err)
 	}

@@ -42,6 +42,27 @@ func Bytes(rs ReadStream, err error) ([]byte, error) {
 	return b, nil
 }
 
+// Create an empty file, overwriting it if it exists.
+func CreateEmpty(c *Collection, name string) error {
+	f, err := c.Create(name)
+	if err != nil {
+		return err
+	}
+
+	f.Close()
+	return nil
+}
+
+// Determine whether a file exists.
+func Exists(c *Collection, name string) bool {
+	f, err := c.Open(name)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	return true
+}
+
 // Write bytes to a file with the given name in the given collection.
 //
 // The byte arrays are concatenated in the given order.

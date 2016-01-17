@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/acmeapi/acmeendpoints"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/storage"
@@ -597,6 +598,28 @@ LISTEN: Directly listen on port 80 or 443, whichever is available, in order to c
 }
 
 func promptServerURL() string {
+	var options []interaction.Option
+	acmeendpoints.Visit(func(e *acmeendpoints.Endpoint) error {
+		t := e.Title
+		switch e.Code {
+		case "LetsEncryptLive":
+			t += " - I want live certificates"
+		case "LetsEncryptStaging":
+			t += " - I want test certificates"
+		}
+
+		options = append(options, interaction.Option{
+			Title: t,
+			Value: e.DirectoryURL,
+		})
+		return nil
+	})
+
+	options = append(options, interaction.Option{
+		Title: "Enter an ACME server URL",
+		Value: "url",
+	})
+
 	r, err := interaction.Auto.Prompt(&interaction.Challenge{
 		Title: "Select ACME Server",
 		Body: `Please choose an ACME server from which to request certificates. Your principal choices are the Let's Encrypt Live Server, and the Let's Encrypt Staging Server.
@@ -605,21 +628,8 @@ You can use the Let's Encrypt Live Server to get real certificates.
 
 The Let's Encrypt Staging Server does not issue publically trusted certificates. It is useful for development purposes, as it has far higher rate limits than the live server.`,
 		ResponseType: interaction.RTSelect,
-		Options: []interaction.Option{
-			{
-				Title: "Let's Encrypt Live Server - I want live certificates",
-				Value: acmeapi.LELiveURL,
-			},
-			{
-				Title: "Let's Encrypt Staging Server - I want test certificates",
-				Value: acmeapi.LEStagingURL,
-			},
-			{
-				Title: "Enter an ACME server URL",
-				Value: "url",
-			},
-		},
-		UniqueID: "acmetool-quickstart-choose-server",
+		Options:      options,
+		UniqueID:     "acmetool-quickstart-choose-server",
 	})
 	log.Fatale(err, "interaction")
 

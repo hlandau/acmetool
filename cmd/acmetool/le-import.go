@@ -4,7 +4,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/acmeutils"
+	"github.com/hlandau/acme/acmeapi/acmeendpoints"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"github.com/hlandau/acme/storage"
 	"github.com/square/go-jose"
 	"golang.org/x/net/context"
@@ -126,37 +127,15 @@ func determineLECertificateURL(certFilename string) (string, error) {
 		return "", err
 	}
 
-	sn := fmt.Sprintf("%036x", c.SerialNumber)
-	for u := range knownProviderURLs {
-		certURL, err := convertBoulderProviderURLToCertificateURL(u, sn)
-		if err != nil {
-			continue
-		}
+	// Don't need directory URL, direct certificate URL load only.
+	cl := acmeapi.Client{}
 
-		cl := acmeapi.Client{
-			DirectoryURL: u,
-		}
-
-		crt := acmeapi.Certificate{
-			URI: certURL,
-		}
-		err = cl.LoadCertificate(&crt, context.TODO())
-		if err != nil {
-			continue
-		}
-
-		return certURL, nil
+	_, certURL, err := acmeendpoints.CertificateToEndpointURL(&cl, c, context.TODO())
+	if err != nil {
+		return "", err
 	}
 
-	return "", fmt.Errorf("cannot find certificate URL for %#v (serial %#v)", certFilename, sn)
-}
-
-func convertBoulderProviderURLToCertificateURL(providerURL, sn string) (string, error) {
-	if !strings.HasSuffix(providerURL, "/directory") {
-		return "", fmt.Errorf("does not appear to be a boulder directory URL")
-	}
-
-	return providerURL[0:len(providerURL)-9] + "acme/cert/" + sn, nil
+	return certURL, nil
 }
 
 func getProviderURLFromAccountName(accountName string) (string, error) {

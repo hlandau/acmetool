@@ -219,6 +219,12 @@ func determineCertificateID(url string) string {
 	return strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 }
 
+var re_certID = regexp.MustCompile(`^[a-z0-9]{52}$`)
+
+func IsWellFormattedCertificateID(certificateID string) bool {
+	return re_certID.MatchString(certificateID)
+}
+
 var re_hostname = regexp.MustCompilePOSIX(`^([a-z0-9_-]+\.)*[a-z0-9_-]+$`)
 
 func validHostname(name string) bool {

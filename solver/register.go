@@ -19,7 +19,7 @@ func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Inter
 	email := ""
 
 	for {
-		err := cl.UpsertRegistration(ctx)
+		err := cl.AgreeRegistration(ctx)
 		if err != nil {
 			if e, ok := err.(*acmeapi.AgreementError); ok {
 				res, err := interactor.Prompt(&interaction.Challenge{

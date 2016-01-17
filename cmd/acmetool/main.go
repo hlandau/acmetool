@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	//"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	//"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
@@ -73,6 +75,17 @@ var (
 
 	importLECmd = kingpin.Command("import-le", "Import a Let's Encrypt client state directory")
 	importLEArg = importLECmd.Arg("le-state-path", "Path to Let's Encrypt state directory").Default("/etc/letsencrypt").ExistingDir()
+
+	// Arguments we should probably support for revocation:
+	//   A certificate ID
+	//   A key ID
+	//   A path to a PEM-encoded certificate - TODO
+	//   A path to a PEM-encoded private key (revoke all known certificates with that key) - TODO
+	//   A path to a certificate directory - TODO
+	//   A path to a key directory - TODO
+	//   A certificate URL - TODO
+	revokeCmd = kingpin.Command("revoke", "Revoke a certificate")
+	revokeArg = revokeCmd.Arg("certificate-id-or-path", "Certificate ID to revoke").String()
 )
 
 const reconcileHelp = `Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets.
@@ -130,6 +143,8 @@ func main() {
 	case "import-le":
 		cmdImportLE()
 		cmdReconcile()
+	case "revoke":
+		cmdRevoke()
 	}
 }
 
@@ -283,6 +298,46 @@ func parseResponse(v interface{}) (*interaction.Response, error) {
 	default:
 		return nil, fmt.Errorf("unknown response value")
 	}
+}
+
+func cmdRevoke() {
+	certSpec := *revokeArg
+	f, _ := os.Open(certSpec)
+	//var fi os.FileInfo
+	if f != nil {
+		defer f.Close()
+		//var err error
+		//fi, err = f.Stat()
+		//log.Panice(err)
+	}
+	//u, _ := url.Parse(certSpec)
+
+	switch {
+	//case f != nil && !fi.IsDir(): // is a file path
+
+	//case f != nil && fi.IsDir(): // is a directory path
+	//  f, _ = os.Open(filepath.Join(certSpec, "cert"))
+
+	//case u != nil && u.IsAbs() && acmeapi.ValidURL(certSpec): // is an URL
+
+	case storage.IsWellFormattedCertificateID(certSpec):
+		// key or certificate ID
+		revokeByCertificateID(certSpec)
+
+	default:
+		log.Fatalf("don't understand argument, must be a certificate or key ID: %q", certSpec)
+	}
+}
+
+func revokeByCertificateID(certID string) {
+	s, err := storage.New(*stateFlag)
+	log.Fatale(err, "storage")
+
+	err = s.RevokeByCertificateOrKeyID(certID)
+	log.Fatale(err, "revoke")
+
+	err = s.Reconcile()
+	log.Fatale(err, "reconcile")
 }
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

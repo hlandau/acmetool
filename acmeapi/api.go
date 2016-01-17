@@ -52,33 +52,12 @@ import (
 // Log site.
 var log, Log = xlog.NewQuiet("acme.api")
 
-const (
-	// Let's Encrypt Live ACME Directory URL.
-	LELiveURL = "https://acme-v01.api.letsencrypt.org/directory"
-	// Let's Encrypt Staging ACME Directory URL.
-	LEStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
-)
-
-// Default provider to use. Currently defaults to the Let's Encrypt staging server.
-var DefaultDirectoryURL = LELiveURL
-
 type directoryInfo struct {
 	NewReg     string `json:"new-reg"`
 	RecoverReg string `json:"recover-reg"`
 	NewAuthz   string `json:"new-authz"`
 	NewCert    string `json:"new-cert"`
 	RevokeCert string `json:"revoke-cert"`
-}
-
-type regInfo struct {
-	Resource string `json:"resource"` // must be "new-reg" or "reg"
-
-	Contact []string         `json:"contact,omitempty"`
-	Key     *jose.JsonWebKey `json:"key,omitempty"`
-
-	AgreementURI      string `json:"agreement,omitempty"`
-	AuthorizationsURI string `json:"authorizations,omitempty"`
-	CertificatesURI   string `json:"certificates,omitempty"`
 }
 
 type revokeReq struct {
@@ -101,7 +80,7 @@ var TestingAllowHTTP = false
 
 // Client for making ACME API calls.
 //
-// You must set at least AccountKey.
+// You must set at least AccountKey and DirectoryURL.
 type Client struct {
 	AccountInfo struct {
 		// Account private key. Required.
@@ -119,7 +98,8 @@ type Client struct {
 		ContactURIs []string
 	}
 
-	// The ACME server directory URL. Defaults to DefaultDirectoryURL.
+	// The ACME server directory URL. Required. (However, you can omit this if
+	// you only use the client to load existing resources at known URLs.)
 	DirectoryURL string
 
 	// Uses http.DefaultClient if nil.
@@ -248,7 +228,7 @@ func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
 	}
 
 	if c.DirectoryURL == "" {
-		c.DirectoryURL = DefaultDirectoryURL
+		return nil, fmt.Errorf("must specify a directory URL")
 	}
 
 	_, err := c.doReq("GET", c.DirectoryURL, nil, &c.dir, ctx)
@@ -277,12 +257,12 @@ func (c *Client) getRegistrationURI(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	reqInfo := regInfo{
-		Resource: "new-reg",
-		Contact:  c.AccountInfo.ContactURIs,
+	reqInfo := Registration{
+		Resource:    "new-reg",
+		ContactURIs: c.AccountInfo.ContactURIs,
 	}
 
-	var resInfo *regInfo
+	var resInfo *Registration
 	res, err := c.doReq("POST", di.NewReg, &reqInfo, &resInfo, ctx)
 	if res == nil {
 		return "", err
@@ -304,42 +284,68 @@ func (c *Client) getRegistrationURI(ctx context.Context) (string, error) {
 	return c.AccountInfo.RegistrationURI, nil
 }
 
-// Registers a new account or updates an existing account.
+// Loads an existing registration. If reg.URI is set, then that registration is
+// updated, and the operation fails if the registration does not exist.
+// Otherwise, the registration is created if it does not exist or updated if it
+// does and the URI is returned.
 //
-// The ContactURIs specified will be set.
-//
-// If a new agreement is required and it is set in AgreementURIs, it will be
-// agreed to automatically. Otherwise AgreementError will be returned.
-func (c *Client) UpsertRegistration(ctx context.Context) error {
-	regURI, err := c.getRegistrationURI(ctx)
-	if err != nil {
-		return err
+// Note that this operation requires an account key, since the registration is
+// private data requiring authentication to access.
+func (c *Client) UpsertRegistration(reg *Registration, ctx context.Context) error {
+	reg.Resource = "reg"
+
+	if reg.URI == "" {
+		var err error
+		reg.URI, err = c.getRegistrationURI(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
-	reqInfo := regInfo{
-		Resource: "reg",
-		Contact:  c.AccountInfo.ContactURIs,
-	}
-
-	var resInfo *regInfo
-	res, err := c.doReq("POST", regURI, &reqInfo, &resInfo, ctx)
+	res, err := c.doReq("POST", reg.URI, reg, reg, ctx)
 	if err != nil {
 		return err
 	}
 
 	lg := link.ParseResponse(res)
 	if tosLink, ok := lg["terms-of-service"]; ok {
-		if resInfo.AgreementURI != tosLink.URI {
-			_, ok := c.AccountInfo.AgreementURIs[tosLink.URI]
-			if !ok {
-				return &AgreementError{tosLink.URI}
-			}
+		reg.LatestAgreementURI = tosLink.URI
+	}
 
-			reqInfo.AgreementURI = tosLink.URI
-			_, err = c.doReq("POST", regURI, &reqInfo, &resInfo, ctx)
-			if err != nil {
-				return err
-			}
+	return nil
+}
+
+// This is a higher-level account registration method built on
+// UpsertRegistration. It does two things that UpsertRegistration
+// does not:
+//
+// Firstly, it automatically sets the ContactURIs specified in the Client
+// structure.  If no ContactURIs are specified, the contact URIs are not
+// changed, so no existing contact URIs on the account are erased.
+//
+// Secondly, if a new agreement is required and its URI is set in
+// AgreementURIs, it will be agreed to automatically. Otherwise AgreementError
+// will be returned.
+func (c *Client) AgreeRegistration(ctx context.Context) error {
+	reg := Registration{
+		ContactURIs: c.AccountInfo.ContactURIs,
+	}
+
+	err := c.UpsertRegistration(&reg, ctx)
+	if err != nil {
+		return err
+	}
+
+	if reg.LatestAgreementURI != reg.AgreementURI {
+		_, ok := c.AccountInfo.AgreementURIs[reg.LatestAgreementURI]
+		if !ok {
+			return &AgreementError{reg.LatestAgreementURI}
+		}
+
+		reg.AgreementURI = reg.LatestAgreementURI
+		err = c.UpsertRegistration(&reg, ctx)
+		if err != nil {
+			return err
 		}
 	}
 
