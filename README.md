@@ -1,8 +1,24 @@
 # <div align="center"><img src="https://hlandau.github.io/acme/img/acmetool-logo-black.png" alt="acmetool" /></div>
 
-<p align="center"><a href="https://travis-ci.org/hlandau/acme"><img src="https://travis-ci.org/hlandau/acme.svg?branch=master" alt="Build Status" /></a> <a href="http://issuestats.com/github/hlandau/acme"><img src="http://issuestats.com/github/hlandau/acme/badge/issue?style=flat" alt="Issue Stats" /></a><br/>
-<a href="https://github.com/hlandau/acme/releases"><img src="https://img.shields.io/github/downloads/hlandau/acme/total.svg" alt="[download count]" /></a> <a href="https://github.com/hlandau/acme/releases"><img src="https://img.shields.io/github/release/hlandau/acme.svg" alt="[version]" /></a>
-</p>
+<p align="center">  <a href="http://issuestats.com/github/hlandau/acme"><img
+src="http://Issuestats.com/github/hlandau/acme/badge/issue?style=flat"
+alt="[issue stats]" /></a> <a
+href="https://Webchat.freenode.net/?channels=%23acmetool"><img
+src="https://img.shields.io/badge/webchat-freenode%20%23acmetool-blue.svg"
+alt="[webchat: freenode #acmetool]" /></a> <br/> <a
+href="https://Github.com/hlandau/acme/releases"><img
+src="https://img.shields.io/github/downloads/hlandau/acme/total.svg"
+alt="[download count]" /></a> <a
+href="https://Github.com/hlandau/acme/releases"><img
+src="https://img.shields.io/github/release/hlandau/acme.svg" alt="[version]"
+/></a> <a
+href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages"><img
+src="https://img.shields.io/badge/ppa-debian%2Fubuntu-lightgrey.svg" alt="[ppa
+debian/ubuntu]"/></a><br/> <a href="https://Travis-ci.org/hlandau/acme"><img
+src="https://travis-ci.org/hlandau/acme.svg?branch=master" alt="Build Status"
+/></a> <a href="http://Issuestats.com/github/hlandau/acme"><img
+src="http://issuestats.com/github/hlandau/acme/badge/pr?style=flat" alt="[pull
+request stats]" /></a></p>
 
 acmetool is an easy-to-use command line tool for automatically acquiring
 certificates from ACME servers (such as Let's Encrypt). Designed to flexibly
@@ -221,6 +237,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>SAN support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>ECC support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <!--<tr><td>OCSP Must Staple support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>-->
+<tr><td>Revocation support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td>State management</td><td>Yes†</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Quickstart wizard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
