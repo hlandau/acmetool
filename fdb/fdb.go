@@ -380,6 +380,7 @@ func (c *Collection) Delete(name string) error {
 	return os.RemoveAll(filepath.Join(c.db.path, c.name, name))
 }
 
+// Returned when calling Open() on a symlink. (To open symlinks, use Openl.)
 var ErrIsLink = fmt.Errorf("cannot open symlink")
 
 // Open an existing object in the given collection with the given name. The

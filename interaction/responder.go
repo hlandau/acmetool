@@ -27,6 +27,7 @@ func (responder) Prompt(c *Challenge) (*Response, error) {
 	return res, nil
 }
 
+// Configures a canned response for the given interaction UniqueID.
 func SetResponse(uniqueID string, res *Response) {
 	responses[uniqueID] = res
 }

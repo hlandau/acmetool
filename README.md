@@ -197,7 +197,7 @@ running `acmetool` (possibly with `--xlog.severity=debug` for verbose logging).
 
 ## Library
 
-The [client library which these utilities use](https://github.com/hlandau/acme/tree/master/acmeapi) can be used independently by any Go code. [README and source code.](https://github.com/hlandau/acme/tree/master/acmeapi). [Godoc.](https://godoc.org/github.com/hlandau/acme/acmeapi)
+The [client library which these utilities use](https://github.com/hlandau/acme/tree/master/acmeapi) can be used independently by any Go code. [README and source code.](https://github.com/hlandau/acme/tree/master/acmeapi) [Godoc.](https://godoc.org/github.com/hlandau/acme/acmeapi)
 
 ## Comparison with...
 

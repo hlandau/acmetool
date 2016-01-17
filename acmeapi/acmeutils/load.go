@@ -1,3 +1,4 @@
+// Package acmeutils provides miscellaneous ACME-related utility functions.
 package acmeutils
 
 import (

@@ -15,7 +15,8 @@ import (
 
 var log, Log = xlog.New("acme.endpoints")
 
-var ErrNotFound = errors.New("no corresponding provider found")
+// Returned when no matching endpoint can be found.
+var ErrNotFound = errors.New("no corresponding endpoint found")
 
 // Finds an endpoint with the given directory URL. If no such endpoint is
 // found, returns ErrNotFound.
@@ -168,6 +169,7 @@ func CertificateToEndpointURL(cl *acmeapi.Client, cert *x509.Certificate, ctx co
 	return nil, "", ErrNotFound
 }
 
+// Given a certificate, tries to determine the definite endpoint.
 func CertificateToEndpoint(cl *acmeapi.Client, cert *x509.Certificate, ctx context.Context) (*Endpoint, error) {
 	e, _, err := CertificateToEndpointURL(cl, cert, ctx)
 	return e, err

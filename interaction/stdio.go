@@ -13,6 +13,7 @@ import (
 
 type stdioInteractor struct{}
 
+// Interactor which uses un-fancy stdio prompts.
 var Stdio Interactor = stdioInteractor{}
 
 type stdioStatusSink struct {

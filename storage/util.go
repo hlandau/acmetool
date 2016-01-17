@@ -221,6 +221,8 @@ func determineCertificateID(url string) string {
 
 var re_certID = regexp.MustCompile(`^[a-z0-9]{52}$`)
 
+// Returns true iff the given string could (possibly) be a valid certificate
+// (or key) ID.
 func IsWellFormattedCertificateID(certificateID string) bool {
 	return re_certID.MatchString(certificateID)
 }

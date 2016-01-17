@@ -90,12 +90,12 @@ type Identifier struct {
 type Status string
 
 const (
-	StatusUnknown    Status = "unknown"
-	StatusPending           = "pending"
-	StatusProcessing        = "processing"
-	StatusValid             = "valid"
-	StatusInvalid           = "invalid"
-	StatusRevoked           = "revoked"
+	StatusUnknown    Status = "unknown"    // Non-final state...
+	StatusPending           = "pending"    // Non-final state.
+	StatusProcessing        = "processing" // Non-final state.
+	StatusValid             = "valid"      // Final state.
+	StatusInvalid           = "invalid"    // Final state.
+	StatusRevoked           = "revoked"    // Final state.
 )
 
 // Returns true iff the status is a valid status.
@@ -118,6 +118,7 @@ func (s Status) Final() bool {
 	}
 }
 
+// Implements encoding/json.Unmarshaler.
 func (s *Status) UnmarshalJSON(data []byte) error {
 	var ss string
 	err := json.Unmarshal(data, &ss)

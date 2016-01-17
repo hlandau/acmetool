@@ -1,3 +1,4 @@
+// acmetool, an automated certificate acquisition tool for ACME servers.
 package main
 
 import (

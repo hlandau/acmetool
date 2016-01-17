@@ -80,6 +80,7 @@ type Authorization struct {
 	Expires time.Time
 }
 
+// Returns true iff the authorization is unexpired.
 func (a *Authorization) IsValid() bool {
 	return time.Now().Before(a.Expires)
 }
@@ -236,6 +237,7 @@ func (c *Certificate) String() string {
 	return fmt.Sprintf("Certificate(%v)", c.ID())
 }
 
+// Returns the certificate ID.
 func (c *Certificate) ID() string {
 	return determineCertificateID(c.URL)
 }
@@ -601,7 +603,7 @@ func (s *Store) validateCert(certID string, c *fdb.Collection) error {
 		crt.Key = s.keys[keyID]
 
 		if crt.Key != nil {
-			err := c.WriteLink("privkey", fdb.Link{"keys/" + keyID + "/privkey"})
+			err := c.WriteLink("privkey", fdb.Link{Target: "keys/" + keyID + "/privkey"})
 			if err != nil {
 				return err
 			}
@@ -628,6 +630,8 @@ func (s *Store) SetDefaultProvider(providerURL string) error {
 	return s.SaveDefaultTarget()
 }
 
+// Serializes the default target to disk. Call after changing any default
+// target settings.
 func (s *Store) SaveDefaultTarget() error {
 	// Some basic validation.
 	err := s.defaultTarget.Validate()
@@ -801,6 +805,8 @@ func (s *Store) disjoinTargets() error {
 	return nil
 }
 
+// Ensure that a registration exists and is ready to use for the default
+// provider.
 func (s *Store) EnsureRegistration() error {
 	a, err := s.getAccountByProviderString("")
 	if err != nil {
@@ -1080,7 +1086,7 @@ func (s *Store) StatusString() (string, error) {
 	return buf.String(), nil
 }
 
-// Runs the reconcilation operation and reloads state.
+// Runs the reconciliation operation and reloads state.
 func (s *Store) Reconcile() error {
 	err := s.reconcile()
 
@@ -1104,11 +1110,13 @@ func (tse *TargetSpecificError) Error() string {
 	return fmt.Sprintf("error satisfying target %v: %v", tse.Target, tse.Err)
 }
 
+// Used to return multiple errors, for example when several targets cannot be
+// reconciled. This prevents one failing target from blocking others.
 type MultiError []error
 
-func (me MultiError) Error() string {
+func (merr MultiError) Error() string {
 	s := ""
-	for _, e := range me {
+	for _, e := range merr {
 		if s != "" {
 			s += "; \n"
 		}
@@ -1748,6 +1756,8 @@ func (s *Store) determineNecessaryAuthorizations(names []string, a *Account) ([]
 	return neededs, nil
 }
 
+// Update targets to remove any mention of hostname from all targets. The
+// targets are resaved to disk.
 func (s *Store) RemoveTargetHostname(hostname string) error {
 	for fn, tgt := range s.targets {
 		if !containsName(tgt.Satisfy.Names, hostname) {
@@ -1785,6 +1795,7 @@ func removeStringFromList(ss []string, s string) []string {
 	return r
 }
 
+// Add a new target, saving it to disk.
 func (s *Store) AddTarget(tgt Target) error {
 	if len(tgt.Satisfy.Names) == 0 {
 		return nil
