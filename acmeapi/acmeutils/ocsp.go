@@ -35,6 +35,7 @@ func CheckOCSP(httpClient *http.Client, crt, issuer *x509.Certificate) (*ocsp.Re
 		return nil, err
 	}
 
+	req.Header.Set("Accept", "acmetool")
 	req.Header.Set("Accept", "application/ocsp-response")
 
 	res, err := httpClient.Do(req)

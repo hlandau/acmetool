@@ -53,8 +53,38 @@ func TestFDB(t *testing.T) {
 		panic(c.OSPath("xyz"))
 	}
 
-	b := []byte("Test file")
+	b := []byte("\r\n\t  42 \n\n")
 	err = WriteBytes(c, "xyz", b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n, err := Uint(c, "xyz", 31)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 42 {
+		t.Fatalf("expected 42, got %v", n)
+	}
+
+	if !Exists(c, "xyz") {
+		t.Fatalf("expected xyz to exist")
+	}
+
+	if Exists(c, "xyz1") {
+		t.Fatalf("did not expect xyz1 to exist")
+	}
+
+	err = CreateEmpty(c, "xyz1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !Exists(c, "xyz1") {
+		t.Fatalf("expected xyz1 to exist")
+	}
+
+	err = c.Delete("xyz1")
 	if err != nil {
 		t.Fatal(err)
 	}

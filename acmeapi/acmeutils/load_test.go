@@ -307,6 +307,35 @@ RLeWOCS9ROFhbef4WqWpa82vGd0OxoUBirPRWRFyt0pgH9qAmwqD2YN8KFCyPztD
 xtiaTxLKSHYuEVxbJZJmDNkjDEtGk7hVzOQ0+GO+Tvknkp/kkHsn
 -----END RSA PRIVATE KEY-----`
 
+const testKeyPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDCkGp9pnGQCFqr
+uyef+p/ikOdtflZbCRHt9fPYSyX8028aQ8WoPw4iaNsXJeI2XhAJKxUeCWcbOvd5
+YfdmJ20n1sGdCL4xFDTmCRrPS+fcAA07u8BKDNsQFlklIfOc4isKWz/yRO4tQ+Pj
+JZZf8RHH286W2HZRijQ++sABsmqSeKM3V69gY7aeKxIjBo8jn4G7q3sdtBcr9QON
+FMHWincqZ5rRMlyHT/vv3Y+Mlhl967M8jtXqxs7AiJ4PRA4T63i93O7mVZ2Sa65V
+D0u5jycz341GYQlivQUJ4gKEh4mYgdJQAdk1DVOIGqhoI+Ew79Sj2qaj9bKXXCFh
+qgPuNI+9AgMBAAECggEAfr1aUT1SLpPylHmWx1SYQBtKVf39PNH8tvkHffb96OLG
+NeK95+ojR/Dr/vkzkVzWr1I8MFPJsWhI+u4BHa9DILd5adTfJ9NU3iBCMZTtlVcH
+R8j26oXTUXhtW43xRlnh1Z45WpTiXeQil73NZfQANCOQQJ0C/fy8KeZnmvNhDsWY
++hmx7x8LtOokiq8w3aWQFB3/t5x9IaIOzFKN1X9raAT4C5LV3TrJ8uK7xS5Fh7uV
+7VUTHzg0cEBC/vUgbWRz71spao6Vc9e9LuhZCL3vrARPFuoRtku1CUeFfs0P9K+h
+/478jBt8dx/PWqEwZnzA/gJ64tAZelWpKlw9ZNH9tQKBgQDLrN06a+mP9Kzqjagd
+apd6To8pZWacTXc1njkatZoFPy0b3OclGgaoDcKPkF50lLMIR+tVnhiLb0+tGXsd
+sdgRwiIlnWvB2Y+aVEr9VaCTxGkEDNP+KVL3SNNcE+UD9a/MyDC07SEkRuem8fkQ
+HZa+LI1aC9GHB3M9aolUTL9LcwKBgQD0jFbZVTVGfHWZy52XRjrylwtTbmlcDtWw
+DkizIKTVrmvB5yBEMXd1UnWUkanz5d/j9ah4OGqTW11MCnRTL4Z8lxOSsAlk7WN5
+igmPofLhBPnTE80xBkdnS46Qhst8cdxckdr2pwQjMqlw+KrlwPQ9iolA7d/eDDlX
+9osoJMNMDwKBgBhCaL9SpyksXYQ6hzGpxo0c2lR17XjkiTRruiWCR+wkED1nXGjA
+5tYRfYEYEwgTxhdQaalzAT1qbrUReeaZjkDfPK36SCF4xm/9Zkkyb8Pp+xAubvmw
+9l7Z38Lx469LDjt4BMUoEXB+uYza+W1/+LqCF/wHuFc6/fDsxZqy4X4dAoGASLFC
+y725ZWdvqbTN9n6o3R2q/zTt2rCKMpg8YgrNFLuRSoVCoSK3KMfHLc+S3m4xfFi0
+qG/UtlLNS+I7q9KPvo9GAS+Uy0yJakJvDyQLx3msLWNQdkcwiHL8QNfguvA5mca9
+eN4yq6fOmEdCvaL6tyRsIkHTbvThQtWFjfxHlV8CgYEAhKp5OHbyIX1KKsrXzGmx
+bpzqP7Hqp+OzxGvqk8Cc7W+i9QIfq+XFXghEt5Y4JL1E4WFt5/hapalrza8Z3Q7G
+hQGKs9FZEXK3SmAf2oCbCoPZg3woULI/O0PG2JpPEspIdi4RXFslkmYM2SMMS0aT
+uFXM5DT4Y75O+SeSn+SQeyc=
+-----END PRIVATE KEY-----`
+
 var testKeyN, _ = big.NewInt(0).SetString("00c2906a7da67190085aabbb279ffa9fe290e76d7e565b0911edf5f3d84b25fcd36f1a43c5a83f0e2268db1725e2365e10092b151e09671b3af77961f766276d27d6c19d08be311434e6091acf4be7dc000d3bbbc04a0cdb1016592521f39ce22b0a5b3ff244ee2d43e3e325965ff111c7dbce96d876518a343efac001b26a9278a33757af6063b69e2b1223068f239f81bbab7b1db4172bf5038d14c1d68a772a679ad1325c874ffbefdd8f8c96197debb33c8ed5eac6cec0889e0f440e13eb78bddceee6559d926bae550f4bb98f2733df8d46610962bd0509e2028487899881d25001d9350d53881aa86823e130efd4a3daa6a3f5b2975c2161aa03ee348fbd", 16)
 
 var testKeyD, _ = big.NewInt(0).SetString("7ebd5a513d522e93f2947996c75498401b4a55fdfd3cd1fcb6f9077df6fde8e2c635e2bde7ea2347f0ebfef933915cd6af523c3053c9b16848faee011daf4320b77969d4df27d354de20423194ed95570747c8f6ea85d351786d5b8df14659e1d59e395a94e25de42297bdcd65f400342390409d02fdfcbc29e6679af3610ec598fa19b1ef1f0bb4ea248aaf30dda590141dffb79c7d21a20ecc528dd57f6b6804f80b92d5dd3ac9f2e2bbc52e4587bb95ed55131f3834704042fef5206d6473ef5b296a8e9573d7bd2ee85908bdefac044f16ea11b64bb50947857ecd0ff4afa1ff8efc8c1b7c771fcf5aa130667cc0fe027ae2d0197a55a92a5c3d64d1fdb5", 16)
@@ -345,6 +374,12 @@ AwEHoUQDQgAEkDk1q0XGYa6flpAaBVHEI5UStWvdewAHpIbN+PpOlKNgeK1Xu0nw
 Pv7jwLK+95tYBYbVu1gUnQ+OjWpxyuITaA==
 -----END EC PRIVATE KEY-----`
 
+const testECKeyPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAFV/cmZjoWzQylDB
+eVQLDRPbsE76GOOv3e/+ctP0+tmhRANCAASQOTWrRcZhrp+WkBoFUcQjlRK1a917
+AAekhs34+k6Uo2B4rVe7SfA+/uPAsr73m1gFhtW7WBSdD46NanHK4hNo
+-----END PRIVATE KEY-----`
+
 var testECKeyX, _ = big.NewInt(0).SetString("903935ab45c661ae9f96901a0551c4239512b56bdd7b0007a486cdf8fa4e94a3", 16)
 var testECKeyY, _ = big.NewInt(0).SetString("6078ad57bb49f03efee3c0b2bef79b580586d5bb58149d0f8e8d6a71cae21368", 16)
 var testECKeyD, _ = big.NewInt(0).SetString("557f726663a16cd0ca50c179540b0d13dbb04efa18e3afddeffe72d3f4fad9", 16)
@@ -368,6 +403,15 @@ func TestLoadKey(t *testing.T) {
 		t.Fatalf("key mismatch: %#v %#v", testKeyValue, pk)
 	}
 
+	pk2, err := LoadPrivateKey([]byte(testKeyPKCS8))
+	if err != nil {
+		t.Fatalf("failed to load private key: %v", err)
+	}
+
+	if !reflect.DeepEqual(testKeyValue, pk2) {
+		t.Fatalf("key mismatch: %#v %#v", testKeyValue, pk2)
+	}
+
 	epk, err := LoadPrivateKey([]byte(testECKey))
 	if err != nil {
 		t.Fatalf("failed to load EC private key: %v", err)
@@ -375,6 +419,15 @@ func TestLoadKey(t *testing.T) {
 
 	if !reflect.DeepEqual(epk, testECKeyValue) {
 		t.Fatalf("EC key mismatch: %#v %#v", epk, testECKeyValue)
+	}
+
+	epk2, err := LoadPrivateKey([]byte(testECKeyPKCS8))
+	if err != nil {
+		t.Fatalf("failed to load EC private key: %v", err)
+	}
+
+	if !reflect.DeepEqual(epk2, testECKeyValue) {
+		t.Fatalf("EC key mismatch: %#v %#v", epk2, testECKeyValue)
 	}
 }
 

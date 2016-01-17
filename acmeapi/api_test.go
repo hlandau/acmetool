@@ -1,20 +1,16 @@
 package acmeapi
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"golang.org/x/net/context"
 	"testing"
 )
 
-func TestAPI(t *testing.T) {
-	pk, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatalf("couldn't generate key: %v", err)
-	}
-
-	TestingAllowHTTP = true
-
+func testAPIWithKey(t *testing.T, pk crypto.PrivateKey) {
 	cl := Client{
 		DirectoryURL: "http://127.0.0.1:4000/directory",
 	}
@@ -26,7 +22,7 @@ func TestAPI(t *testing.T) {
 		"mailto:nobody@localhost",
 	}
 
-	err = cl.AgreeRegistration(context.TODO())
+	err := cl.AgreeRegistration(context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't upsert registration: %v", err)
 	}
@@ -36,20 +32,37 @@ func TestAPI(t *testing.T) {
 		t.Fatalf("couldn't create authorization: %v", err)
 	}
 
-	err = cl.LoadAuthorization(auth, context.TODO())
+	err = cl.WaitLoadAuthorization(auth, context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't load authorization")
 	}
 
-	err = cl.LoadChallenge(auth.Challenges[0], context.TODO())
+	err = cl.WaitLoadChallenge(auth.Challenges[0], context.TODO())
 	if err != nil {
 		t.Fatalf("couldn't load challenge")
 	}
 
 	// TODO
 	//cl.RespondToChallenge
-	//cl.WaitLoadChallenge
 	//cl.RequestCertificate
+}
+
+func TestAPI(t *testing.T) {
+	TestingAllowHTTP = true
+
+	rsaPK, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("couldn't generate RSA key: %v", err)
+	}
+
+	testAPIWithKey(t, rsaPK)
+
+	ecdsaPK, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		t.Fatalf("couldn't generate ECDSA key: %v", err)
+	}
+
+	testAPIWithKey(t, ecdsaPK)
 }
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License
