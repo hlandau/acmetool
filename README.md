@@ -1,22 +1,22 @@
 # <div align="center"><img src="https://hlandau.github.io/acme/img/acmetool-logo-black.png" alt="acmetool" /></div>
 
 <p align="center">  <a href="http://issuestats.com/github/hlandau/acme"><img
-src="http://Issuestats.com/github/hlandau/acme/badge/issue?style=flat"
+src="http://issuestats.com/github/hlandau/acme/badge/issue?style=flat"
 alt="[issue stats]" /></a> <a
-href="https://Webchat.freenode.net/?channels=%23acmetool"><img
+href="https://webchat.freenode.net/?channels=%23acmetool"><img
 src="https://img.shields.io/badge/webchat-freenode%20%23acmetool-blue.svg"
 alt="[webchat: freenode #acmetool]" /></a> <br/> <a
-href="https://Github.com/hlandau/acme/releases"><img
+href="https://github.com/hlandau/acme/releases"><img
 src="https://img.shields.io/github/downloads/hlandau/acme/total.svg"
 alt="[download count]" /></a> <a
-href="https://Github.com/hlandau/acme/releases"><img
+href="https://github.com/hlandau/acme/releases"><img
 src="https://img.shields.io/github/release/hlandau/acme.svg" alt="[version]"
 /></a> <a
 href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages"><img
 src="https://img.shields.io/badge/ppa-debian%2Fubuntu-lightgrey.svg" alt="[ppa
-debian/ubuntu]"/></a><br/> <a href="https://Travis-ci.org/hlandau/acme"><img
+debian/ubuntu]"/></a><br/> <a href="https://travis-ci.org/hlandau/acme"><img
 src="https://travis-ci.org/hlandau/acme.svg?branch=master" alt="Build Status"
-/></a> <a href="http://Issuestats.com/github/hlandau/acme"><img
+/></a> <a href="http://issuestats.com/github/hlandau/acme"><img
 src="http://issuestats.com/github/hlandau/acme/badge/pr?style=flat" alt="[pull
 request stats]" /></a></p>
 
@@ -284,7 +284,8 @@ For more documentation see:
 
 If your question or issue isn't resolved by any of the above, file an issue.
 
-IRC: [#acmetool](irc://chat.freenode.net/#acmetool) on [Freenode](http://freenode.net/).
+IRC: [#acmetool](irc://chat.freenode.net/#acmetool) on [Freenode](http://freenode.net/) ([webchat](https://webchat.freenode.net/?channels=%23acmetool)).
+
 
 ## Licence
 

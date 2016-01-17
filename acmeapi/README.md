@@ -1,4 +1,4 @@
-# ACME Client Library [![GoDoc](https://godoc.org/github.com/hlandau/acme/acmeapi?status.svg)](https://godoc.org/github.com/hlandau/acme/acmeapi) [![Build Status](https://travis-ci.org/hlandau/acme.svg?branch=master)](https://travis-ci.org/hlandau/acme) [![Issue Stats](http://issuestats.com/github/hlandau/acme/badge/issue)](http://issuestats.com/github/hlandau/acme)
+# ACME Client Library [![GoDoc](https://godoc.org/github.com/hlandau/acme/acmeapi?status.svg)](https://godoc.org/github.com/hlandau/acme/acmeapi) [![Build Status](https://travis-ci.org/hlandau/acme.svg?branch=master)](https://travis-ci.org/hlandau/acme) [![Issue Stats](http://issuestats.com/github/hlandau/acme/badge/issue?style=flat)](http://issuestats.com/github/hlandau/acme)
 
 Basic ACME client library. [See godoc for the
 API.](https://godoc.org/github.com/hlandau/acme/acmeapi)
