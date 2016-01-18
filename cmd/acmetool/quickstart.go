@@ -100,9 +100,12 @@ const reloadHookFile = `#!/bin/sh
 
 set -e
 EVENT_NAME="$1"
+[ "$EVENT_NAME" == "live-updated" ] || exit 0
+
 SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
+[ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
 
 # Restart services.
 if which service >/dev/null 2>/dev/null; then
@@ -136,6 +139,9 @@ const haproxyReloadHookFile = `#!/bin/sh
 # 'haproxy' and reload is named 'reload', that is assured.
 
 set -e
+EVENT_NAME="$1"
+[ "$EVENT_NAME" == "live-updated" ] || exit 0
+
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 [ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
@@ -164,13 +170,17 @@ while read name; do
 done
 `
 
-func installDefaultHooks() {
-	hooks.Replace(*hooksFlag, "reload", reloadHookFile)
+func installHook(name, value string) {
+	hooks.Replace(*hooksFlag, name, strings.Replace(value, "@@ACME_STATE_DIR@@", *stateFlag, -1))
 	// fail silently, allow non-root, makes travis work.
 }
 
+func installDefaultHooks() {
+	installHook("reload", reloadHookFile)
+}
+
 func installHAProxyHooks() {
-	hooks.Replace(*hooksFlag, "haproxy", strings.Replace(haproxyReloadHookFile, "@@ACME_STATE_DIR@@", *stateFlag, -1))
+	installHook("haproxy", haproxyReloadHookFile)
 }
 
 var errStop = fmt.Errorf("stop")
