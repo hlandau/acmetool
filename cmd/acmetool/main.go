@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	//"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/interaction"
-	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/redirector"
 	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/storage"
@@ -34,9 +34,9 @@ var (
 			String()
 
 	hooksFlag = kingpin.Flag("hooks", "Path to the notification hooks directory (env: ACME_HOOKS_DIR)").
-			Default(notify.DefaultHookPath).
+			Default(hooks.DefaultPath).
 			Envar("ACME_HOOKS_DIR").
-			PlaceHolder(notify.DefaultHookPath).
+			PlaceHolder(hooks.DefaultPath).
 			String()
 
 	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs. (acmetool can still obtain responses from a response file, if one was provided.)").
@@ -96,7 +96,7 @@ This is the default command.`
 func main() {
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
-	notify.DefaultHookPath = *hooksFlag
+	hooks.DefaultPath = *hooksFlag
 	xlogconfig.Init()
 
 	if *batchFlag {
@@ -252,7 +252,7 @@ func determineWebroot() string {
 }
 
 func cmdRunTestNotify() {
-	err := notify.Notify(*hooksFlag, *stateFlag, *testNotifyArg)
+	err := hooks.NotifyLiveUpdated(*hooksFlag, *stateFlag, *testNotifyArg)
 	log.Errore(err, "notify")
 }
 

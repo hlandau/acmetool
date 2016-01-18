@@ -1,6 +1,6 @@
-// Package notify provides a function to execute a directory of executable
-// hooks, used when a certificate has been updated.
-package notify
+// Package hooks provides functions to invoke a directory of executable hooks,
+// used to provide arbitrary handling of significant events.
+package hooks
 
 import (
 	"fmt"
@@ -12,16 +12,16 @@ import (
 )
 
 // Log site.
-var log, Log = xlog.New("acme.notify")
+var log, Log = xlog.New("acme.hooks")
 
 // The default hook path is the path at which executable hooks are looked for
 // for notification purposes. On POSIX-like systems, this is usually
 // "/usr/lib/acme/hooks" (or "/usr/libexec/acme/hooks" if /usr/libexec exists).
-var DefaultHookPath string
+var DefaultPath string
 
 func init() {
 	// Allow overriding at build time.
-	p := DefaultHookPath
+	p := DefaultPath
 	if p == "" {
 		p = "/usr/lib/acme/hooks"
 	}
@@ -30,37 +30,20 @@ func init() {
 		p = "/usr/libexec" + p[8:]
 	}
 
-	DefaultHookPath = p
+	DefaultPath = p
 }
 
 // Notifies hook programs that a live symlink has been updated.
 //
 // If hookDirectory is "", DefaultHookPath is used. stateDirectory and
 // hostnames are passed as information to the hooks.
-func Notify(hookDirectory, stateDirectory string, hostnames []string) error {
-	if hookDirectory == "" {
-		hookDirectory = DefaultHookPath
-	}
-
+func NotifyLiveUpdated(hookDirectory, stateDirectory string, hostnames []string) error {
 	if len(hostnames) == 0 {
 		return nil
 	}
 
-	_, err := os.Stat(hookDirectory)
-	if err != nil {
-		// nothing to notify
-		return nil
-	}
-
-	// Probably shouldn't propagate this to all child processes, but it's the
-	// easiest way to not replace the entire environment when calling.
-	err = os.Setenv("ACME_STATE_DIR", stateDirectory)
-	if err != nil {
-		return err
-	}
-
 	hostnameList := strings.Join(hostnames, "\n") + "\n"
-	err = runParts(hookDirectory, []byte(hostnameList), "live-updated")
+	err := runParts(hookDirectory, stateDirectory, []byte(hostnameList), "live-updated")
 	if err != nil {
 		return err
 	}
@@ -70,7 +53,11 @@ func Notify(hookDirectory, stateDirectory string, hostnames []string) error {
 
 // Implements functionality similar to the "run-parts" command on many distros.
 // Implementations vary, so it is reimplemented here.
-func runParts(directory string, stdinData []byte, args ...string) error {
+func runParts(directory, stateDirectory string, stdinData []byte, args ...string) error {
+	if directory == "" {
+		directory = DefaultPath
+	}
+
 	fi, err := os.Stat(directory)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -78,6 +65,13 @@ func runParts(directory string, stdinData []byte, args ...string) error {
 			return nil
 		}
 
+		return err
+	}
+
+	// Probably shouldn't propagate this to all child processes, but it's the
+	// easiest way to not replace the entire environment when calling.
+	err = os.Setenv("ACME_STATE_DIR", stateDirectory)
+	if err != nil {
 		return err
 	}
 

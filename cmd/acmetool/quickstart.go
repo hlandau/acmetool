@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeapi/acmeendpoints"
+	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/interaction"
-	"github.com/hlandau/acme/notify"
 	"github.com/hlandau/acme/storage"
 	"gopkg.in/hlandau/service.v2/passwd"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
@@ -165,12 +165,12 @@ done
 `
 
 func installDefaultHooks() {
-	notify.ReplaceHook(*hooksFlag, "reload", reloadHookFile)
+	hooks.Replace(*hooksFlag, "reload", reloadHookFile)
 	// fail silently, allow non-root, makes travis work.
 }
 
 func installHAProxyHooks() {
-	notify.ReplaceHook(*hooksFlag, "haproxy", strings.Replace(haproxyReloadHookFile, "@@ACME_STATE_DIR@@", *stateFlag, -1))
+	hooks.Replace(*hooksFlag, "haproxy", strings.Replace(haproxyReloadHookFile, "@@ACME_STATE_DIR@@", *stateFlag, -1))
 }
 
 var errStop = fmt.Errorf("stop")
@@ -340,7 +340,7 @@ func promptInstallHAProxyHooks() bool {
 	// Always install if the hook is already installed.
 	hooksPath := *hooksFlag
 	if hooksPath == "" {
-		hooksPath = notify.DefaultHookPath
+		hooksPath = hooks.DefaultPath
 	}
 
 	if _, err := os.Stat(filepath.Join(hooksPath, "haproxy")); err == nil {

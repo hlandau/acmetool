@@ -1,4 +1,4 @@
-package notify
+package hooks
 
 import (
 	"bytes"
@@ -9,9 +9,9 @@ import (
 // Installs a hook in the hooks directory. If the file already exists, it is
 // not overwritten unless it contains the string "#!acmetool-managed!#" in its
 // first 4096 bytes.
-func ReplaceHook(hookDirectory, name, data string) error {
+func Replace(hookDirectory, name, data string) error {
 	if hookDirectory == "" {
-		hookDirectory = DefaultHookPath
+		hookDirectory = DefaultPath
 	}
 
 	filename := filepath.Join(hookDirectory, name)

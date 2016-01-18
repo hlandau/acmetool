@@ -1,4 +1,4 @@
-package notify
+package hooks
 
 import (
 	"fmt"
@@ -48,19 +48,19 @@ func TestNotify(t *testing.T) {
 	notifyDir := filepath.Join(dir, "notify")
 
 	for i := 0; i < 2; i++ {
-		err = ReplaceHook(notifyDir, "alpha", fmt.Sprintf(fileTpl, "", i*2+0))
+		err = Replace(notifyDir, "alpha", fmt.Sprintf(fileTpl, "", i*2+0))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = ReplaceHook(notifyDir, "beta", fmt.Sprintf(fileTpl, "#!acmetool-managed!#", i*2+1))
+		err = Replace(notifyDir, "beta", fmt.Sprintf(fileTpl, "#!acmetool-managed!#", i*2+1))
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		os.Remove(filepath.Join(dir, "log"))
 
-		err = Notify(notifyDir, dir, []string{"a.b", "c.d", "e.f.g"})
+		err = NotifyLiveUpdated(notifyDir, dir, []string{"a.b", "c.d", "e.f.g"})
 		if err != nil {
 			t.Fatal(err)
 		}

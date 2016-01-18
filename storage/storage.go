@@ -24,7 +24,7 @@ import (
 	"github.com/hlandau/acme/acmeapi/acmeendpoints"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"github.com/hlandau/acme/fdb"
-	"github.com/hlandau/acme/notify"
+	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/solver"
 	"github.com/hlandau/xlog"
@@ -1038,7 +1038,7 @@ func (s *Store) linkTargets() error {
 		}
 	}
 
-	err := notify.Notify("", s.path, updatedHostnames) // ignore error
+	err := hooks.NotifyLiveUpdated("", s.path, updatedHostnames) // ignore error
 	log.Errore(err, "failed to call notify hooks")
 
 	return nil
@@ -1049,7 +1049,7 @@ func (s *Store) StatusString() (string, error) {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "Settings:\n")
 	fmt.Fprintf(&buf, "  ACME_STATE_DIR: %s\n", s.path)
-	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", notify.DefaultHookPath)
+	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", hooks.DefaultPath)
 	fmt.Fprintf(&buf, "  Default directory URL: %s\n", s.defaultTarget.Request.Provider)
 	fmt.Fprintf(&buf, "  Preferred key type: %v\n", &s.defaultTarget.Request.Key)
 	fmt.Fprintf(&buf, "  Additional webroots:\n")

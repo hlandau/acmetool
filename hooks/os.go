@@ -1,4 +1,4 @@
-package notify
+package hooks
 
 import (
 	deos "github.com/hlandau/degoutils/os"
