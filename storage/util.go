@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base32"
 	"fmt"
+	"golang.org/x/net/idna"
 	"io"
 	"math/big"
 	"net/url"
@@ -172,7 +173,7 @@ func (ppk *psuedoPrivateKey) Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte,
 	return []byte{0}, nil
 }
 
-func determineKeyIDFromPublicKey(pubk crypto.PublicKey) (string, error) {
+func DetermineKeyIDFromPublicKey(pubk crypto.PublicKey) (string, error) {
 	// Trick crypto/x509 into creating a certificate so we can grab the
 	// subjectPublicKeyInfo by giving it a fake private key generating an invalid
 	// signature. ParseCertificate doesn't verify the signature so this will
@@ -223,7 +224,7 @@ var re_certID = regexp.MustCompile(`^[a-z0-9]{52}$`)
 
 // Returns true iff the given string could (possibly) be a valid certificate
 // (or key) ID.
-func IsWellFormattedCertificateID(certificateID string) bool {
+func IsWellFormattedCertificateOrKeyID(certificateID string) bool {
 	return re_certID.MatchString(certificateID)
 }
 
@@ -258,6 +259,40 @@ func containsName(names []string, name string) bool {
 		}
 	}
 	return false
+}
+
+func normalizeNames(names []string) error {
+	for i := range names {
+		n := strings.TrimSuffix(strings.ToLower(names[i]), ".")
+
+		n, err := idna.ToASCII(n)
+		if err != nil {
+			return fmt.Errorf("IDN error: %v", err)
+		}
+
+		if !validHostname(n) {
+			return fmt.Errorf("invalid hostname: %q", n)
+		}
+
+		names[i] = n
+	}
+
+	return nil
+}
+
+// Used to return multiple errors, for example when several targets cannot be
+// reconciled. This prevents one failing target from blocking others.
+type MultiError []error
+
+func (merr MultiError) Error() string {
+	s := ""
+	for _, e := range merr {
+		if s != "" {
+			s += "; \n"
+		}
+		s += e.Error()
+	}
+	return "the following errors occurred:\n" + s
 }
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

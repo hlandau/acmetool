@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-func (s *Store) loadWebrootPaths() {
+// Legacy Configuration
+
+func (s *fdbStore) loadWebrootPaths() {
 	if len(s.defaultTarget.Request.Challenge.WebrootPaths) != 0 {
 		// Path list in default target file takes precedence.
 		return
@@ -26,7 +28,7 @@ func (s *Store) loadWebrootPaths() {
 	s.defaultTarget.Request.Challenge.WebrootPaths = webrootPaths
 }
 
-func (s *Store) loadRSAKeySize() {
+func (s *fdbStore) loadRSAKeySize() {
 	if s.defaultTarget.Request.Key.RSASize != 0 {
 		// setting in default target file takes precedence
 		return
@@ -43,6 +45,8 @@ func (s *Store) loadRSAKeySize() {
 		log.Warnf("An RSA key size of %d is not supported; must have %d <= size <= %d; clamping at %d", n, minRSASize, maxRSASize, nn)
 	}
 }
+
+// Key Parameters
 
 const (
 	minRSASize     = 2048

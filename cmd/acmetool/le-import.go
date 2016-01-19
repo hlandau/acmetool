@@ -17,7 +17,7 @@ import (
 )
 
 func cmdImportLE() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
 	lePath := *importLEArg
@@ -56,7 +56,7 @@ func cmdImportLE() {
 
 var knownProviderURLs = map[string]struct{}{}
 
-func importLEAccount(s *storage.Store, lePath, accountName string) error {
+func importLEAccount(s storage.Store, lePath, accountName string) error {
 	providerURL, err := getProviderURLFromAccountName(accountName)
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func importLEAccount(s *storage.Store, lePath, accountName string) error {
 		return err
 	}
 
-	err = s.ImportAccountKey(providerURL, k.Key)
+	_, err = s.ImportAccount(providerURL, k.Key)
 	if err != nil {
 		return err
 	}
@@ -84,23 +84,25 @@ func importLEAccount(s *storage.Store, lePath, accountName string) error {
 	return nil
 }
 
-func importKey(s *storage.Store, filename string) error {
+func importKey(s storage.Store, filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	return s.ImportKey(f)
+	_, err = s.ImportKey(f)
+	return err
 }
 
-func importCert(s *storage.Store, filename string) error {
+func importCert(s storage.Store, filename string) error {
 	certURL, err := determineLECertificateURL(filename)
 	if err != nil {
 		return err
 	}
 
-	return s.ImportCertificate(certURL)
+	_, err = s.ImportCertificate(certURL)
+	return err
 }
 
 // The Let's Encrypt state directory format keeps certificates but not their

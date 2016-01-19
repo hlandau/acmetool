@@ -1,0 +1,871 @@
+// Package storage implements the state directory specification and operations
+// upon it.
+package storage
+
+import (
+	"crypto"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
+	"github.com/hlandau/acme/fdb"
+	"github.com/hlandau/xlog"
+	"gopkg.in/yaml.v2"
+	"io"
+	"io/ioutil"
+	"strings"
+	"time"
+)
+
+var log, Log = xlog.New("acme.storage")
+
+// ACME client store. {{{1
+type fdbStore struct {
+	db *fdb.DB
+
+	path          string
+	certs         map[string]*Certificate // key: certificate ID
+	accounts      map[string]*Account     // key: account ID
+	keys          map[string]*Key         // key: key ID
+	targets       map[string]*Target      // key: target filename
+	defaultTarget *Target                 // from conf
+}
+
+// Trivial accessors. {{{1
+
+func (s *fdbStore) AccountByID(accountID string) *Account {
+	return s.accounts[accountID]
+}
+
+func (s *fdbStore) AccountByDirectoryURL(directoryURL string) *Account {
+	for _, a := range s.accounts {
+		if a.MatchesURL(directoryURL) {
+			return a
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) VisitAccounts(f func(a *Account) error) error {
+	for _, a := range s.accounts {
+		err := f(a)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) CertificateByID(certificateID string) *Certificate {
+	return s.certs[certificateID]
+}
+
+func (s *fdbStore) VisitCertificates(f func(c *Certificate) error) error {
+	for _, c := range s.certs {
+		err := f(c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) TargetByFilename(filename string) *Target {
+	return s.targets[filename]
+}
+
+func (s *fdbStore) VisitTargets(f func(t *Target) error) error {
+	for _, t := range s.targets {
+		err := f(t)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Return the default target. Persist changes to the default target by calling SaveTarget.
+func (s *fdbStore) DefaultTarget() *Target {
+	return s.defaultTarget
+}
+
+func (s *fdbStore) KeyByID(keyID string) *Key {
+	return s.keys[keyID]
+}
+
+func (s *fdbStore) VisitKeys(f func(k *Key) error) error {
+	for _, k := range s.keys {
+		err := f(k)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) PreferredCertificateForHostname(hostname string) (*Certificate, error) {
+	lnk, err := s.db.Collection("live").ReadLink(hostname)
+	if err != nil {
+		return nil, err
+	}
+
+	certID := lnk.Target[6:]
+	c := s.CertificateByID(certID)
+	if c == nil {
+		return nil, fmt.Errorf("unknown certificate: %q", certID)
+	}
+
+	return c, nil
+}
+
+func (s *fdbStore) SetPreferredCertificateForHostname(hostname string, c *Certificate) error {
+	return s.db.Collection("live").WriteLink(hostname, fdb.Link{Target: "certs/" + c.ID()})
+}
+
+// Default paths and permissions. {{{1
+
+// The recommended path is the hardcoded, default, recommended path to be used
+// for a system-wide state storage directory. It may vary by system and
+// platform. On most POSIX-like systems, it is "/var/lib/acme". Specific builds
+// might customise it.
+var RecommendedPath string
+
+func init() {
+	// Allow the path to be overridden at build time.
+	if RecommendedPath == "" {
+		RecommendedPath = "/var/lib/acme"
+	}
+}
+
+var storePermissions = []fdb.Permission{
+	{Path: ".", DirMode: 0755, FileMode: 0644},
+	{Path: "accounts", DirMode: 0700, FileMode: 0600},
+	{Path: "desired", DirMode: 0755, FileMode: 0644},
+	{Path: "live", DirMode: 0755, FileMode: 0644},
+	{Path: "certs", DirMode: 0755, FileMode: 0644},
+	{Path: "certs/*/haproxy", DirMode: 0700, FileMode: 0600}, // hack for HAProxy
+	{Path: "keys", DirMode: 0700, FileMode: 0600},
+	{Path: "conf", DirMode: 0755, FileMode: 0644},
+	{Path: "tmp", DirMode: 0700, FileMode: 0600},
+}
+
+// Initialization and loading. {{{1
+
+// Create a new client store using the given path.
+func NewFDB(path string) (Store, error) {
+	if path == "" {
+		path = RecommendedPath
+	}
+
+	db, err := fdb.Open(fdb.Config{
+		Path:        path,
+		Permissions: storePermissions,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	s := &fdbStore{
+		db:   db,
+		path: path,
+	}
+
+	err = s.Reload()
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+// Close the store.
+func (s *fdbStore) Close() error {
+	return nil
+}
+
+// State directory path.
+func (s *fdbStore) Path() string {
+	return s.path
+}
+
+// Reload from disk.
+func (s *fdbStore) Reload() error {
+	err := s.loadAccounts()
+	if err != nil {
+		return err
+	}
+
+	err = s.loadKeys()
+	if err != nil {
+		return err
+	}
+
+	err = s.loadCerts()
+	if err != nil {
+		return err
+	}
+
+	err = s.loadTargets()
+	if err != nil {
+		return err
+	}
+
+	// Legacy support
+	s.loadWebrootPaths()
+	s.loadRSAKeySize()
+
+	return nil
+}
+
+func (s *fdbStore) loadAccounts() error {
+	c := s.db.Collection("accounts")
+
+	serverNames, err := c.List()
+	if err != nil {
+		return err
+	}
+
+	s.accounts = map[string]*Account{}
+	for _, serverName := range serverNames {
+		sc := c.Collection(serverName)
+
+		accountNames, err := sc.List()
+		if err != nil {
+			return err
+		}
+
+		for _, accountName := range accountNames {
+			ac := sc.Collection(accountName)
+
+			err := s.validateAccount(serverName, accountName, ac)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) validateAccount(serverName, accountName string, c *fdb.Collection) error {
+	f, err := c.Open("privkey")
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	pk, err := acmeutils.LoadPrivateKey(b)
+	if err != nil {
+		return err
+	}
+
+	f.Close()
+
+	directoryURL, err := decodeAccountURLPart(serverName)
+	if err != nil {
+		return err
+	}
+
+	account := &Account{
+		PrivateKey:     pk,
+		DirectoryURL:   directoryURL,
+		Authorizations: map[string]*Authorization{},
+	}
+
+	accountID := account.ID()
+	actualAccountID := serverName + "/" + accountName
+	if accountID != actualAccountID {
+		return fmt.Errorf("account ID mismatch: %#v != %#v", accountID, actualAccountID)
+	}
+
+	s.accounts[accountID] = account
+
+	err = s.validateAuthorizations(account, c)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *fdbStore) validateAuthorizations(account *Account, c *fdb.Collection) error {
+	ac := c.Collection("authorizations")
+
+	auths, err := ac.List()
+	if err != nil {
+		return err
+	}
+
+	for _, auth := range auths {
+		auc := ac.Collection(auth)
+		err := s.validateAuthorization(account, auth, auc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) validateAuthorization(account *Account, authName string, c *fdb.Collection) error {
+	ss, err := fdb.String(c.Open("expiry"))
+	if err != nil {
+		return err
+	}
+
+	expiry, err := time.Parse(time.RFC3339, strings.TrimSpace(ss))
+	if err != nil {
+		return err
+	}
+
+	azURL, _ := fdb.String(c.Open("url"))
+	if !acmeapi.ValidURL(azURL) {
+		azURL = ""
+	}
+
+	az := &Authorization{
+		Name:    authName,
+		URL:     strings.TrimSpace(azURL),
+		Expires: expiry,
+	}
+
+	account.Authorizations[authName] = az
+	return nil
+}
+
+func (s *fdbStore) loadKeys() error {
+	s.keys = map[string]*Key{}
+
+	c := s.db.Collection("keys")
+
+	keyIDs, err := c.List()
+	if err != nil {
+		return err
+	}
+
+	for _, keyID := range keyIDs {
+		kc := c.Collection(keyID)
+
+		err := s.validateKey(keyID, kc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) validateKey(keyID string, kc *fdb.Collection) error {
+	f, err := kc.Open("privkey")
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	pk, err := acmeutils.LoadPrivateKey(b)
+	if err != nil {
+		return err
+	}
+
+	actualKeyID, err := determineKeyIDFromKey(pk)
+	if err != nil {
+		return err
+	}
+
+	if actualKeyID != keyID {
+		return fmt.Errorf("key ID mismatch: %#v != %#v", keyID, actualKeyID)
+	}
+
+	k := &Key{
+		ID:         actualKeyID,
+		PrivateKey: pk,
+	}
+
+	s.keys[actualKeyID] = k
+
+	return nil
+}
+
+func (s *fdbStore) loadCerts() error {
+	s.certs = map[string]*Certificate{}
+
+	c := s.db.Collection("certs")
+
+	certIDs, err := c.List()
+	if err != nil {
+		return err
+	}
+
+	for _, certID := range certIDs {
+		kc := c.Collection(certID)
+
+		err := s.validateCert(certID, kc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) validateCert(certID string, c *fdb.Collection) error {
+	ss, err := fdb.String(c.Open("url"))
+	if err != nil {
+		return err
+	}
+
+	ss = strings.TrimSpace(ss)
+	if !acmeapi.ValidURL(ss) {
+		return fmt.Errorf("certificate has invalid URI")
+	}
+
+	actualCertID := determineCertificateID(ss)
+	if certID != actualCertID {
+		return fmt.Errorf("cert ID mismatch: %#v != %#v", certID, actualCertID)
+	}
+
+	crt := &Certificate{
+		URL:               ss,
+		Certificates:      nil,
+		Cached:            false,
+		RevocationDesired: fdb.Exists(c, "revoke"),
+		Revoked:           fdb.Exists(c, "revoked"),
+	}
+
+	fullchain, err := fdb.Bytes(c.Open("fullchain"))
+	if err == nil {
+		certs, err := acmeutils.LoadCertificates(fullchain)
+		if err != nil {
+			return err
+		}
+
+		xcrt, err := x509.ParseCertificate(certs[0])
+		if err != nil {
+			return err
+		}
+
+		keyID := determineKeyIDFromCert(xcrt)
+		crt.Key = s.keys[keyID]
+
+		if crt.Key != nil {
+			err := c.WriteLink("privkey", fdb.Link{Target: "keys/" + keyID + "/privkey"})
+			if err != nil {
+				return err
+			}
+		}
+
+		crt.Certificates = certs
+		crt.Cached = true
+	}
+
+	s.certs[certID] = crt
+
+	return nil
+}
+
+func (s *fdbStore) loadTargets() error {
+	s.targets = map[string]*Target{}
+
+	// default target
+	confc := s.db.Collection("conf")
+
+	dtgt, err := s.validateTargetInner("target", confc, true)
+	if err == nil {
+		dtgt.Satisfy.Names = nil
+		dtgt.Satisfy.ReducedNames = nil
+		dtgt.Request.Names = nil
+		s.defaultTarget = dtgt
+	} else {
+		s.defaultTarget = &Target{}
+	}
+
+	// targets
+	c := s.db.Collection("desired")
+
+	desiredKeys, err := c.List()
+	if err != nil {
+		return err
+	}
+
+	for _, desiredKey := range desiredKeys {
+		err := s.validateTarget(desiredKey, c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) validateTarget(desiredKey string, c *fdb.Collection) error {
+	tgt, err := s.validateTargetInner(desiredKey, c, false)
+	if err != nil {
+		return err
+	}
+
+	s.targets[desiredKey] = tgt
+	return nil
+}
+
+func (s *fdbStore) validateTargetInner(desiredKey string, c *fdb.Collection, loadingDefault bool) (*Target, error) {
+	b, err := fdb.Bytes(c.Open(desiredKey))
+	if err != nil {
+		return nil, err
+	}
+
+	var tgt *Target
+	if loadingDefault {
+		tgt = &Target{}
+	} else {
+		tgt = s.defaultTarget.CopyGeneric()
+	}
+
+	tgt.Filename = desiredKey
+
+	err = yaml.Unmarshal(b, tgt)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tgt.Satisfy.Names) == 0 {
+		if len(tgt.LegacyNames) > 0 {
+			tgt.Satisfy.Names = tgt.LegacyNames
+		} else {
+			tgt.Satisfy.Names = []string{desiredKey}
+		}
+	}
+
+	if tgt.Request.Provider == "" {
+		tgt.Request.Provider = tgt.LegacyProvider
+	}
+
+	err = normalizeNames(tgt.Satisfy.Names)
+	if err != nil {
+		return nil, fmt.Errorf("invalid target: %s: %v", desiredKey, err)
+	}
+
+	if len(tgt.Request.Names) == 0 {
+		tgt.Request.Names = tgt.Satisfy.Names
+		tgt.Request.implicitNames = true
+	}
+
+	// May be nil.
+	tgt.Request.Account = s.AccountByDirectoryURL(tgt.Request.Provider)
+
+	return tgt, nil
+}
+
+// Saving {{{1
+
+// Serializes the target to disk. Call after changing any settings.
+func (s *fdbStore) SaveTarget(t *Target) error {
+	// Some basic validation.
+	err := t.Validate()
+	if err != nil {
+		return err
+	}
+
+	if t != s.defaultTarget {
+		t.ensureFilename()
+	}
+
+	tcopy := *t
+
+	if t == s.defaultTarget {
+		tcopy.genericise()
+	}
+
+	// don't serialize default request names list
+	if tcopy.Request.implicitNames {
+		tcopy.Request.Names = nil
+	}
+
+	b, err := yaml.Marshal(&tcopy)
+	if err != nil {
+		return err
+	}
+
+	// Save.
+	if t == s.defaultTarget {
+		return fdb.WriteBytes(s.db.Collection("conf"), "target", b)
+	}
+
+	return fdb.WriteBytes(s.db.Collection("desired"), t.Filename, b)
+}
+
+func (s *fdbStore) RemoveTarget(filename string) error {
+	return s.db.Collection("desired").Delete(filename)
+}
+
+func (s *fdbStore) SaveCertificate(cert *Certificate) error {
+	c := s.db.Collection("certs/" + cert.ID())
+
+	if cert.RevocationDesired {
+		err := fdb.CreateEmpty(c, "revoke")
+		if err != nil {
+			return err
+		}
+	}
+
+	if cert.Revoked {
+		err := fdb.CreateEmpty(c, "revoked")
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(cert.Certificates) == 0 {
+		return nil
+	}
+
+	fcert, err := c.Create("cert")
+	if err != nil {
+		return err
+	}
+	defer fcert.CloseAbort()
+
+	fchain, err := c.Create("chain")
+	if err != nil {
+		return err
+	}
+	defer fchain.CloseAbort()
+
+	ffullchain, err := c.Create("fullchain")
+	if err != nil {
+		return err
+	}
+	defer ffullchain.CloseAbort()
+
+	err = pem.Encode(io.MultiWriter(fcert, ffullchain), &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Certificates[0],
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, ec := range cert.Certificates[1:] {
+		err = pem.Encode(io.MultiWriter(fchain, ffullchain), &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: ec,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	fcert.Close()
+	fchain.Close()
+	ffullchain.Close()
+
+	return nil
+}
+
+func (s *fdbStore) SaveAccount(a *Account) error {
+	coll := s.db.Collection("accounts/" + a.ID())
+	w, err := coll.Create("privkey")
+	if err != nil {
+		return err
+	}
+	defer w.CloseAbort()
+
+	err = acmeutils.SavePrivateKey(w, a.PrivateKey)
+	if err != nil {
+		return err
+	}
+
+	w.Close()
+
+	for _, auth := range a.Authorizations {
+		c := coll.Collection("authorizations/" + auth.Name)
+
+		err := fdb.WriteBytes(c, "expiry", []byte(auth.Expires.Format(time.RFC3339)))
+		if err != nil {
+			return err
+		}
+
+		err = fdb.WriteBytes(c, "url", []byte(auth.URL))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Importing {{{1
+
+// Give a PEM-encoded key file, imports the key into the store. If the key is
+// already installed, returns nil.
+func (s *fdbStore) ImportKey(privateKey crypto.PrivateKey) (*Key, error) {
+	keyID, err := determineKeyIDFromKey(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	k, ok := s.keys[keyID]
+	if ok {
+		return k, nil
+	}
+
+	c := s.db.Collection("keys/" + keyID)
+	err = s.saveKey(c, privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	k = &Key{
+		PrivateKey: privateKey,
+		ID:         keyID,
+	}
+
+	s.keys[keyID] = k
+	return k, nil
+}
+
+// Given a certificate URL, imports the certificate into the store. The
+// certificate will be retrirved on the next reconcile. If a certificate with
+// that URL already exists, this is a no-op and returns nil.
+func (s *fdbStore) ImportCertificate(url string) (*Certificate, error) {
+	certID := determineCertificateID(url)
+	c, ok := s.certs[certID]
+	if ok {
+		return c, nil
+	}
+
+	err := fdb.WriteBytes(s.db.Collection("certs/"+certID), "url", []byte(url))
+	if err != nil {
+		return nil, err
+	}
+
+	c = &Certificate{
+		URL: url,
+	}
+
+	s.certs[certID] = c
+	return c, nil
+}
+
+// Given an account private key and the provider directory URL, imports that account key.
+// If the account already exists and has a private key, this is a no-op and returns nil.
+func (s *fdbStore) ImportAccount(directoryURL string, privateKey crypto.PrivateKey) (*Account, error) {
+	accountID, err := determineAccountID(directoryURL, privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	a, ok := s.accounts[accountID]
+	if ok {
+		return a, nil
+	}
+
+	err = s.saveKey(s.db.Collection("accounts/"+accountID), privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	a = &Account{
+		PrivateKey:   privateKey,
+		DirectoryURL: directoryURL,
+	}
+	s.accounts[accountID] = a
+
+	return a, nil
+}
+
+// Saves a key as a file named "privkey" inside the given collection.
+func (s *fdbStore) saveKey(c *fdb.Collection, privateKey crypto.PrivateKey) error {
+	f, err := c.Create("privkey")
+	if err != nil {
+		return err
+	}
+	defer f.CloseAbort()
+
+	err = acmeutils.SavePrivateKey(f, privateKey)
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
+}
+
+// Save a private key inside a key ID collection under the given collection.
+func (s *fdbStore) saveKeyUnderID(c *fdb.Collection, privateKey crypto.PrivateKey) (keyID string, err error) {
+	keyID, err = determineKeyIDFromKey(privateKey)
+	if err != nil {
+		return
+	}
+
+	err = s.saveKey(c.Collection(keyID), privateKey)
+	return
+}
+
+// Revocation marking {{{1
+
+// Try to revoke the certificate with the given certificate ID.
+// If a key ID is given, revoke all certificates with using key ID.
+func (s *fdbStore) RevokeByCertificateOrKeyID(certID string) error {
+	c, ok := s.certs[certID]
+	if !ok {
+		return s.revokeByKeyID(certID)
+	}
+
+	if c.Revoked {
+		log.Warnf("%v already revoked", c)
+		return nil
+	}
+
+	col := s.db.Collection("certs/" + c.ID())
+	err := fdb.CreateEmpty(col, "revoke")
+	if err != nil {
+		return err
+	}
+
+	c.RevocationDesired = true
+	return nil
+}
+
+func (s *fdbStore) revokeByKeyID(keyID string) error {
+	k, ok := s.keys[keyID]
+	if !ok {
+		return fmt.Errorf("cannot find certificate or key with given ID: %q", keyID)
+	}
+
+	var merr MultiError
+	for _, c := range s.certs {
+		if c.Key != k {
+			continue
+		}
+
+		err := s.RevokeByCertificateOrKeyID(c.ID())
+		if err != nil {
+			merr = append(merr, fmt.Errorf("failed to mark %v for revocation: %v", c, err))
+		}
+	}
+
+	if len(merr) > 0 {
+		return merr
+	}
+
+	return nil
+}
+
+// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -19,7 +19,7 @@ func TestKeyID(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	keyID2, err := determineKeyIDFromPublicKey(&pk.PublicKey)
+	keyID2, err := DetermineKeyIDFromPublicKey(&pk.PublicKey)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}

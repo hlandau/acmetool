@@ -1,8 +1,10 @@
-package acmeutils
+package acmeapi
 
 import (
 	"crypto/x509"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"golang.org/x/crypto/ocsp"
+	"golang.org/x/net/context"
 	"testing"
 )
 
@@ -56,7 +58,7 @@ rFo4Uv1EnkKJm3vJFe50eJGhEKlx
 -----END CERTIFICATE-----`
 
 func TestOCSP(t *testing.T) {
-	b, err := LoadCertificates([]byte(testOCSPCerts))
+	b, err := acmeutils.LoadCertificates([]byte(testOCSPCerts))
 	if err != nil {
 		t.Fatalf("cannot load certificates")
 	}
@@ -71,7 +73,9 @@ func TestOCSP(t *testing.T) {
 		t.Fatalf("cannot parse certificate")
 	}
 
-	res, err := CheckOCSP(nil, c0, c1)
+	cl := Client{}
+
+	res, err := cl.CheckOCSP(c0, c1, context.TODO())
 	if err != nil {
 		t.Fatalf("ocsp error: %v", err)
 	}

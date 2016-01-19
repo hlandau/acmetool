@@ -9,6 +9,7 @@ import (
 	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/storage"
+	"github.com/hlandau/acme/storageops"
 	"gopkg.in/hlandau/service.v2/passwd"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
 	"io/ioutil"
@@ -20,11 +21,12 @@ import (
 )
 
 func cmdQuickstart() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
 	serverURL := promptServerURL()
-	err = s.SetDefaultProvider(serverURL)
+	s.DefaultTarget().Request.Provider = serverURL
+	err = s.SaveTarget(s.DefaultTarget())
 	log.Fatale(err, "set provider URL")
 
 	// key type
@@ -35,7 +37,7 @@ func cmdQuickstart() {
 		rsaKeySize := promptRSAKeySize()
 		if rsaKeySize != 0 {
 			s.DefaultTarget().Request.Key.RSASize = rsaKeySize
-			err = s.SaveDefaultTarget()
+			err = s.SaveTarget(s.DefaultTarget())
 			log.Fatale(err, "set preferred RSA Key size")
 		}
 	case "ecdsa":
@@ -43,7 +45,7 @@ func cmdQuickstart() {
 		ecdsaCurve := promptECDSACurve()
 		if ecdsaCurve != "" {
 			s.DefaultTarget().Request.Key.ECDSACurve = ecdsaCurve
-			err = s.SaveDefaultTarget()
+			err = s.SaveTarget(s.DefaultTarget())
 			log.Fatale(err, "set preferred ECDSA curve")
 		}
 	}
@@ -62,7 +64,7 @@ func cmdQuickstart() {
 	}
 
 	s.DefaultTarget().Request.Challenge.WebrootPaths = webroot
-	err = s.SaveDefaultTarget()
+	err = s.SaveTarget(s.DefaultTarget())
 	log.Fatale(err, "set webroot path")
 
 	prog, err := interaction.Auto.Status(&interaction.StatusInfo{
@@ -71,7 +73,7 @@ func cmdQuickstart() {
 	log.Fatale(err, "status")
 	prog.SetProgress(0, 1)
 
-	err = s.EnsureRegistration()
+	err = storageops.EnsureRegistration(s)
 	log.Fatale(err, "couldn't complete registration")
 
 	prog.SetProgress(1, 1)

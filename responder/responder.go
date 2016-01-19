@@ -1,16 +1,17 @@
 // Package responder implements the various ACME challenge types.
 package responder
 
-import "strings"
-import "crypto"
-import "fmt"
-import "encoding/json"
-import "github.com/square/go-jose"
-import "encoding/base64"
-import "encoding/hex"
-import "crypto/sha256"
-import "github.com/hlandau/acme/interaction"
-import "github.com/hlandau/xlog"
+import (
+	"crypto"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/xlog"
+	"github.com/square/go-jose"
+)
 
 // Log site.
 var log, Log = xlog.New("acme.responder")
@@ -114,7 +115,7 @@ func RegisterResponder(typeName string, createFunc func(Config) (Responder, erro
 }
 
 func b64enc(b []byte) string {
-	return strings.TrimRight(base64.URLEncoding.EncodeToString(b), "=")
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func hashBytes(b []byte) []byte {

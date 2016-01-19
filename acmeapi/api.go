@@ -45,6 +45,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/xlog"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -110,6 +111,10 @@ type Client struct {
 	nonceSource nonceSource
 	initOnce    sync.Once
 }
+
+// You should set this to a string identifying the code invoking this library.
+// Optional.
+var UserAgent string
 
 func (c *Client) doReq(method, url string, v, r interface{}, ctx context.Context) (*http.Response, error) {
 	return c.doReqEx(method, url, nil, v, r, ctx)
@@ -186,14 +191,13 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", "acmetool")
 	req.Header.Set("Accept", "application/json")
 	if method == "POST" {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	log.Debugf("request: %s", url)
-	res, err := ctxhttp.Do(ctx, c.HTTPClient, req)
+	res, err := c.doReqActual(req, ctx)
 	log.Debugf("response: %v %v", res, err)
 	if err != nil {
 		return nil, err
@@ -221,6 +225,11 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 	}
 
 	return res, nil
+}
+
+func (c *Client) doReqActual(req *http.Request, ctx context.Context) (*http.Response, error) {
+	req.Header.Set("User-Agent", userAgent(UserAgent))
+	return ctxhttp.Do(ctx, c.HTTPClient, req)
 }
 
 func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
@@ -651,6 +660,14 @@ func (c *Client) Revoke(certificateDER []byte, revocationKey crypto.PrivateKey, 
 	defer res.Body.Close()
 
 	return nil
+}
+
+func userAgent(ua string) string {
+	if ua != "" {
+		ua += " "
+	}
+
+	return fmt.Sprintf("%sacmeapi Go-http-client/1.1 %s/%s", ua, runtime.GOOS, runtime.GOARCH)
 }
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

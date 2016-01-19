@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -79,6 +80,37 @@ func LoadPrivateKeyDER(der []byte) (crypto.PrivateKey, error) {
 	}
 
 	return nil, fmt.Errorf("failed to parse private key")
+}
+
+// Write a private key in PEM form.
+func SavePrivateKey(w io.Writer, pk crypto.PrivateKey) error {
+	var kb []byte
+	var hdr string
+	var err error
+
+	switch v := pk.(type) {
+	case *rsa.PrivateKey:
+		kb = x509.MarshalPKCS1PrivateKey(v)
+		hdr = "RSA PRIVATE KEY"
+	case *ecdsa.PrivateKey:
+		kb, err = x509.MarshalECPrivateKey(v)
+		hdr = "EC PRIVATE KEY"
+	default:
+		return fmt.Errorf("unsupported private key type: %T", pk)
+	}
+	if err != nil {
+		return err
+	}
+
+	err = pem.Encode(w, &pem.Block{
+		Type:  hdr,
+		Bytes: kb,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Load a PEM CSR from a stream and return it in DER form.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	//"net/url"
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/hlandau/acme/redirector"
 	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/storage"
+	"github.com/hlandau/acme/storageops"
 	"github.com/hlandau/degoutils/xlogconfig"
 	"github.com/hlandau/xlog"
 	"github.com/square/go-jose"
@@ -150,7 +152,7 @@ func main() {
 }
 
 func cmdImportJWKAccount() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
 	f, err := os.Open(*importJWKPathArg)
@@ -164,12 +166,12 @@ func cmdImportJWKAccount() {
 	err = k.UnmarshalJSON(b)
 	log.Fatale(err, "cannot unmarshal key")
 
-	err = s.ImportAccountKey(*importJWKURLArg, k.Key)
+	_, err = s.ImportAccount(*importJWKURLArg, k.Key)
 	log.Fatale(err, "cannot import account key")
 }
 
 func cmdImportKey() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
 	err = importKey(s, *importKeyArg)
@@ -177,25 +179,69 @@ func cmdImportKey() {
 }
 
 func cmdReconcile() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
-	err = s.Reconcile()
+	err = storageops.Reconcile(s)
 	log.Fatale(err, "reconcile")
 }
 
 func cmdStatus() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
-	info, err := s.StatusString()
+	info := StatusString(s)
 	log.Fatale(err, "status")
 
 	fmt.Print(info)
 }
 
+func StatusString(s storage.Store) string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "Settings:\n")
+	fmt.Fprintf(&buf, "  ACME_STATE_DIR: %s\n", s.Path())
+	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", hooks.DefaultPath)
+	fmt.Fprintf(&buf, "  Default directory URL: %s\n", s.DefaultTarget().Request.Provider)
+	fmt.Fprintf(&buf, "  Preferred key type: %v\n", &s.DefaultTarget().Request.Key)
+	fmt.Fprintf(&buf, "  Additional webroots:\n")
+	for _, wr := range s.DefaultTarget().Request.Challenge.WebrootPaths {
+		fmt.Fprintf(&buf, "    %s\n", wr)
+	}
+
+	fmt.Fprintf(&buf, "\nAvailable accounts:\n")
+	s.VisitAccounts(func(a *storage.Account) error {
+		fmt.Fprintf(&buf, "  %v\n", a)
+		return nil
+	})
+
+	fmt.Fprintf(&buf, "\n")
+	s.VisitTargets(func(t *storage.Target) error {
+		fmt.Fprintf(&buf, "%v\n", t)
+
+		c, err := storageops.FindBestCertificateSatisfying(s, t)
+		if err != nil {
+			fmt.Fprintf(&buf, "  error: %v\n", err)
+			return nil // continue
+		}
+
+		renewStr := ""
+		if storageops.CertificateNeedsRenewing(c) {
+			renewStr = " needs-renewing"
+		}
+
+		fmt.Fprintf(&buf, "  best: %v%s\n", c, renewStr)
+		return nil
+	})
+
+	if storageops.HaveUncachedCertificates(s) {
+		fmt.Fprintf(&buf, "\nThere are uncached certificates.\n")
+	}
+
+	return buf.String()
+}
+
 func cmdWant() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
 	tgt := storage.Target{
@@ -204,16 +250,16 @@ func cmdWant() {
 		},
 	}
 
-	err = s.AddTarget(tgt)
+	err = s.SaveTarget(&tgt)
 	log.Fatale(err, "add target")
 }
 
 func cmdUnwant() {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
 	for _, hn := range *unwantArg {
-		err = s.RemoveTargetHostname(hn)
+		err = storageops.RemoveTargetHostname(s, hn)
 		log.Fatale(err, "remove target hostname ", hn)
 	}
 }
@@ -321,7 +367,7 @@ func cmdRevoke() {
 
 	//case u != nil && u.IsAbs() && acmeapi.ValidURL(certSpec): // is an URL
 
-	case storage.IsWellFormattedCertificateID(certSpec):
+	case storage.IsWellFormattedCertificateOrKeyID(certSpec):
 		// key or certificate ID
 		revokeByCertificateID(certSpec)
 
@@ -331,13 +377,13 @@ func cmdRevoke() {
 }
 
 func revokeByCertificateID(certID string) {
-	s, err := storage.New(*stateFlag)
+	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
-	err = s.RevokeByCertificateOrKeyID(certID)
+	err = storageops.RevokeByCertificateOrKeyID(s, certID)
 	log.Fatale(err, "revoke")
 
-	err = s.Reconcile()
+	err = storageops.Reconcile(s)
 	log.Fatale(err, "reconcile")
 }
 

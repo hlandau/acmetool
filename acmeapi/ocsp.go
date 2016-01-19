@@ -1,23 +1,20 @@
-package acmeutils
+package acmeapi
 
 import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"golang.org/x/crypto/ocsp"
+	"golang.org/x/net/context"
 	"io/ioutil"
 	"net/http"
 )
 
 // Checks OCSP for a certificate. The immediate issuer must be specified. If
-// the HTTP client is nil, the default client is used. If the certificate does
-// not support OCSP, (nil, nil) is returned.  Uses HTTP GET rather than POST.
-// The response is verified. The caller must check the response status.
-func CheckOCSP(httpClient *http.Client, crt, issuer *x509.Certificate) (*ocsp.Response, error) {
-	if httpClient == nil {
-		httpClient = http.DefaultClient
-	}
-
+// the certificate does not support OCSP, (nil, nil) is returned.  Uses HTTP
+// GET rather than POST. The response is verified. The caller must check the
+// response status.
+func (c *Client) CheckOCSP(crt, issuer *x509.Certificate, ctx context.Context) (*ocsp.Response, error) {
 	if len(crt.OCSPServer) == 0 {
 		return nil, nil
 	}
@@ -35,10 +32,9 @@ func CheckOCSP(httpClient *http.Client, crt, issuer *x509.Certificate) (*ocsp.Re
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "acmetool")
 	req.Header.Set("Accept", "application/ocsp-response")
 
-	res, err := httpClient.Do(req)
+	res, err := c.doReqActual(req, ctx)
 	if err != nil {
 		return nil, err
 	}
