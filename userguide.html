@@ -31,7 +31,8 @@
 <li><a href="#introduction-design-philosophy">Introduction &amp; Design Philosophy</a></li>
 <li><a href="#installation">Installation</a></li>
 <li><a href="#after-installation">After installation</a></li>
-<li><a href="#web-server-configuration">Web server configuration</a></li>
+<li><a href="#web-server-configuration-challenges">Web server configuration: challenges</a></li>
+<li><a href="#web-server-configuration-tls">Web server configuration: TLS</a></li>
 <li><a href="#challenge-completion-philosophy">Challenge completion philosophy</a></li>
 <li><a href="#the-state-storage-schema">The state storage schema</a></li>
 <li><a href="#response-files">Response files</a></li>
@@ -65,8 +66,17 @@
 <p><code>_cgo</code> releases are preferred over non-<code>_cgo</code> releases where available, but non-<code>_cgo</code> releases may be moe compatible with older OSes. (The main drawback of non-<code>_cgo</code> releases is that they exhibit reduced functionality in relation to privilege dropping and daemonization functionality for the redirector daemon.)</p>
 <p><strong>Installing: Ubuntu users.</strong> A binary release PPA, <code>ppa:hlandau/rhea</code> (package <code>acmetool</code>) is available.</p>
 <pre class="sh"><code>$ sudo add-apt-repository ppa:hlandau/rhea
+$ sudo apt-get update
 $ sudo apt-get install acmetool</code></pre>
-<p><strong>Installing: Debian users.</strong> TODO</p>
+<p>You can also <a href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages">download .deb files manually.</a></p>
+<p>(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)</p>
+<p><strong>Installing: Debian users.</strong> The Ubuntu binary release PPA also works with Debian:</p>
+<pre><code># echo &#39;deb http://ppa.launchpad.net/hlandau/rhea/ubuntu xenial main&#39; &gt; /etc/apt/sources.list.d/rhea.list
+# apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9862409EF124EC763B84972FF5AC9651EDB58DFA
+# apt-get update
+# apt-get install acmetool</code></pre>
+<p>You can also <a href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages">download .deb files manually.</a></p>
+<p>(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)</p>
 <p><strong>Installing: Arch Linux users.</strong> <a href="https://aur.archlinux.org/packages/acmetool-git/">An AUR PKGBUILD for building from source is available.</a></p>
 <pre class="sh"><code>$ wget https://aur.archlinux.org/cgit/aur.git/snapshot/acmetool-git.tar.gz
 $ tar xvf acmetool-git.tar.gz
@@ -124,7 +134,7 @@ SERVICES=&quot;$SERVICES cherokee&quot;</code></pre>
 $ sudo acmetool</code></pre>
 <p>Target files live in the <code>desired</code> directory. An empty target file defaults to its filename as the target hostname.</p>
 <p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">More information on the format of the acmetool state directory and target files.</a></p>
-<h2 id="web-server-configuration">Web server configuration</h2>
+<h2 id="web-server-configuration-challenges">Web server configuration: challenges</h2>
 <p>What web server configuration you need to do depends on the validation method you have selected.</p>
 <p><strong>Redirector mode.</strong> No configuration required, but ensure that your web server is not listening on port 80 and that the redirector service (<code>acmetool redirector --service.daemon --service.uid=</code><em>uid-to-drop-privileges-to</em>) is started.</p>
 <p><strong>Proxy mode: nginx/tengine.</strong> You can configure nginx/tengine for use with acmetool in proxy mode as follows:</p>
@@ -170,6 +180,8 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
   <span class="ot">Order</span><span class="ch"> allow, deny</span>
   Allow<span class="st"> from all</span>
 <span class="fu">&lt;/Directory&gt;</span></code></pre></div>
+<h2 id="web-server-configuration-tls">Web server configuration: TLS</h2>
+<p>Mozilla has a <a href="https://mozilla.github.io/server-side-tls/ssl-config-generator/">TLS configuration generator</a> that you can use to generate configurations for common web servers.</p>
 <h2 id="challenge-completion-philosophy">Challenge completion philosophy</h2>
 <p>acmetool's philosophy to completing challenges is to try absolutely anything that might work. So long as <em>something</em> works, acmetool doesn't care what it was that worked. When <code>acmetool quickstart</code> asks you what method to use, this is asked purely to determine a) whether to ask you for a webroot path (if you selected webroot mode) and b) whether to ask you if you want to install the redirector service (if you selected redirector mode and are using systemd, for which automatic service installation is supported). It doesn't determine what strategies acmetool does or doesn't use, so it's normal to see log output relating to a failure to use methods other than the one you chose.</p>
 <p>acmetool always tries to listen on port 402 and 4402 when completing challenges, in case something proxies to it. It always tries to listen on ports 80 and 443, in case you're not running a webserver yet. And it always tries to place challenge files in any webroot paths you have configured. Finally, it always tries to place challenge files in <code>/var/run/acme/acme-challenge</code>; this serves as a standard location for challenge files, and the redirector daemon works by looking here.</p>

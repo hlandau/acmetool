@@ -42,10 +42,26 @@ daemon.)
 
 ```sh
 $ sudo add-apt-repository ppa:hlandau/rhea
+$ sudo apt-get update
 $ sudo apt-get install acmetool
 ```
 
-**Installing: Debian users.** TODO
+You can also [download .deb files manually.](https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages)
+
+(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
+
+**Installing: Debian users.** The Ubuntu binary release PPA also works with Debian:
+
+```
+# echo 'deb http://ppa.launchpad.net/hlandau/rhea/ubuntu xenial main' > /etc/apt/sources.list.d/rhea.list
+# apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9862409EF124EC763B84972FF5AC9651EDB58DFA
+# apt-get update
+# apt-get install acmetool
+```
+
+You can also [download .deb files manually.](https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages)
+
+(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
 
 **Installing: Arch Linux users.** [An AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
 
@@ -206,7 +222,7 @@ its filename as the target hostname.
 
 [More information on the format of the acmetool state directory and target files.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
 
-## Web server configuration
+## Web server configuration: challenges
 
 What web server configuration you need to do depends on the validation method you have selected.
 
@@ -278,6 +294,12 @@ Alias "/.well-known/acme-challenge/" "/var/run/acme/acme-challenge/"
   Allow from all
 </Directory>
 ```
+
+## Web server configuration: TLS
+
+Mozilla has a [TLS configuration
+generator](https://mozilla.github.io/server-side-tls/ssl-config-generator/)
+that you can use to generate configurations for common web servers.
 
 ## Challenge completion philosophy
 
