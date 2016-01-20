@@ -88,9 +88,9 @@ acmetool will fallback to basic stdio prompts if it's not available.
 $ sudo acmetool quickstart
 ```
 
-If you don't want to run acmetool as root, see the [non-root setup guide] TODO.
+If you don't want to run acmetool as root, see the [non-root setup guide](#annex-root-configured-non-root-operation).
 
-If you pass `--expert` to the quickstart command, it will ask you more questions. Currently, the only extra question is your preferred RSA key size. The default is 2048 bits.
+Pass `--expert` to quickstart if you want to choose what key parameters to use (RSA or ECDSA, RSA key size, ECDSA curve). By default 2048-bit RSA is used.
 
 If you want to automate the quickstart process, see the section on response files below.
 

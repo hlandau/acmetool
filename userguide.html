@@ -86,8 +86,8 @@ $ sudo cp $GOPATH/bin/acmetool /usr/local/bin/acmetool</code></pre>
 <h2 id="after-installation">After installation</h2>
 <p><strong>Initial configuration.</strong> Having installed acmetool, run the quickstart wizard for a guided setup. You may wish to ensure you have <code>dialog</code> in your PATH, but acmetool will fallback to basic stdio prompts if it's not available.</p>
 <pre class="sh"><code>$ sudo acmetool quickstart</code></pre>
-<p>If you don't want to run acmetool as root, see the [non-root setup guide] TODO.</p>
-<p>If you pass <code>--expert</code> to the quickstart command, it will ask you more questions. Currently, the only extra question is your preferred RSA key size. The default is 2048 bits.</p>
+<p>If you don't want to run acmetool as root, see the <a href="#annex-root-configured-non-root-operation">non-root setup guide</a>.</p>
+<p>Pass <code>--expert</code> to quickstart if you want to choose what key parameters to use (RSA or ECDSA, RSA key size, ECDSA curve). By default 2048-bit RSA is used.</p>
 <p>If you want to automate the quickstart process, see the section on response files below.</p>
 <p>It is safe to rerun quickstart at any time.</p>
 <p><strong>Configuring your web server.</strong> Once you've completed the quickstart, you should configure your web server as necessary to enable validation. See the <em>Web server configuration</em> section below.</p>
