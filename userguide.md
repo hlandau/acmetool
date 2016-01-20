@@ -313,7 +313,74 @@ not the local machine.)
 
 ## The state storage schema
 
-[The format of acmetool's state directory is documented here.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
+[The format of acmetool's state directory is authoritatively documented here.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md) What follows is a summary of the more important parts.
+
+**`live` directory:** Contains symlinks from hostnames to certificate
+directories. Each certificate directory contains `cert`, `chain`, `fullchain`
+and `privkey` files. (If you are using HAProxy and have chosen to install the
+HAProxy hook script, a `haproxy` file will also be available containing key,
+certificate and chain all in one.)
+
+You should configure your web server in terms of paths like
+`/var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}`.
+
+**`desired` directory:** Contains targetfiles. These determine the certificates
+which will be requested. Each target file is a YAML file, split into two
+principal sections: the `satisfy` section and the `request` section.
+
+The `satisfy` section dictates what conditions must be met in order for a
+certificate to meet a target (and thus be selected for symlinking under the
+`live` directory). The `request` section dictates the parameters for requesting
+new certificates, but nothing under it determines *whether* a certificate is
+requested.
+
+Finally, the `priority` value determines which target is used for a hostname
+when there are multiple targets for the same hostname. Higher priorities take
+precedence. The default priority is 0.
+
+In most cases, you will set only `satisfy.names` in a target file, and will set
+all other settings in the *default target file*, which is located at
+`conf/target`. The quickstart wizard sets this file up for you.  All settings
+in the default target file are inherited by targets, but can be overridden
+individually.
+
+```yaml
+satisfy:
+  names:
+    - example.com       # The names you want on the certificate.
+    - www.example.com
+
+request:
+  provider:               # ACME Directory URL. Normally set in conf/target only.
+  ocsp-must-staple: true  # Request OCSP Must Staple. Use with care.
+  challenge:
+    webroot-paths:        # You can specify custom webroot paths.
+      - /var/www
+    http-ports:           # You can specify different ports for proxying.
+      - 123
+      - 456
+  key:                    # What sort of key will be used for this certificate?
+    type: rsa|ecdsa
+    rsa-size: 2048
+    ecdsa-curve: nistp256
+
+priority: 0
+```
+
+**HAProxy support:** If you have chosen to install the HAProxy hook script,
+each certificate directory will also have a coalesced `haproxy` file containing
+certificate chain and private key. There will also be a `haproxy` directory
+mapping from hostnames directly to these files.
+
+**`accounts` directory:** ACME account keys and state information. You don't
+need to worry about this.
+
+**`certs` and `keys`**: Contains certificates and keys used to satisfy targets.
+However, you should never need to reference these directories directly.
+
+Please note that it is a requirement that the state directory not straddle
+filesystem boundaries. That is, all files under `/var/lib/acme` must lie on the
+same filesystem.
 
 ## Response files
 

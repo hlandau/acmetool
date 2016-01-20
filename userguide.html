@@ -176,7 +176,37 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p>Failure to complete any of these efforts is non-fatal. Ultimately, all acmetool cares about is that a challenge completes successfully after having attempted all possible preparations. It doesn't know or care <em>why</em> a challenge succeeds, only that it succeeded.</p>
 <p>(For HTTP-based challenges, acmetool self-tests its ability to complete the challenge by issuing a request for the same URL which will be requested by the ACME server, and does not proceed if this does not validate. Thus, HTTP-based challenges will never work if you are running some sort of weird split-horizon configuration where challenge files are retrievable only from the internet but not the local machine.)</p>
 <h2 id="the-state-storage-schema">The state storage schema</h2>
-<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">The format of acmetool's state directory is documented here.</a></p>
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">The format of acmetool's state directory is authoritatively documented here.</a> What follows is a summary of the more important parts.</p>
+<p><strong><code>live</code> directory:</strong> Contains symlinks from hostnames to certificate directories. Each certificate directory contains <code>cert</code>, <code>chain</code>, <code>fullchain</code> and <code>privkey</code> files. (If you are using HAProxy and have chosen to install the HAProxy hook script, a <code>haproxy</code> file will also be available containing key, certificate and chain all in one.)</p>
+<p>You should configure your web server in terms of paths like <code>/var/lib/acme/live/example.com/{cert,chain,fullchain,privkey}</code>.</p>
+<p><strong><code>desired</code> directory:</strong> Contains targetfiles. These determine the certificates which will be requested. Each target file is a YAML file, split into two principal sections: the <code>satisfy</code> section and the <code>request</code> section.</p>
+<p>The <code>satisfy</code> section dictates what conditions must be met in order for a certificate to meet a target (and thus be selected for symlinking under the <code>live</code> directory). The <code>request</code> section dictates the parameters for requesting new certificates, but nothing under it determines <em>whether</em> a certificate is requested.</p>
+<p>Finally, the <code>priority</code> value determines which target is used for a hostname when there are multiple targets for the same hostname. Higher priorities take precedence. The default priority is 0.</p>
+<p>In most cases, you will set only <code>satisfy.names</code> in a target file, and will set all other settings in the <em>default target file</em>, which is located at <code>conf/target</code>. The quickstart wizard sets this file up for you. All settings in the default target file are inherited by targets, but can be overridden individually.</p>
+<div class="sourceCode"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span class="fu">satisfy:</span>
+  <span class="fu">names:</span>
+    <span class="kw">-</span> example.com       <span class="co"># The names you want on the certificate.</span>
+    <span class="kw">-</span> www.example.com
+
+<span class="fu">request:</span>
+  <span class="fu">provider:</span>               <span class="co"># ACME Directory URL. Normally set in conf/target only.</span>
+  <span class="fu">ocsp-must-staple:</span> true  <span class="co"># Request OCSP Must Staple. Use with care.</span>
+  <span class="fu">challenge:</span>
+    <span class="fu">webroot-paths:</span>        <span class="co"># You can specify custom webroot paths.</span>
+      <span class="kw">-</span> /var/www
+    <span class="fu">http-ports:</span>           <span class="co"># You can specify different ports for proxying.</span>
+      <span class="kw">-</span> 123
+      <span class="kw">-</span> 456
+  <span class="fu">key:</span>                    <span class="co"># What sort of key will be used for this certificate?</span>
+    <span class="fu">type:</span> rsa|ecdsa
+    <span class="fu">rsa-size:</span> 2048
+    <span class="fu">ecdsa-curve:</span> nistp256
+
+<span class="fu">priority:</span> 0</code></pre></div>
+<p><strong>HAProxy support:</strong> If you have chosen to install the HAProxy hook script, each certificate directory will also have a coalesced <code>haproxy</code> file containing certificate chain and private key. There will also be a <code>haproxy</code> directory mapping from hostnames directly to these files.</p>
+<p><strong><code>accounts</code> directory:</strong> ACME account keys and state information. You don't need to worry about this.</p>
+<p><strong><code>certs</code> and <code>keys</code></strong>: Contains certificates and keys used to satisfy targets. However, you should never need to reference these directories directly.</p>
+<p>Please note that it is a requirement that the state directory not straddle filesystem boundaries. That is, all files under <code>/var/lib/acme</code> must lie on the same filesystem.</p>
 <h2 id="response-files">Response files</h2>
 <p>It is possible to automatically provide responses to any question acmetool can ask.</p>
 <p>To do this, you provide the <code>--response-file</code> flag, with the path to a YAML file containing response information. <a href="https://github.com/hlandau/acme/blob/master/_doc/response-file.yaml">An example of such a file is here.</a></p>
