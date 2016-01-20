@@ -236,7 +236,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Automatic renewal</td><td>Yes</td><td>Not yet</td><td>No</td><td>No</td></tr>
 <tr><td>SAN support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>ECC support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
-<!--<tr><td>OCSP Must Staple support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>-->
+<tr><td>OCSP Must Staple support</td><td><a href="https://hlandau.github.io/acme/userguide#the-state-storage-schema">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Revocation support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td>State management</td><td>Yes†</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
@@ -254,7 +254,6 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Import state from official client</td><td>Yes</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>Windows (basic) support</td><td>No</td><td>No</td><td>Yes</td><td>—</td></tr>
 <tr><td>Windows integration support</td><td>No</td><td>No</td><td>No</td><td>—</td></tr>
-
 </table>
 
 † acmetool has a different philosophy to state management and configuration to

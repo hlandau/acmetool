@@ -233,7 +233,7 @@ specification and documentation. acmetool supports the following extensions:
         #
         # Legacy compatibility: if not present, the number of bits may be
         # contained in a file "rsa-key-size" inside the conf directory.
-        rsa-bits: 2048
+        rsa-size: 2048
 
         # ECDSA curve when using an ecdsa key. Default "nistp256".
         #
