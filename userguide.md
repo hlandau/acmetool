@@ -464,8 +464,9 @@ wherever you want it), before running acmetool, do the following:
     port 402 as a non-root user. Use port 4402 instead, which acmetool will try
     also try to use.
 
-    **Listener:** Not usable under non-root operation, as it would not be able
-    to bind to ports 80/443. But this is not really relevant as this mode is
-    not useful for anything other than development anyway.
-
-
+    **Listener:** This is not usable under non-root operation unless you can
+    enable acmetool to bind to ports 80/443. On Linux you can do this by
+    running `setcap 'cap_net_bind_service=+ep' /path/to/acmetool` as root.
+    Other POSIX platforms may have sysctls to allow non-root processes to bind
+    to low ports. However, this mode is not really useful for anything other
+    than development anyway.

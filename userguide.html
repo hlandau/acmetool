@@ -223,7 +223,7 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p>A configuration option has been added to make the redirector ensure that the directory is writable by a certain group when starting up. When this option is used, mode 0775 is used instead and the group owner is changed to a given GID.</p>
 <p>Pass <code>--challenge-gid=GID</code> to <code>acmetool redirector</code> (edit your service manager's configuration, e.g. the systemd unit file), where GID is the numeric group ID of the group owner for the challenge directory (i.e. the GID of the <code>acme</code> group). (Group names rather than IDs may be supported on some platforms, but this is not guaranteed and will vary. Use of a GID is recommended.)</p>
 <p><strong>Proxy:</strong> If you are using the proxy method, you won't be able to listen on port 402 as a non-root user. Use port 4402 instead, which acmetool will try also try to use.</p>
-<p><strong>Listener:</strong> Not usable under non-root operation, as it would not be able to bind to ports 80/443. But this is not really relevant as this mode is not useful for anything other than development anyway.</p></li>
+<p><strong>Listener:</strong> This is not usable under non-root operation unless you can enable acmetool to bind to ports 80/443. On Linux you can do this by running <code>setcap 'cap_net_bind_service=+ep' /path/to/acmetool</code> as root. Other POSIX platforms may have sysctls to allow non-root processes to bind to low ports. However, this mode is not really useful for anything other than development anyway.</p></li>
 </ul>
 </div>
 
