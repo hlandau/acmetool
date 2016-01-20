@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	//"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/redirector"
@@ -99,6 +99,7 @@ func main() {
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
 	hooks.DefaultPath = *hooksFlag
+	acmeapi.UserAgent = "acmetool"
 	xlogconfig.Init()
 
 	if *batchFlag {

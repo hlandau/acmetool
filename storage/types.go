@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
+	"github.com/jmhodges/clock"
 	"github.com/satori/go.uuid"
 	"strings"
 	"time"
@@ -56,8 +57,8 @@ type Authorization struct {
 }
 
 // Returns true iff the authorization is unexpired.
-func (a *Authorization) IsValid() bool {
-	return time.Now().Before(a.Expires)
+func (a *Authorization) IsValid(clock clock.Clock) bool {
+	return clock.Now().Before(a.Expires)
 }
 
 // Represents the "satisfy" section of a target file.

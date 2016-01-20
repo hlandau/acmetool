@@ -14,12 +14,15 @@ import (
 	"github.com/hlandau/acme/solver"
 	"github.com/hlandau/acme/storage"
 	"github.com/hlandau/xlog"
+	"github.com/jmhodges/clock"
 	"golang.org/x/net/context"
 	"sort"
-	"time"
 )
 
 var log, Log = xlog.New("acme.reconcilator")
+
+// Internal use only. Used for testing purposes. Do not change.
+var InternalClock = clock.Default()
 
 type reconcile struct {
 	store storage.Store
@@ -87,9 +90,6 @@ func (r *reconcile) Relink() error {
 		log.Tracef("relink: best certificate satisfying %v is %v", tgt, c)
 
 		cprev, err := r.store.PreferredCertificateForHostname(name)
-		if err != nil {
-			log.Errore(err, "get preferred certificate for hostname")
-		}
 
 		if c != cprev || err != nil {
 			log.Debugf("relinking: %v -> %v (was %v)", name, c, cprev)
@@ -370,7 +370,7 @@ func (r *reconcile) determineNecessaryAuthorizations(names []string, a *storage.
 	}
 
 	for _, auth := range a.Authorizations {
-		if auth.IsValid() {
+		if auth.IsValid(InternalClock) {
 			delete(needed, auth.Name)
 		}
 	}
@@ -465,7 +465,7 @@ func (r *reconcile) getAccountByDirectoryURL(directoryURL string) (*storage.Acco
 }
 
 func (r *reconcile) createNewAccount(directoryURL string) (*storage.Account, error) {
-	pk, err := generateKey(&storage.TargetRequestKey{}) // TODO
+	pk, err := generateKey(&r.store.DefaultTarget().Request.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -705,8 +705,8 @@ func CertificateNeedsRenewing(c *storage.Certificate) bool {
 		return false
 	}
 
-	renewSpan := renewTime(cc.NotBefore, cc.NotAfter)
-	needsRenewing := !time.Now().Before(renewSpan)
+	renewTime := renewTime(cc.NotBefore, cc.NotAfter)
+	needsRenewing := !InternalClock.Now().Before(renewTime)
 
 	log.Debugf("%v needsRenewing=%v notAfter=%v", c, needsRenewing, cc.NotAfter)
 	return needsRenewing
