@@ -213,12 +213,12 @@ func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-const redirBody = `<!DOCTYPE html>\
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">\
-<head><title>Permanently Moved</title></head>\
-<body><h1>Permanently Moved</h1>\
-<p>This resource has <strong>moved permanently</strong> to \
-<a href="%s">%s</a>.</p>\
+const redirBody = `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head><title>Permanently Moved</title></head>
+<body><h1>Permanently Moved</h1>
+<p>This resource has <strong>moved permanently</strong> to
+ <a href="%s">%s</a>.</p>
 </body></html>`
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License
