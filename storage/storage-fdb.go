@@ -196,22 +196,26 @@ func (s *fdbStore) Path() string {
 
 // Reload from disk.
 func (s *fdbStore) Reload() error {
-	err := s.loadAccounts()
-	if err != nil {
-		return err
+	if !isNeutered {
+		hasTouchedSensitiveData = true
+
+		err := s.loadAccounts()
+		if err != nil {
+			return err
+		}
+
+		err = s.loadKeys()
+		if err != nil {
+			return err
+		}
+
+		err = s.loadCerts()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = s.loadKeys()
-	if err != nil {
-		return err
-	}
-
-	err = s.loadCerts()
-	if err != nil {
-		return err
-	}
-
-	err = s.loadTargets()
+	err := s.loadTargets()
 	if err != nil {
 		return err
 	}

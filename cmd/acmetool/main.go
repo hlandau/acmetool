@@ -2,13 +2,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
-	//"net/url"
-	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/hooks"
@@ -268,6 +266,8 @@ func cmdUnwant() {
 func cmdRunRedirector() {
 	rpath := *redirectorPathFlag
 	if rpath == "" {
+		// redirector process is internet-facing and must never touch private keys
+		storage.Neuter()
 		rpath = determineWebroot()
 	}
 
@@ -286,13 +286,12 @@ func cmdRunRedirector() {
 }
 
 func determineWebroot() string {
-	// don't use fdb for this, we don't need access to the whole db
-	b, err := ioutil.ReadFile(filepath.Join(*stateFlag, "conf", "webroot-path"))
-	if err == nil {
-		s := strings.TrimSpace(strings.Split(strings.TrimSpace(string(b)), "\n")[0])
-		if s != "" {
-			return s
-		}
+	s, err := storage.NewFDB(*stateFlag)
+	log.Fatale(err, "storage")
+
+	webrootPaths := s.DefaultTarget().Request.Challenge.WebrootPaths
+	if len(webrootPaths) > 0 {
+		return webrootPaths[0]
 	}
 
 	return responder.StandardWebrootPath
