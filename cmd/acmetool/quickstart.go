@@ -94,7 +94,7 @@ func cmdQuickstart() {
 	promptGettingStarted()
 }
 
-const reloadHookFile = `#!/bin/sh
+const reloadHookFile = `#!/bin/bash
 ## This file was installed by acmetool. Any updates to this script will
 ## overwrite changes you make. If you don't want acmetool to manage
 ## this file, remove the following line.
