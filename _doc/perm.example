@@ -1,0 +1,63 @@
+# In some rare cases it can be necessary to override the permissions that
+# acmetool sets on files. You can override those permissions using the
+# permissions configuration file, which should be placed at
+# $ACME_STATE_DIR/conf/perm. This is an example of such a file. You should be
+# very careful when using this file, and only include the minimum changes that
+# you need to make.
+#
+# Each line has the following syntax:
+#   path-pattern  file-mode  dir-mode  [uid gid]
+#
+# For example:
+#   keys          0640 0750
+# or
+#   keys          0640 0750 root exim
+#
+# If you specify a UID, you must also specify a GID and vice versa.
+# UIDs and GIDs can be specified numerically, and on some platforms
+# they may also be specifiable as names.
+#
+# The special UID/GID value "$r" means the current UID/GID of the running
+# acmetool process; you can use this to ensure that the file UID/GID is
+# enforced to the user which acmetool runs as.
+#
+# Not specifying UID/GID values, or specifying both as "-", means that acmetool
+# will not pay attention to file ownership. Files will be created with their
+# "natural" owner (i.e., the UID/GID under which acmetool is running).
+#
+# Mode enforcement cannot be disabled.
+#
+# Nothing acmetool does should affect POSIX ACLs, if you wish to use them.
+#
+# A path-pattern is a glob pattern. Specifying the same path-pattern as a built
+# in permissions rule overrides that rule. You cannot place two entries for
+# the same path-pattern in this file. acmetool uses the longest matching pattern
+# when deciding what rule to use when enforcing permissions.
+#
+# The default rules are shown below:
+#
+#   .                0644 0750  # Default for anything without a longer match
+#   accounts         0600 0700
+#   desired          0644 0755
+#   live             0644 0755
+#   certs            0644 0755
+#   certs/*/haproxy  0600 0700  # Support for the HAProxy extension; contains private keys
+#   keys             0600 0700
+#   conf             0644 0755
+#   tmp              0600 0700  # Do NOT change this
+#
+# If you wish to disable a path-pattern rule allowing policy to be inherited
+# from a shorter match, you can do this using the special keyword 'inherit':
+#
+#   path-pattern inherit
+#
+# For example, maybe you want to make the whole directory restricted:
+#   .    0600 0700
+#   accounts inherit
+#   certs inherit
+#   conf inherit
+#   desired inherit
+#   keys inherit
+#
+# Again, you should rarely ever need to use this file. When you use this file,
+# add only the entries that you absolutely need.

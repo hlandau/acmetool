@@ -4,7 +4,9 @@ package fdb
 
 import (
 	"fmt"
+	deos "github.com/hlandau/degoutils/os"
 	"github.com/hlandau/xlog"
+	"gopkg.in/hlandau/service.v2/passwd"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,15 +17,17 @@ var log, Log = xlog.New("fdb")
 
 // FDB instance.
 type DB struct {
-	cfg        Config
-	path       string
-	extantDirs map[string]struct{}
+	cfg                  Config
+	path                 string
+	extantDirs           map[string]struct{}
+	effectivePermissions []Permission
 }
 
 // FDB configuration.
 type Config struct {
-	Path        string
-	Permissions []Permission
+	Path            string
+	Permissions     []Permission
+	PermissionsPath string // If not "", allow permissions to be overriden from this file.
 }
 
 // Expresses the permission policy for a given path. The first match is used.
@@ -40,6 +44,43 @@ type Permission struct {
 	Path     string
 	FileMode os.FileMode
 	DirMode  os.FileMode
+
+	UID string // if not "", user/UID to enforce
+	GID string // if not "", group/GID to enforce
+}
+
+// Merge b into a.
+func mergePermissions(a, b []Permission) ([]Permission, error) {
+	var r []Permission
+	r = append(r, a...)
+
+	am := map[string]int{}
+	for i := range a {
+		am[a[i].Path] = i
+	}
+
+	for i := range b {
+		ai, ok := am[b[i].Path]
+		if ok {
+			r[ai] = b[i]
+		} else {
+			r = append(r, b[i])
+		}
+	}
+
+	return r, nil
+}
+
+// Return a copy of a but without any permissions with paths in pathsToErase.
+func erasePermissionsByPath(a []Permission, pathsToErase map[string]struct{}) []Permission {
+	var r []Permission
+	for i := range a {
+		_, erase := pathsToErase[a[i].Path]
+		if !erase {
+			r = append(r, a[i])
+		}
+	}
+	return r
 }
 
 // Open a fdb database or create a new database.
@@ -79,7 +120,12 @@ func (db *DB) Close() error {
 // This is called automatically when opening the database so you shouldn't need
 // to call it.
 func (db *DB) Verify() error {
-	err := db.createDirs()
+	err := db.loadPermissions()
+	if err != nil {
+		return err
+	}
+
+	err = db.createDirs()
 	if err != nil {
 		return err
 	}
@@ -99,7 +145,7 @@ func (db *DB) Verify() error {
 }
 
 func (db *DB) createDirs() error {
-	for _, p := range db.cfg.Permissions {
+	for _, p := range db.effectivePermissions {
 		if strings.IndexByte(p.Path, '*') >= 0 {
 			continue
 		}
@@ -111,6 +157,65 @@ func (db *DB) createDirs() error {
 	}
 
 	return nil
+}
+
+func (db *DB) loadPermissions() error {
+	db.effectivePermissions = db.cfg.Permissions
+
+	if db.cfg.PermissionsPath == "" {
+		return nil
+	}
+
+	r, err := db.Collection("").Open(db.cfg.PermissionsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+
+		return err
+	}
+	defer r.Close()
+
+	ps, erasePaths, err := parsePermissions(r)
+	if err != nil {
+		return fmt.Errorf("badly formatted permissions file: %v", err)
+	}
+
+	mergedPermissions, err := mergePermissions(db.cfg.Permissions, ps)
+	if err != nil {
+		return err
+	}
+
+	mergedPermissions = erasePermissionsByPath(mergedPermissions, erasePaths)
+	db.effectivePermissions = mergedPermissions
+	return nil
+}
+
+func resolveUIDGID(p *Permission) (uid, gid int, enforce bool, err error) {
+	if p.UID == "" || p.GID == "" {
+		return
+	}
+
+	if p.UID == "$r" {
+		uid = os.Getuid()
+	} else {
+		uid, err = passwd.ParseUID(p.UID)
+		if err != nil {
+			return
+		}
+	}
+
+	if p.GID == "$r" {
+		gid = os.Getgid()
+	} else {
+		gid, err = passwd.ParseGID(p.GID)
+		if err != nil {
+			return
+		}
+	}
+
+	enforce = true
+	return
 }
 
 // Change all directory permissions to be correct.
@@ -189,6 +294,33 @@ func (db *DB) conformPermissions() error {
 					}
 				}
 			}
+
+			correctUID, correctGID, enforceOwner, err := resolveUIDGID(perm)
+			if err != nil {
+				return err
+			}
+
+			if enforceOwner {
+				curUID, err := deos.GetFileUID(info)
+				if err != nil {
+					return err
+				}
+
+				curGID, err := deos.GetFileGID(info)
+				if err != nil {
+					return err
+				}
+
+				if curUID != correctUID || curGID != correctGID {
+					log.Warnf("%#v has wrong UID/GID %v/%v, changing to %v/%v", rpath, curUID, curGID, correctUID, correctGID)
+
+					err := os.Lchown(rpath, correctUID, correctGID)
+					if err != nil {
+						// Can't chown if not root so be a bit forgiving, but always moan
+						log.Errore(err, "could not lchown file ", rpath)
+					}
+				}
+			}
 		}
 
 		return nil
@@ -209,7 +341,7 @@ func (db *DB) longestMatching(path string) *Permission {
 	}
 
 	for {
-		for _, p := range db.cfg.Permissions {
+		for _, p := range db.effectivePermissions {
 			m, err := filepath.Match(p.Path, path)
 			if err != nil {
 				return nil
@@ -311,7 +443,7 @@ func (db *DB) Collection(collectionName string) *Collection {
 func (c *Collection) Collection(name string) *Collection {
 	return &Collection{
 		db:   c.db,
-		name: c.name + "/" + name,
+		name: filepath.Join(c.name, name),
 	}
 }
 
@@ -368,9 +500,6 @@ func (c *Collection) Name() string {
 func (c *Collection) OSPath(name string) string {
 	c.ensurePath() // ignore error
 
-	if name == "" {
-		return filepath.Join(c.db.path, c.name)
-	}
 	return filepath.Join(c.db.path, c.name, name)
 }
 
@@ -479,7 +608,21 @@ func (cw *closeWrapper) Close() error {
 	if cw.writing {
 		p := cw.db.longestMatching(cw.finalNameRel)
 		if p != nil {
-			// TempFile creates files with mode 0600, so it's OK to chmod it here, race-wise
+			// TempFile creates files with mode 0600, so it's OK to chmod/chown it here, race-wise
+
+			if p.UID != "" {
+				uid, gid, enforce, err := resolveUIDGID(p)
+				if err != nil {
+					return err
+				}
+
+				if enforce && (uid != os.Getuid() || gid != os.Getgid()) {
+					err := os.Lchown(cw.finalName, uid, gid)
+					// failure is nonfatal, may not be root
+					log.Errore(err, "could not set correct owner for file", cw.finalName)
+				}
+			}
+
 			err = os.Chmod(cw.finalName, p.FileMode)
 			if err != nil {
 				return err
