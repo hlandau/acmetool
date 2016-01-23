@@ -3,24 +3,30 @@
 ACME_DIR="$(pwd)"
 
 # Fetch boulder.
-travis_retry go get \
+echo travis_fold:start:get-boulder
+travis_retry go get -v \
   bitbucket.org/liamstask/goose/cmd/goose \
   github.com/jsha/listenbuddy \
   github.com/letsencrypt/boulder/... \
   github.com/tcnksm/ghr \
   github.com/hlandau/gox
+echo travis_fold:end:get-boulder
 
 # Setup DB.
 cd $GOPATH/src/github.com/letsencrypt/boulder
+echo travis_fold:start:setup-boulder
 ./test/create_db.sh || exit 2
 
 # Setup AMQP.
 go run cmd/rabbitmq-setup/main.go -server amqp://localhost || exit 4
 
-# Start boulder.
+# Patch config, startup detection.
 patch -t -p1 < "$ACME_DIR/.travis/boulder.patch" || exit 3
+echo travis_fold:end:setup-boulder
+
+# Start boulder.
 export OBJDIR="$GOPATH/src/github.com/letsencrypt/boulder/bin"
-./start.py &
+./start.py &> boulder.log &
 START_PID=$$
 
 # Wait for boulder to come up.
@@ -37,8 +43,15 @@ echo ----------------------------------------------------------------
 # Run tests.
 cd "$ACME_DIR"
 
+echo travis_fold:start:go-tests
 go test -v ./...
 RESULT=$?
+echo travis_fold:end:go-tests
+
+echo travis_fold:start:boulder-log
+echo Dumping boulder log
+cat $GOPATH/src/github.com/letsencrypt/boulder/boulder.log
+echo travis_fold:end:boulder-log
 
 echo Done with exit code $RESULT
 if [ "$RESULT" != "0" ]; then
@@ -48,6 +61,7 @@ fi
 # Test cross-compilation. The binaries produced are also used for release
 # upload in after_success if this is a release tag.
 
+echo travis_fold:start:crosscompile
 echo Cross-compiling releases...
 mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
 
@@ -70,6 +84,8 @@ gox -ldflags "$BUILDINFO" -osarch 'darwin/amd64 linux/amd64 linux/arm linux/arm6
 RESULT3=$?
 GO386=387 gox -ldflags "$BUILDINFO" -osarch 'linux/386 darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT4=$?
+
+echo travis_fold:end:crosscompile
 
 # Defer exiting to get as much error output as possible upfront.
 echo "cgo crosscompile (amd64) exited with code $RESULT1"
