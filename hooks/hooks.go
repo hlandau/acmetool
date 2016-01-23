@@ -4,6 +4,7 @@ package hooks
 
 import (
 	"fmt"
+	deos "github.com/hlandau/degoutils/os"
 	"github.com/hlandau/xlog"
 	"os"
 	"os/exec"
@@ -14,9 +15,9 @@ import (
 // Log site.
 var log, Log = xlog.New("acme.hooks")
 
-// The default hook path is the path at which executable hooks are looked for
-// for notification purposes. On POSIX-like systems, this is usually
-// "/usr/lib/acme/hooks" (or "/usr/libexec/acme/hooks" if /usr/libexec exists).
+// The default hook path is the path at which executable hooks are looked for.
+// On POSIX-like systems, this is usually "/usr/lib/acme/hooks" (or
+// "/usr/libexec/acme/hooks" if /usr/libexec exists).
 var DefaultPath string
 
 func init() {
@@ -43,7 +44,7 @@ func NotifyLiveUpdated(hookDirectory, stateDirectory string, hostnames []string)
 	}
 
 	hostnameList := strings.Join(hostnames, "\n") + "\n"
-	err := runParts(hookDirectory, stateDirectory, []byte(hostnameList), "live-updated")
+	_, err := runParts(hookDirectory, stateDirectory, []byte(hostnameList), "live-updated")
 	if err != nil {
 		return err
 	}
@@ -51,9 +52,25 @@ func NotifyLiveUpdated(hookDirectory, stateDirectory string, hostnames []string)
 	return nil
 }
 
+// Invokes HTTP challenge start hooks.
+//
+// installed indicates whether at least one hook script indicated success. err
+// could still be returned in this case if an error occurs while executing some
+// other hook.
+func ChallengeHTTPStart(hookDirectory, stateDirectory, hostname, targetFileName, token, ka string) (installed bool, err error) {
+	return runParts(hookDirectory, stateDirectory, []byte(ka),
+		"challenge-http-start", hostname, targetFileName, token)
+}
+
+func ChallengeHTTPStop(hookDirectory, stateDirectory, hostname, targetFileName, token, ka string) error {
+	_, err := runParts(hookDirectory, stateDirectory, []byte(ka),
+		"challenge-http-stop", hostname, targetFileName, token)
+	return err
+}
+
 // Implements functionality similar to the "run-parts" command on many distros.
 // Implementations vary, so it is reimplemented here.
-func runParts(directory, stateDirectory string, stdinData []byte, args ...string) error {
+func runParts(directory, stateDirectory string, stdinData []byte, args ...string) (anySucceeded bool, err error) {
 	if directory == "" {
 		directory = DefaultPath
 	}
@@ -62,51 +79,51 @@ func runParts(directory, stateDirectory string, stdinData []byte, args ...string
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Not an error if the directory doesn't exist; nothing to do.
-			return nil
+			return false, nil
 		}
 
-		return err
+		return false, err
 	}
 
 	// Probably shouldn't propagate this to all child processes, but it's the
 	// easiest way to not replace the entire environment when calling.
 	err = os.Setenv("ACME_STATE_DIR", stateDirectory)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Do not execute a world-writable directory.
 	if (fi.Mode() & 02) != 0 {
-		return fmt.Errorf("refusing to execute notification hooks, directory is world-writable: %s", directory)
+		return false, fmt.Errorf("refusing to execute hooks, directory is world-writable: %s", directory)
 	}
 
 	ms, err := filepath.Glob(filepath.Join(directory, "*"))
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	for _, m := range ms {
 		fi, err := os.Stat(m)
 		if err != nil {
-			log.Errore(err, "notify: ", m)
+			log.Errore(err, "hook: ", m)
 			continue
 		}
 
 		// Yes, this is vulnerable to race conditions; it's just to stop people
 		// from shooting themselves in the foot.
 		if (fi.Mode() & 02) != 0 {
-			log.Errorf("refusing to execute world-writable notification script: %s", m)
+			log.Errorf("refusing to execute world-writable hook script: %s", m)
 			continue
 		}
 
 		var cmd *exec.Cmd
 		if shouldSudoFile(m, fi) {
-			log.Debugf("calling notification script (with sudo): %s", m)
+			log.Debugf("calling hook script (with sudo): %s", m)
 			args2 := []string{"-n", "--", m}
 			args2 = append(args2, args...)
 			cmd = exec.Command("sudo", args2...)
 		} else {
-			log.Debugf("calling notification script: %s", m)
+			log.Debugf("calling hook script: %s", m)
 			cmd = exec.Command(m, args...)
 		}
 
@@ -114,7 +131,7 @@ func runParts(directory, stateDirectory string, stdinData []byte, args ...string
 
 		pipeR, pipeW, err := os.Pipe()
 		if err != nil {
-			return err
+			return anySucceeded, err
 		}
 
 		defer pipeR.Close()
@@ -126,11 +143,34 @@ func runParts(directory, stateDirectory string, stdinData []byte, args ...string
 		cmd.Stdin = pipeR
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		err = cmd.Run() // ignore errors
-		log.Errore(err, "notify script: ", m)
+		err = cmd.Run()
+		logFailedExecution(m, err)
+		if err == nil {
+			anySucceeded = true
+		}
 	}
 
-	return nil
+	return anySucceeded, nil
+}
+
+func logFailedExecution(hookPath string, err error) {
+	if err == nil {
+		return
+	}
+
+	exitCode, err2 := deos.GetExitCode(err)
+	if err2 != nil {
+		// Not an error code. ???
+		log.Errore(err2, "hook script: ", hookPath)
+		return
+	}
+
+	switch exitCode {
+	case 42:
+		// Unsupported event type for this hook. Don't log anything; this is OK.
+	default:
+		log.Errore(err, "hook script: ", hookPath)
+	}
 }
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

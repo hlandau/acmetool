@@ -507,7 +507,9 @@ They can be used to install challenge files at arbitrary locations.
 The first argument is the hostname to which the challenge relates.
 
 The second argument is the filename of the target file causing the challenge to
-be completed.
+be completed. This may be the empty string in some circumstances; for example,
+when an authorization is being obtained for the purposes of performing
+revocation rather than for obtaining a certificate.
 
 The third argument is the filename which must be provisioned under
 `/.well-known/acme-challenge/`.
