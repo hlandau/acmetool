@@ -345,15 +345,15 @@ func (r *reconcile) getClientForAccount(a *storage.Account) *acmeapi.Client {
 
 func (r *reconcile) getRevocationAuthorizations(acct *storage.Account, crt *x509.Certificate) error {
 	log.Debugf("obtaining authorizations needed to facilitate revocation")
-	return r.obtainNecessaryAuthorizations(crt.DNSNames, acct, &r.store.DefaultTarget().Request.Challenge)
+	return r.obtainNecessaryAuthorizations(crt.DNSNames, acct, "", &r.store.DefaultTarget().Request.Challenge)
 }
 
-func (r *reconcile) obtainNecessaryAuthorizations(names []string, a *storage.Account, ccfg *storage.TargetRequestChallenge) error {
+func (r *reconcile) obtainNecessaryAuthorizations(names []string, a *storage.Account, targetFilename string, ccfg *storage.TargetRequestChallenge) error {
 	authsNeeded := r.determineNecessaryAuthorizations(names, a)
 
 	for _, name := range authsNeeded {
 		log.Debugf("trying to obtain authorization for %q", name)
-		err := r.obtainAuthorization(name, a, ccfg)
+		err := r.obtainAuthorization(name, a, targetFilename, ccfg)
 		if err != nil {
 			log.Errore(err, "could not obtain authorization for ", name)
 			return err
@@ -386,13 +386,34 @@ func (r *reconcile) determineNecessaryAuthorizations(names []string, a *storage.
 	return neededs
 }
 
-func (r *reconcile) obtainAuthorization(name string, a *storage.Account, trc *storage.TargetRequestChallenge) error {
+func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetFilename string, trc *storage.TargetRequestChallenge) error {
 	cl := r.getClientForAccount(a)
 
+	startHookFunc := func(challengeInfo interface{}) error {
+		switch v := challengeInfo.(type) {
+		case *responder.HTTPChallengeInfo:
+			_, err := hooks.ChallengeHTTPStart("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+			return err
+		default:
+			return nil
+		}
+	}
+
+	stopHookFunc := func(challengeInfo interface{}) error {
+		switch v := challengeInfo.(type) {
+		case *responder.HTTPChallengeInfo:
+			return hooks.ChallengeHTTPStop("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+		default:
+			return nil
+		}
+	}
+
 	ccfg := responder.ChallengeConfig{
-		WebPaths:     trc.WebrootPaths,
-		HTTPPorts:    trc.HTTPPorts,
-		PriorKeyFunc: r.getPriorKey,
+		WebPaths:      trc.WebrootPaths,
+		HTTPPorts:     trc.HTTPPorts,
+		PriorKeyFunc:  r.getPriorKey,
+		StartHookFunc: startHookFunc,
+		StopHookFunc:  stopHookFunc,
 	}
 
 	az, err := solver.Authorize(cl, name, ccfg, nil, context.TODO())
@@ -528,7 +549,7 @@ func (r *reconcile) requestCertificateForTarget(t *storage.Target) error {
 		return err
 	}
 
-	err = r.obtainNecessaryAuthorizations(t.Request.Names, t.Request.Account, &t.Request.Challenge)
+	err = r.obtainNecessaryAuthorizations(t.Request.Names, t.Request.Account, t.Filename, &t.Request.Challenge)
 	if err != nil {
 		return err
 	}

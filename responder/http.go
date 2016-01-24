@@ -20,6 +20,11 @@ import (
 	"time"
 )
 
+type HTTPChallengeInfo struct {
+	Filename string
+	Body     string
+}
+
 type httpResponder struct {
 	rcfg Config
 
@@ -78,7 +83,7 @@ func (s *httpResponder) notify() {
 
 // Start handling HTTP requests.
 func (s *httpResponder) Start(interactor interaction.Interactor) error {
-	err := s.startListeners()
+	err := s.startActual()
 	if err != nil {
 		return err
 	}
@@ -243,7 +248,7 @@ func parseListenAddrs(addrs []string) map[string]struct{} {
 	return m
 }
 
-func (s *httpResponder) startListeners() error {
+func (s *httpResponder) startActual() error {
 	// Here's our brute force method: listen on everything that might work.
 	addrs := parseListenAddrs(s.rcfg.ChallengeConfig.HTTPPorts)
 	addrs["[::1]:80"] = struct{}{}
@@ -260,6 +265,15 @@ func (s *httpResponder) startListeners() error {
 	// Even if none of the listeners managed to start, the webroot or redirector
 	// methods might work.
 	webrootWriteChallenge(s.getWebroots(), s.rcfg.Token, s.ka)
+
+	// Try hooks.
+	if startFunc := s.rcfg.ChallengeConfig.StartHookFunc; startFunc != nil {
+		err := startFunc(&HTTPChallengeInfo{
+			Filename: s.rcfg.Token,
+			Body:     string(s.ka),
+		})
+		log.Errore(err, "start challenge hook")
+	}
 
 	return nil
 }
@@ -313,6 +327,15 @@ func (s *httpResponder) Stop() error {
 
 	// Try and remove challenges.
 	webrootRemoveChallenge(s.getWebroots(), s.rcfg.Token)
+
+	// Try and stop hooks.
+	if stopFunc := s.rcfg.ChallengeConfig.StopHookFunc; stopFunc != nil {
+		err := stopFunc(&HTTPChallengeInfo{
+			Filename: s.rcfg.Token,
+			Body:     string(s.ka),
+		})
+		log.Errore(err, "stop challenge hook")
+	}
 
 	return nil
 }

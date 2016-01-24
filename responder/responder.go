@@ -88,12 +88,17 @@ type ChallengeConfig struct {
 	//
 	// If not specified, proofOfPossession challenges always fail.
 	PriorKeyFunc PriorKeyFunc
+
+	StartHookFunc HookFunc
+	StopHookFunc  HookFunc
 }
 
 // Returns the private key corresponding to the given public key, if it can be
 // found. If a corresponding private key cannot be found, return nil; do not
 // return an error. Returning an error short circuits.
 type PriorKeyFunc func(crypto.PublicKey) (crypto.PrivateKey, error)
+
+type HookFunc func(challengeInfo interface{}) error
 
 var responderTypes = map[string]func(Config) (Responder, error){}
 

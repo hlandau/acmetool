@@ -102,7 +102,7 @@ const reloadHookFile = `#!/bin/bash
 
 set -e
 EVENT_NAME="$1"
-[ "$EVENT_NAME" == "live-updated" ] || exit 0
+[ "$EVENT_NAME" == "live-updated" ] || exit 42
 
 SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
@@ -142,7 +142,7 @@ const haproxyReloadHookFile = `#!/bin/bash
 
 set -e
 EVENT_NAME="$1"
-[ "$EVENT_NAME" == "live-updated" ] || exit 0
+[ "$EVENT_NAME" == "live-updated" ] || exit 42
 
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
