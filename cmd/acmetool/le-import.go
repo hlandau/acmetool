@@ -30,9 +30,13 @@ func cmdImportLE() {
 	//   - import the certificates
 
 	// Import account keys.
+	durls := map[string]struct{}{}
+
 	for _, accountName := range accountNames {
-		err := importLEAccount(s, lePath, accountName)
+		acct, err := importLEAccount(s, lePath, accountName)
 		log.Fatale(err, "import account")
+
+		durls[acct.DirectoryURL] = struct{}{}
 	}
 
 	keyFiles, err := filepath.Glob(filepath.Join(lePath, "keys", "*.pem"))
@@ -52,14 +56,25 @@ func cmdImportLE() {
 		err := importCert(s, certFile)
 		log.Fatale(err, "import certificate")
 	}
+
+	// If there is no default provider set, and we have only one directory URL
+	// imported, set it as the default provider.
+	if len(durls) == 1 && s.DefaultTarget().Request.Provider == "" {
+		for p := range durls {
+			s.DefaultTarget().Request.Provider = p
+			err := s.SaveTarget(s.DefaultTarget())
+			log.Fatale(err, "couldn't set default provider")
+			break
+		}
+	}
 }
 
 var knownProviderURLs = map[string]struct{}{}
 
-func importLEAccount(s storage.Store, lePath, accountName string) error {
+func importLEAccount(s storage.Store, lePath, accountName string) (*storage.Account, error) {
 	providerURL, err := getProviderURLFromAccountName(accountName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	knownProviderURLs[providerURL] = struct{}{}
@@ -67,31 +82,35 @@ func importLEAccount(s storage.Store, lePath, accountName string) error {
 	pkPath := filepath.Join(lePath, "accounts", accountName, "private_key.json")
 	b, err := ioutil.ReadFile(pkPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	k := jose.JsonWebKey{}
 	err = k.UnmarshalJSON(b)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = s.ImportAccount(providerURL, k.Key)
+	acct, err := s.ImportAccount(providerURL, k.Key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return acct, nil
 }
 
 func importKey(s storage.Store, filename string) error {
-	f, err := os.Open(filename)
+	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	_, err = s.ImportKey(f)
+	pk, err := acmeutils.LoadPrivateKey(b)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.ImportKey(pk)
 	return err
 }
 
