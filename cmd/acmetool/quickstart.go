@@ -582,7 +582,9 @@ PROXY: The proxy option requires you to configure your web server to proxy reque
 
 REDIRECTOR: The redirector option runs a special web server daemon on port 80. This means that you cannot run your own web server on port 80. The redirector redirects all HTTP requests to the equivalent HTTPS URL, so this is useful if you want to enforce use of HTTPS. You will need to configure your web server to not listen on port 80, and you will need to configure your system to run "acmetool redirector" as a daemon. If your system uses systemd, an appropriate unit file can automatically be installed.
 
-LISTEN: Directly listen on port 80 or 443, whichever is available, in order to complete challenges. This is useful only for development purposes.`,
+LISTEN: Directly listen on port 80 or 443, whichever is available, in order to complete challenges. This is useful only for development purposes.
+
+HOOK: Programmatic challenge provisioning. Advanced users only. Please see documentation.`,
 		ResponseType: interaction.RTSelect,
 		Options: []interaction.Option{
 			{
@@ -597,6 +599,9 @@ LISTEN: Directly listen on port 80 or 443, whichever is available, in order to c
 			},
 			{Title: "LISTEN - Listen on port 80 or 443 (only useful for development purposes)",
 				Value: "listen",
+			},
+			{Title: "HOOKS - I will write scripts to provision challenges",
+				Value: "hook",
 			},
 		},
 		UniqueID: "acmetool-quickstart-choose-method",

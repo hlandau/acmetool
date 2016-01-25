@@ -154,7 +154,7 @@ You can increase logging severity for debugging purposes by passing
 
 ## Validation Options
 
-<img src="https://i.imgur.com/w8TbgLL.png" align="right" alt="[screenshot]" />
+<img src="https://i.imgur.com/h1rtdek.png" align="right" alt="[screenshot]" />
 
 **Webroot:** acmetool can place challenge files in a given directory, allowing your normal
 web server to serve them. The files must be served from the path you specify at
@@ -181,6 +181,10 @@ Make sure your web server is not listening on port 80.
 **Listen:** If you are for some reason not running anything on port 80 or 443, acmetool
 will use those ports. Either port being available is sufficient. This is only
 really useful for development purposes.
+
+**Hook:** You can write custom shell scripts (or binary executables) which
+acmetool invokes to provison challenge files at the desired location. For
+example, you could rsync challenge files to a directory on a remote server. [More information.](https://hlandau.github.io/acme/userguide#challenge-hooks)
 
 ## Renewal
 
@@ -251,6 +255,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Authorization via port 80 redirector</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via proxy</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via listener§</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<tr><td>Authorization via custom hook</td><td><a href="https://hlandau.github.io/acme/userguide#challenge-hooks">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Import state from official client</td><td>Yes</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>Windows (basic) support</td><td>No</td><td>No</td><td>Yes</td><td>—</td></tr>
 <tr><td>Windows integration support</td><td>No</td><td>No</td><td>No</td><td>—</td></tr>
