@@ -84,7 +84,7 @@ func cmdQuickstart() {
 	}
 
 	installDefaultHooks()
-	if _, err := exec.LookPath("haproxy"); err == nil {
+	if areAnyInPath("haproxy", "hitch") {
 		if promptInstallHAProxyHooks() {
 			installHAProxyHooks()
 		}
@@ -92,6 +92,15 @@ func cmdQuickstart() {
 
 	promptCron()
 	promptGettingStarted()
+}
+
+func areAnyInPath(names ...string) bool {
+	for _, n := range names {
+		if _, err := exec.LookPath(n); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 const reloadHookFile = `#!/bin/bash
@@ -104,7 +113,7 @@ set -e
 EVENT_NAME="$1"
 [ "$EVENT_NAME" == "live-updated" ] || exit 42
 
-SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy"
+SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 [ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
@@ -150,8 +159,8 @@ EVENT_NAME="$1"
 
 [ -z "$HAPROXY_DH_PATH" ] && HAPROXY_DH_PATH="$ACME_STATE_DIR/conf/dhparams"
 
-# Don't do anything if HAProxy is not installed.
-which haproxy >/dev/null 2>/dev/null || exit 0
+# Don't do anything if neither HAProxy nor Hitch are installed.
+[ -n "$HAPROXY_ALWAYS_GENERATE" ] || which haproxy &>/dev/null || which hitch &>/dev/null || exit 0
 
 # Create coalesced files and a haproxy repository.
 mkdir -p "$ACME_STATE_DIR/haproxy"
@@ -361,15 +370,15 @@ func promptInstallHAProxyHooks() bool {
 
 	// Prompt.
 	r, err := interaction.Auto.Prompt(&interaction.Challenge{
-		Title: "Install HAProxy hooks?",
-		Body: fmt.Sprintf(`You appear to have HAProxy installed. By default, acmetool doesn't support HAProxy too well because HAProxy requires the certificate chain, private key (and custom Diffie-Hellman parameters, if used) to be placed in the same file.
+		Title: "Install HAProxy/Hitch hooks?",
+		Body: fmt.Sprintf(`You appear to have HAProxy or Hitch installed. By default, acmetool doesn't support these too well because they require the certificate chain, private key (and custom Diffie-Hellman parameters, if used) to be placed in the same file.
 
-acmetool can install a notification hook that will generate an additional file called "haproxy" in every certificate directory. This means that you can point HAProxy to "%s/live/HOSTNAME/haproxy".
+acmetool can install a notification hook that will generate an additional file called "haproxy" in every certificate directory. This means that you can point HAProxy to "%s/live/HOSTNAME/haproxy". These files will also be accessible in a directory of their own, as "%s/haproxy/HOSTNAME". (Despite their naming, these files work for Hitch as well as HAProxy.)
 
 If you place a PEM-encoded DH parameter file at %s/conf/dhparams, those will also be included in each haproxy file. This is optional.
 
-Do you want to install the HAProxy notification hook?
-    `, *stateFlag, *stateFlag),
+Do you want to install the HAProxy/Hitch notification hook?
+    `, *stateFlag, *stateFlag, *stateFlag),
 		ResponseType: interaction.RTYesNo,
 		UniqueID:     "acmetool-quickstart-install-haproxy-script",
 	})
