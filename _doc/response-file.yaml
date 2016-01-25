@@ -16,4 +16,6 @@
 "acmetool-quickstart-install-cronjob": true
 "acmetool-quickstart-install-haproxy-script": true
 "acmetool-quickstart-install-redirector-systemd": true
+"acmetool-quickstart-key-type": ecdsa
 "acmetool-quickstart-rsa-key-size": 4096
+"acmetool-quickstart-ecdsa-curve": nistp256
