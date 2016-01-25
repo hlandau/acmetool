@@ -1,4 +1,4 @@
-#!/bin/bash
+#!bash
 
 [ -n "$TRAVIS_TAG" ] || git diff --name-only "$TRAVIS_COMMIT_RANGE" 2>&1 | grep -qvE '(\.(md|txt)$)|_doc/' || {
   echo Documentation-only update. Skipping travis proper.

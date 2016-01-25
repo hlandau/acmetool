@@ -1,0 +1,59 @@
+#!bash
+# Test cross-compilation. The binaries produced are also used for release
+# upload in after_success if this is a release tag.
+
+[ -e "/tmp/crosscompiled" ] && return
+touch /tmp/crosscompiled
+
+echo travis_fold:start:crosscompile
+echo Cross-compiling releases...
+mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
+
+# Assume that x86 machines don't necessarily have SSE2. Whereas for amd64,
+# require SSE2.
+
+REPO=github.com/$TRAVIS_REPO_SLUG
+BINARIES=$REPO/cmd/acmetool
+export BUILDNAME="by travis"
+BUILDINFO="$($GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $BINARIES)"
+
+# cgo crosscompile
+gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}_cgo/bin/{{.Dir}}" $BINARIES
+RESULT1=$?
+GO386=387 gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}_cgo/bin/{{.Dir}}" $BINARIES
+RESULT2=$?
+
+# non-cgo crosscompile
+gox -ldflags "$BUILDINFO" -osarch 'darwin/amd64 linux/amd64 linux/arm linux/arm64 freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+RESULT3=$?
+GO386=387 gox -ldflags "$BUILDINFO" -osarch 'linux/386 darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+RESULT4=$?
+
+echo travis_fold:end:crosscompile
+
+# Defer exiting to get as much error output as possible upfront.
+echo "cgo crosscompile (amd64) exited with code $RESULT1"
+echo "cgo crosscompile (386) exited with code $RESULT2"
+echo "non-cgo crosscompile (amd64) exited with code $RESULT3"
+echo "non-cgo crosscompile (386) exited with code $RESULT4"
+
+if [ "$RESULT1" != "0" ]; then
+  exit $RESULT1
+fi
+if [ "$RESULT2" != "0" ]; then
+  exit $RESULT2
+fi
+if [ "$RESULT3" != "0" ]; then
+  exit $RESULT3
+fi
+if [ "$RESULT4" != "0" ]; then
+  exit $RESULT4
+fi
+
+# Generate man page.
+"$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-linux_amd64_cgo/bin/acmetool" --help-man > acmetool.8 || echo Failed to generate man page
+
+for x in $GOPATH/releasing/idist/*; do
+  mkdir -p "$x/doc"
+  cp -a acmetool.8 "$x/doc/"
+done

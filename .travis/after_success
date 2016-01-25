@@ -1,4 +1,4 @@
-#!/bin/bash
+#!bash
 
 # Only upload version tags.
 if ! [[ "$TRAVIS_TAG" =~ ^v[0-9] ]]; then
@@ -6,10 +6,8 @@ if ! [[ "$TRAVIS_TAG" =~ ^v[0-9] ]]; then
   return 0
 fi
 
-if [ -z "$GITHUB_TOKEN" ]; then
-  echo "Don't appear to have GitHub token, cannot continue."
-  return 0
-fi
+[ -n "$GITHUB_TOKEN" ] || { echo "Don't appear to have GitHub token, cannot continue."; return 0; }
+[ -e "/tmp/crosscompiled" ] || { echo "Not crosscompiled?"; return 1; }
 
 # Make archives.
 echo Archiving releases...

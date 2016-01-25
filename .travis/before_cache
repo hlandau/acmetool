@@ -1,0 +1,16 @@
+#!bash
+# Store stuff we want cached in $HOME/tcache, which travis caches. We have
+# to do this instead of pointing it directly at say, $GOPATH, because $GOPATH
+# contains, of course, acmetool. Obviously we don't want to test an outdated
+# version of ourself. So make a tar file in tcache containing what we want.
+if [ -e "$HOME/tcache/gopath.tar" ]; then
+  echo Already have cache, no need to refresh
+  return
+fi
+
+mkdir -p "$HOME/tcache"
+cd "$GOPATH"
+tar cvf "$HOME/tcache/gopath.tar" \
+  bin/ghr bin/gox bin/goose bin/listenbuddy
+
+cd "$ACME_DIR"

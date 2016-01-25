@@ -1,24 +1,31 @@
-#!/bin/bash
+#!bash
 
 ACME_DIR="$(pwd)"
 
-# Fetch boulder.
+# Fetch boulder and dependencies.
 echo travis_fold:start:get-boulder
-travis_retry go get -v \
-  bitbucket.org/liamstask/goose/cmd/goose \
-  github.com/jsha/listenbuddy \
+
+NEEDED_LIBS=
+if [ -e "$HOME/tcache/gopath.tar" ]; then
+  cd "$GOPATH"
+  tar xvf "$HOME/tcache/gopath.tar" || exit 1
+  cd "$ACME_DIR"
+else
+  NEEDED_LIBS="github.com/jsha/listenbuddy github.com/tcnksm/ghr github.com/hlandau/gox bitbucket.org/liamstask/goose/cmd/goose"
+fi
+
+time travis_retry go get -v \
   github.com/letsencrypt/boulder/... \
-  github.com/tcnksm/ghr \
-  github.com/hlandau/gox
+  $NEEDED_LIBS
 echo travis_fold:end:get-boulder
 
 # Setup DB.
 cd $GOPATH/src/github.com/letsencrypt/boulder
 echo travis_fold:start:setup-boulder
-./test/create_db.sh || exit 2
+time ./test/create_db.sh || exit 2
 
 # Setup AMQP.
-go run cmd/rabbitmq-setup/main.go -server amqp://localhost || exit 4
+time go run cmd/rabbitmq-setup/main.go -server amqp://localhost || exit 4
 
 # Patch config, startup detection.
 patch -t -p1 < "$ACME_DIR/.travis/boulder.patch" || exit 3
@@ -44,7 +51,7 @@ echo ----------------------------------------------------------------
 cd "$ACME_DIR"
 
 echo travis_fold:start:go-tests
-go test -v ./...
+time go test -v ./...
 RESULT=$?
 echo travis_fold:end:go-tests
 
@@ -58,61 +65,11 @@ if [ "$RESULT" != "0" ]; then
   exit $RESULT
 fi
 
-# Test cross-compilation. The binaries produced are also used for release
-# upload in after_success if this is a release tag.
-
-echo travis_fold:start:crosscompile
-echo Cross-compiling releases...
-mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
-
-# Assume that x86 machines don't necessarily have SSE2. Whereas for amd64,
-# require SSE2.
-
-REPO=github.com/$TRAVIS_REPO_SLUG
-BINARIES=$REPO/cmd/acmetool
-export BUILDNAME="by travis"
-BUILDINFO="$($GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $BINARIES)"
-
-# cgo crosscompile
-gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}_cgo/bin/{{.Dir}}" $BINARIES
-RESULT1=$?
-GO386=387 gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}_cgo/bin/{{.Dir}}" $BINARIES
-RESULT2=$?
-
-# non-cgo crosscompile
-gox -ldflags "$BUILDINFO" -osarch 'darwin/amd64 linux/amd64 linux/arm linux/arm64 freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
-RESULT3=$?
-GO386=387 gox -ldflags "$BUILDINFO" -osarch 'linux/386 darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
-RESULT4=$?
-
-echo travis_fold:end:crosscompile
-
-# Defer exiting to get as much error output as possible upfront.
-echo "cgo crosscompile (amd64) exited with code $RESULT1"
-echo "cgo crosscompile (386) exited with code $RESULT2"
-echo "non-cgo crosscompile (amd64) exited with code $RESULT3"
-echo "non-cgo crosscompile (386) exited with code $RESULT4"
-
-if [ "$RESULT1" != "0" ]; then
-  exit $RESULT1
+# Crosscompilation failures are rare now and crosscompiling takes a long time
+# so only do it for tags.
+if [ -n "$TRAVIS_TAG" ]; then
+  time source ./.travis/crosscompile
 fi
-if [ "$RESULT2" != "0" ]; then
-  exit $RESULT2
-fi
-if [ "$RESULT3" != "0" ]; then
-  exit $RESULT3
-fi
-if [ "$RESULT4" != "0" ]; then
-  exit $RESULT4
-fi
-
-# Generate man page.
-"$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-linux_amd64_cgo/bin/acmetool" --help-man > acmetool.8 || echo Failed to generate man page
-
-for x in $GOPATH/releasing/idist/*; do
-  mkdir -p "$x/doc"
-  cp -a acmetool.8 "$x/doc/"
-done
 
 # No point stopping boulder, travis will do it.
 # Don't exit here, we need after_success to run and this script is sourced.

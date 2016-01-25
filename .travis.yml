@@ -40,6 +40,8 @@ script:
   - source ./.travis/script
 after_success:
   - source ./.travis/after_success
+before_cache:
+  - source ./.travis/before_cache
 
 env:
   global:
@@ -54,6 +56,9 @@ branches:
     - dev
     - /^test-.*$/
     - /^v[0-9].*$/
+cache:
+  directories:
+    - $HOME/tcache
 
 notifications:
   webhooks:
