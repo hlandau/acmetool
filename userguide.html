@@ -36,6 +36,10 @@
 <li><a href="#challenge-completion-philosophy">Challenge completion philosophy</a></li>
 <li><a href="#the-state-storage-schema">The state storage schema</a></li>
 <li><a href="#response-files">Response files</a></li>
+<li><a href="#hooks">Hooks</a><ul>
+<li><a href="#notification-hooks">Notification hooks</a></li>
+<li><a href="#challenge-hooks">Challenge hooks</a></li>
+</ul></li>
 <li><a href="#command-line-options">Command line options</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
 <li><a href="#faq">FAQ</a><ul>
@@ -180,6 +184,7 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
   <span class="ot">Order</span><span class="ch"> allow, deny</span>
   Allow<span class="st"> from all</span>
 <span class="fu">&lt;/Directory&gt;</span></code></pre></div>
+<p><strong>Hook mode.</strong> See <a href="#challenge-hooks">Challenge Hooks</a>.</p>
 <h2 id="web-server-configuration-tls">Web server configuration: TLS</h2>
 <p>Mozilla has a <a href="https://mozilla.github.io/server-side-tls/ssl-config-generator/">TLS configuration generator</a> that you can use to generate configurations for common web servers.</p>
 <h2 id="challenge-completion-philosophy">Challenge completion philosophy</h2>
@@ -226,6 +231,19 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p>The file specifies key-value pairs. Each key is a prompt ID. (You can find these by grepping the source code for <code>UniqueID</code>.)</p>
 <p>(For messages which simply require acknowledgement, specify <code>true</code> to bypass them. Yes/no prompts should have a boolean value specified. The example response file is demonstrative.)</p>
 <p>You should specify <code>--batch</code> when using a response file to prevent acmetool from trying to prompt the user and fail instead, in case it tries to ask anything which you don't have a response for in your response file.</p>
+<h2 id="hooks">Hooks</h2>
+<p>Hooks provide a means to extend acmetool with arbitrary behaviour. Hooks are executable files installed by default at <code>/usr/lib/acme/hooks</code> (or, on systems which use <code>/usr/libexec</code>, <code>/usr/libexec/acme/hooks</code>).</p>
+<p>The event type is always passed as the first argument. A hook must exit with exit code 42 for event types it doesn't handle.</p>
+<p>There are currently two types of hook: notification hooks and challenge hooks.</p>
+<h3 id="notification-hooks">Notification hooks</h3>
+<p>The quickstart wizard installs default notification hooks to reload common webservers and other services after acmetool changes the preferred certificate for a hostname. These hooks are executable shell scripts and you can, if you wish, substitute your own. The default hooks are good bases from which to make your own customisations.</p>
+<p>You can use notification hooks to reload webservers, distribute certificates and private keys to other servers, or convert certificates and private keys into another format which is required by some daemon. For example, HAProxy support is implemented entirely via hook.</p>
+<p>The event type is &quot;live-updated&quot;.</p>
+<h3 id="challenge-hooks">Challenge hooks</h3>
+<p>In some complex use cases, it may be necessary to install HTTP challenge files via some arbitrary programmatic means, rather than via one of the standard methods of webroot, proxy, redirector or listener.</p>
+<p>Challenge hooks are executed when challenge files need to be added or removed. Your hook must be synchronous; it must exit only when the challenge file is definitely in place and is globally accessible.</p>
+<p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#hooks">See the specification for more information.</a></p>
+<p>Currently, challenge hooks are only supported for HTTP-based challenges. Support for challenge hooks for TLS-SNI or DNS challenges is under consideration.</p>
 <h2 id="command-line-options">Command line options</h2>
 <p><a href="acmetool.8">See the acmetool(8) manual page.</a></p>
 <h2 id="troubleshooting">Troubleshooting</h2>
@@ -265,7 +283,8 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p>A configuration option has been added to make the redirector ensure that the directory is writable by a certain group when starting up. When this option is used, mode 0775 is used instead and the group owner is changed to a given GID.</p>
 <p>Pass <code>--challenge-gid=GID</code> to <code>acmetool redirector</code> (edit your service manager's configuration, e.g. the systemd unit file), where GID is the numeric group ID of the group owner for the challenge directory (i.e. the GID of the <code>acme</code> group). (Group names rather than IDs may be supported on some platforms, but this is not guaranteed and will vary. Use of a GID is recommended.)</p>
 <p><strong>Proxy:</strong> If you are using the proxy method, you won't be able to listen on port 402 as a non-root user. Use port 4402 instead, which acmetool will try also try to use.</p>
-<p><strong>Listener:</strong> This is not usable under non-root operation unless you can enable acmetool to bind to ports 80/443. On Linux you can do this by running <code>setcap 'cap_net_bind_service=+ep' /path/to/acmetool</code> as root. Other POSIX platforms may have sysctls to allow non-root processes to bind to low ports. However, this mode is not really useful for anything other than development anyway.</p></li>
+<p><strong>Listener:</strong> This is not usable under non-root operation unless you can enable acmetool to bind to ports 80/443. On Linux you can do this by running <code>setcap 'cap_net_bind_service=+ep' /path/to/acmetool</code> as root. Other POSIX platforms may have sysctls to allow non-root processes to bind to low ports. However, this mode is not really useful for anything other than development anyway.</p>
+<p><strong>Hook:</strong> See <a href="#challenge-hooks">Challenge Hooks</a>.</p></li>
 </ul>
 </div>
 

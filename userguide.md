@@ -295,6 +295,8 @@ Alias "/.well-known/acme-challenge/" "/var/run/acme/acme-challenge/"
 </Directory>
 ```
 
+**Hook mode.** See [Challenge Hooks](#challenge-hooks).
+
 ## Web server configuration: TLS
 
 Mozilla has a [TLS configuration
@@ -425,6 +427,49 @@ response file is demonstrative.)
 You should specify `--batch` when using a response file to prevent acmetool
 from trying to prompt the user and fail instead, in case it tries to ask anything
 which you don't have a response for in your response file.
+
+## Hooks
+
+Hooks provide a means to extend acmetool with arbitrary behaviour. Hooks are
+executable files installed by default at `/usr/lib/acme/hooks` (or, on systems
+which use `/usr/libexec`, `/usr/libexec/acme/hooks`).
+
+The event type is always passed as the first argument. A hook must exit with
+exit code 42 for event types it doesn't handle.
+
+There are currently two types of hook: notification hooks and challenge hooks.
+
+### Notification hooks
+
+The quickstart wizard installs default notification hooks to reload common
+webservers and other services after acmetool changes the preferred certificate
+for a hostname. These hooks are executable shell scripts and you can, if you
+wish, substitute your own. The default hooks are good bases from which to make
+your own customisations.
+
+You can use notification hooks to reload webservers, distribute certificates
+and private keys to other servers, or convert certificates and private keys
+into another format which is required by some daemon. For example, HAProxy
+support is implemented entirely via hook.
+
+The event type is "live-updated".
+
+### Challenge hooks
+
+In some complex use cases, it may be necessary to install HTTP challenge files
+via some arbitrary programmatic means, rather than via one of the standard
+methods of webroot, proxy, redirector or listener.
+
+Challenge hooks are executed when challenge files need to be added or removed.
+Your hook must be synchronous; it must exit only when the challenge file is
+definitely in place and is globally accessible.
+
+[See the specification for more
+information.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#hooks)
+
+Currently, challenge hooks are only supported for HTTP-based challenges.
+Support for challenge hooks for TLS-SNI or DNS challenges is under
+consideration.
 
 ## Command line options
 
@@ -559,3 +604,6 @@ wherever you want it), before running acmetool, do the following:
     Other POSIX platforms may have sysctls to allow non-root processes to bind
     to low ports. However, this mode is not really useful for anything other
     than development anyway.
+
+    **Hook:** See [Challenge Hooks](#challenge-hooks).
+
