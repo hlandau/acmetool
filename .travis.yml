@@ -53,6 +53,7 @@ branches:
     - master
     - dev
     - /^test-.*$/
+    - /^v[0-9].*$/
 
 notifications:
   webhooks:
