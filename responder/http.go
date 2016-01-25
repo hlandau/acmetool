@@ -155,11 +155,12 @@ L:
 
 // Tries to write a challenge file to each of the directories.
 func webrootWriteChallenge(webroots map[string]struct{}, token string, ka []byte) {
-	log.Debug("writing webroot challenge files")
+	log.Debugf("writing %d webroot challenge files", len(webroots))
 
 	for wr := range webroots {
 		os.MkdirAll(wr, 0755) // ignore errors
 		fn := filepath.Join(wr, token)
+		log.Debugf("writing webroot file %s", fn)
 
 		// Because /var/run/acme/acme-challenge may not exist due to /var/run
 		// possibly being a tmpfs, and because that tmpfs is likely to be world

@@ -221,10 +221,6 @@ func (s *fdbStore) Reload() error {
 		return err
 	}
 
-	// Legacy support
-	s.loadWebrootPaths()
-	s.loadRSAKeySize()
-
 	return nil
 }
 
@@ -494,13 +490,17 @@ func (s *fdbStore) loadTargets() error {
 
 	dtgt, err := s.validateTargetInner("target", confc, true)
 	if err == nil {
-		dtgt.Satisfy.Names = nil
-		dtgt.Satisfy.ReducedNames = nil
-		dtgt.Request.Names = nil
+		dtgt.genericise()
 		s.defaultTarget = dtgt
 	} else {
+		log.Errore(err, "error loading default target file")
 		s.defaultTarget = &Target{}
 	}
+
+	// Legacy support. We have to do this here so that these defaults get copied
+	// across to the targets.
+	s.loadWebrootPaths()
+	s.loadRSAKeySize()
 
 	// targets
 	c := s.db.Collection("desired")
