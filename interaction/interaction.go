@@ -58,8 +58,9 @@ type Option struct {
 
 // A user's response to a prompt.
 type Response struct {
-	Cancelled bool   // Set this to true if the user cancelled the challenge.
-	Value     string // Value the user entered, if applicable.
+	Cancelled      bool   // Set this to true if the user cancelled the challenge.
+	Value          string // Value the user entered, if applicable.
+	Noninteractive bool   // Set to true if the response came from a noninteractive source.
 }
 
 // Specifies the initial parameters for a status dialog.

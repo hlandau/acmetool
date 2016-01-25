@@ -29,6 +29,7 @@ func (responder) Prompt(c *Challenge) (*Response, error) {
 
 // Configures a canned response for the given interaction UniqueID.
 func SetResponse(uniqueID string, res *Response) {
+	res.Noninteractive = true
 	responses[uniqueID] = res
 }
 

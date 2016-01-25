@@ -533,15 +533,17 @@ Webroot paths vary by OS; please consult your web server configuration.
 	}
 
 	if !strings.HasSuffix(path, "/.well-known/acme-challenge") {
+		r1 := r
 		r, err = interaction.Auto.Prompt(&interaction.Challenge{
 			Title: "Are you sure?",
 			Body: `The webroot path you have entered does not end in "/.well-known/acme-challenge". This path will only work if you have specially configured your webserver to map requests for that path to the specified directory.
 
 Do you want to continue? To enter a different webroot path, select No.`,
 			ResponseType: interaction.RTYesNo,
+			Implicit:     *batchFlag || r1.Noninteractive,
 			UniqueID:     "acmetool-quickstart-webroot-path-unlikely",
 		})
-		if r.Cancelled {
+		if r != nil && r.Cancelled {
 			return promptWebrootDir()
 		}
 	}
