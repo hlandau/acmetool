@@ -99,6 +99,18 @@ You can also [download .deb files manually.](https://launchpad.net/~hlandau/+arc
 
 (Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
 
+**RPM-based distros:** [A copr RPM repository is available.](https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/)
+
+If you have `dnf` installed:
+```bash
+$ sudo dnf copr enable hlandau/acmetool
+$ sudo dnf install acmetool
+```
+
+Otherwise use the `.repo` files on the [repository
+page](https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/) and use `yum`,
+or download RPMs and use `rpm` directly.
+
 **Arch Linux users:** [An AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
 
 ```bash
