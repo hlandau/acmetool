@@ -26,6 +26,13 @@ integrate into your webserver setup to enable automatic verification. Unlike
 the official Let's Encrypt client, this doesn't modify your web server
 configuration.
 
+<p>:white_check_mark: Zero-downtime autorenewal<br/>
+:white_check_mark: Supports any webserver<br/>
+:white_check_mark: Fully automatable<br/>
+:white_check_mark: Single-file dependency-free binary<br/>
+:white_check_mark: Idempotent<br/>
+:white_check_mark: Fast setup</p>
+
 You can perform verifications using port 80 or 443 (if you don't yet have a
 server running on one of them); via webroot; by configuring your webserver to
 proxy requests for `/.well-known/acme-challenge/` to a special port (402) which
