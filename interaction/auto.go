@@ -24,7 +24,24 @@ var Interceptor Interactor
 // Used by Auto. Do not use the Dialog mode. --stdio.
 var NoDialog = false
 
-func (autoInteractor) Prompt(c *Challenge) (*Response, error) {
+var responsesReceived = map[string]*Response{}
+
+func (ai autoInteractor) Prompt(c *Challenge) (*Response, error) {
+	res, err := ai.prompt(c)
+	if err == nil && c.UniqueID != "" {
+		responsesReceived[c.UniqueID] = res
+	}
+
+	return res, err
+}
+
+// Returns a map from challenge UniqueIDs to responses received for those
+// UniqueIDs. Do not mutate the returned map.
+func ResponsesReceived() map[string]*Response {
+	return responsesReceived
+}
+
+func (autoInteractor) prompt(c *Challenge) (*Response, error) {
 	r, err := Responder.Prompt(c)
 	if err == nil || c.Implicit {
 		return r, err

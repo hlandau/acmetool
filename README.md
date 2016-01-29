@@ -167,14 +167,21 @@ You can increase logging severity for debugging purposes by passing
 web server to serve them. The files must be served from the path you specify at
 `/.well-known/acme-challenge/`.
 
-[Information on configuring your web server.](https://hlandau.github.io/acme/userguide#web-server-configuration)
+[Information on configuring your web server.](https://hlandau.github.io/acme/userguide#web-server-configuration-challenges)
 
 **Proxy:** acmetool can respond to validation challenges by serving them on port 402. In
 order for this to be useful, you must configure your webserver to proxy
 requests under `/.well-known/acme-challenge/` to
 `http://127.0.0.1:402/.well-known/acme-challenge`.
 
-[Information on configuring your web server.](https://hlandau.github.io/acme/userguide#web-server-configuration)
+[Information on configuring your web server.](https://hlandau.github.io/acme/userguide#web-server-configuration-challenges)
+
+**Stateless:** You configure your webserver to respond statelessly to
+challenges for a given account key without consulting acmetool. This requires
+nothing more than a one-time web server configuration change and no "moving
+parts". [Information on
+configuring stateless
+challenges.](https://hlandau.github.io/acme/userguide#web-server-configuration-challenges)
 
 **Redirector:** `acmetool redirector` starts an HTTP server on port 80 which redirects all
 requests to HTTPS, as well as serving any necessary validation responses. The

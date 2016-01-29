@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/redirector"
@@ -87,6 +88,8 @@ var (
 	//   A certificate URL - TODO
 	revokeCmd = kingpin.Command("revoke", "Revoke a certificate")
 	revokeArg = revokeCmd.Arg("certificate-id-or-path", "Certificate ID to revoke").String()
+
+	accountThumbprintCmd = kingpin.Command("account-thumbprint", "Prints account thumbprints")
 )
 
 const reconcileHelp = `Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets.
@@ -125,6 +128,8 @@ func main() {
 		cmdReconcile()
 	case "status":
 		cmdStatus()
+	case "account-thumbprint":
+		cmdAccountThumbprint()
 	case "want":
 		cmdWant()
 		if *wantReconcile {
@@ -210,6 +215,8 @@ func StatusString(s storage.Store) string {
 	fmt.Fprintf(&buf, "\nAvailable accounts:\n")
 	s.VisitAccounts(func(a *storage.Account) error {
 		fmt.Fprintf(&buf, "  %v\n", a)
+		thumbprint, _ := acmeutils.Base64Thumbprint(a.PrivateKey)
+		fmt.Fprintf(&buf, "    thumbprint: %s\n", thumbprint)
 		return nil
 	})
 
@@ -237,6 +244,17 @@ func StatusString(s storage.Store) string {
 	}
 
 	return buf.String()
+}
+
+func cmdAccountThumbprint() {
+	s, err := storage.NewFDB(*stateFlag)
+	log.Fatale(err, "storage")
+
+	s.VisitAccounts(func(a *storage.Account) error {
+		thumbprint, _ := acmeutils.Base64Thumbprint(a.PrivateKey)
+		fmt.Printf("%s\t%s\n", thumbprint, a.ID())
+		return nil
+	})
 }
 
 func cmdWant() {

@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 )
@@ -30,6 +31,10 @@ type fdbStore struct {
 	keys          map[string]*Key         // key: key ID
 	targets       map[string]*Target      // key: target filename
 	defaultTarget *Target                 // from conf
+}
+
+func (s *fdbStore) WriteMiscellaneousConfFile(filename string, data []byte) error {
+	return fdb.WriteBytes(s.db.Collection("conf"), filename, data)
 }
 
 // Trivial accessors. {{{1
@@ -493,7 +498,9 @@ func (s *fdbStore) loadTargets() error {
 		dtgt.genericise()
 		s.defaultTarget = dtgt
 	} else {
-		log.Errore(err, "error loading default target file")
+		if !os.IsNotExist(err) {
+			log.Errore(err, "error loading default target file")
+		}
 		s.defaultTarget = &Target{}
 	}
 
