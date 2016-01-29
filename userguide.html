@@ -185,6 +185,18 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
   Allow<span class="st"> from all</span>
 <span class="fu">&lt;/Directory&gt;</span></code></pre></div>
 <p><strong>Hook mode.</strong> See <a href="#challenge-hooks">Challenge Hooks</a>.</p>
+<p><strong>Stateless mode.</strong> In stateless mode, you configure your webserver to respond to challenge requests without consulting acmetool. A single account key is nominated. This is one of the most reliable and least error-prone methods for simple cases.</p>
+<p><strong>Stateless mode: nginx/Tengine.</strong></p>
+<p>Replace <code>ACCOUNT_THUMBPRINT</code> in the example below with your account thumbprint. You can retrieve your account thumbprint by running <code>acmetool account-thumbprint</code>. The first part of each line output is the account thumbprint.</p>
+<pre class="nginx"><code>http {
+  server {
+    location ~ &quot;^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$&quot; {
+      default_type text/plain;
+      return 200 &quot;$1.ACCOUNT_THUMBPRINT&quot;;
+    }
+  }
+}</code></pre>
+<p><strong>Stateless mode: Apache.</strong> It does not appear that the configuration system of Apache can currently express the needed behaviour.</p>
 <h2 id="web-server-configuration-tls">Web server configuration: TLS</h2>
 <p>Mozilla has a <a href="https://mozilla.github.io/server-side-tls/ssl-config-generator/">TLS configuration generator</a> that you can use to generate configurations for common web servers.</p>
 <h2 id="challenge-completion-philosophy">Challenge completion philosophy</h2>

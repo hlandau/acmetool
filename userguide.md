@@ -297,6 +297,31 @@ Alias "/.well-known/acme-challenge/" "/var/run/acme/acme-challenge/"
 
 **Hook mode.** See [Challenge Hooks](#challenge-hooks).
 
+**Stateless mode.** In stateless mode, you configure your webserver to respond to
+challenge requests without consulting acmetool. A single account key is nominated.
+This is one of the most reliable and least error-prone methods for simple cases.
+
+**Stateless mode: nginx/Tengine.**
+
+Replace `ACCOUNT_THUMBPRINT` in the example below with your account thumbprint.
+You can retrieve your account thumbprint by running `acmetool
+account-thumbprint`. The first part of each line output is the account
+thumbprint.
+
+```nginx
+http {
+  server {
+    location ~ "^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$" {
+      default_type text/plain;
+      return 200 "$1.ACCOUNT_THUMBPRINT";
+    }
+  }
+}
+```
+
+**Stateless mode: Apache.** It does not appear that the configuration system of
+Apache can currently express the needed behaviour.
+
 ## Web server configuration: TLS
 
 Mozilla has a [TLS configuration
