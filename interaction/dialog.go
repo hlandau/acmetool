@@ -131,7 +131,7 @@ func (dialogInteractor) Prompt(c *Challenge) (*Response, error) {
 	}
 
 	width := "78"
-	height := "45"
+	height := "49"
 	yesLabelArg := "--yes-label"
 	noLabelArg := "--no-label"
 	noTagsArg := "--no-tags"

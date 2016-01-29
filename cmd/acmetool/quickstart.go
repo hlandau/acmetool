@@ -595,6 +595,8 @@ REDIRECTOR: The redirector option runs a special web server daemon on port 80. T
 
 LISTEN: Directly listen on port 80 or 443, whichever is available, in order to complete challenges. This is useful only for development purposes.
 
+STATELESS: Some web servers can be configured to respond to challenges themselves. This removes any need for interaction with acmetool. See documentation for web server support.
+
 HOOK: Programmatic challenge provisioning. Advanced users only. Please see documentation.`,
 		ResponseType: interaction.RTSelect,
 		Options: []interaction.Option{
@@ -611,7 +613,10 @@ HOOK: Programmatic challenge provisioning. Advanced users only. Please see docum
 			{Title: "LISTEN - Listen on port 80 or 443 (only useful for development purposes)",
 				Value: "listen",
 			},
-			{Title: "HOOKS - I will write scripts to provision challenges",
+			{Title: "STATELESS - I will configure my web server with my account key",
+				Value: "stateless",
+			},
+			{Title: "HOOK - I will write scripts to provision challenges",
 				Value: "hook",
 			},
 		},
