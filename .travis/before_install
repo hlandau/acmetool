@@ -12,7 +12,13 @@ previous_build_failed() {
     python3 -c 'import sys,json; k=json.load(sys.stdin); print(k); sys.exit(int(k["builds"][0]["state"] == "passed"))'
 }
 
-git log --format=%B --no-merges -n 1 | grep -qvE '[ci fast]' || \
+if [ -n "$TRAVIS_TAG" ]; then
+  git show "$TRAVIS_TAG" 2>&1 | sed -n '/^diff --git/q;p' > /tmp/commit-message
+else
+  git log --format=%B --no-merges -n 1 &> /tmp/commit-message
+fi
+
+! grep -qF '[ci fast]' /tmp/commit-message || \
     [ -n "$TRAVIS_TAG" ] || \
     previous_build_failed || {
   echo Travis not needed for this update.

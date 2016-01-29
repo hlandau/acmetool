@@ -24,8 +24,11 @@ done
 cd "$ACME_DIR"
 
 echo Uploading releases...
+PPA_NAME=rhea COPR_PROJECT_ID=5993
+grep -F '[draft]' /tmp/commit-message && \
+  GHR_OPTIONS="--draft" PPA_NAME=testppa COPR_PROJECT_ID=6071
 TRAVIS_REPO_OWNER="$(echo "$TRAVIS_REPO_SLUG" | sed 's#/.*##g')"
-travis_retry ghr -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
+travis_retry ghr $GHR_OPTIONS -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/releasing/dist/"
 
 # Prepare Ubuntu PPA signing key.
 echo Preparing Ubuntu PPA signing key...
@@ -56,19 +59,40 @@ echo Deleting keys...
 find "$GNUPGHOME" -type f -exec shred -u '{}' ';'
 rm -rf "$GNUPGHOME"
 
-echo Uploading Debian source archive for ${distro_name}...
-for distro_name in $UBUNTU_RELEASES; do
-  cd "$GOPATH/releasing/dbuilds/$distro_name"
+echo Uploading Debian source archives...
+cd "$GOPATH/releasing/dbuilds"
+(
+  echo 'open ppa.launchpad.net'
+  echo 'set passive on'
+  echo "cd ~hlandau/$PPA_NAME"
+  for f in ./*/acmetool_*.dsc ./*/acmetool_*.orig.tar.gz ./*/acmetool*.diff.gz ./*/acmetool_*_source.changes; do
+    echo "put $f"
+  done
+  echo 'quit'
+) | ncftp
 
-  (
-    echo 'open ppa.launchpad.net'
-    echo 'set passive on'
-    echo 'cd ~hlandau/rhea'
-    for f in ./acmetool_*.dsc ./acmetool_*.orig.tar.gz ./acmetool*.diff.gz ./acmetool_*_source.changes; do
-      echo "put $f"
-    done
-    echo 'quit'
-  ) | ncftp
+# RPM.
+cd "$ACME_DIR/.travis"
+mkdir -p "$HOME/rpmbuild/SPECS" "$HOME/rpmbuild/SOURCES"
+$GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_rpm_spec "$TRAVIS_TAG" > "$HOME/rpmbuild/SPECS/acmetool.spec"
+ln $GOPATH/releasing/dist/acmetool_*.orig.tar.gz $HOME/rpmbuild/SOURCES/
+echo travis_fold:start:build-srpm
+rpmbuild -bs "$HOME/rpmbuild/SPECS/acmetool.spec"
+echo travis_fold:end:build-srpm
+
+cat <<END > /tmp/rpm-metadata
+{
+  "project_id": $COPR_PROJECT_ID,
+  "chroots": ["fedora-23-i386", "fedora-23-x86_64", "epel-7-x86_64"]
+}
+END
+
+for srpm in $HOME/rpmbuild/SRPMS/acmetool-*.rpm; do
+  echo Uploading $srpm
+  curl -u "$COPR_LOGIN_TOKEN" \
+    -F 'metadata=</tmp/rpm-metadata;type=application/json;filename=' \
+    -F "srpm=@$srpm;type=application/x-rpm" \
+    'https://copr.fedorainfracloud.org/api_2/builds'
 done
 
 echo Done
