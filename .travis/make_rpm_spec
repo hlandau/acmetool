@@ -1,0 +1,51 @@
+#!/bin/bash
+
+VERSION="$1"
+if [ -z "$VERSION" ]; then
+  echo usage: $0 1.2.34
+  exit 1
+fi
+VERSION="$(echo "$VERSION" | sed s/^v//g)"
+
+cat <<END
+Name: acmetool
+Version: $VERSION
+Release: 1%{?dist}
+Summary: Automatic certificate acquisition tool
+License: MIT
+URL: https://github.com/hlandau/acme
+Requires: libcap
+%ifarch i386 i686
+%define goarch 386_cgo
+%else
+%ifarch x86_64
+%define goarch amd64_cgo
+%else
+%define goarch ERROR
+%endif
+%endif
+
+Source: %{name}_%{version}.orig.tar.gz
+
+%define debug_package %{nil}
+
+%description
+Automatic certificate acquisition tool for ACME servers such as Let's Encrypt.
+
+%prep
+%setup -n %{name}_%{version}/%{name}-v%{version}-linux_%{goarch}
+
+%build
+
+%install
+install -Dm0755 bin/acmetool \$RPM_BUILD_ROOT/usr/bin/acmetool
+install -Dm0644 doc/acmetool.8 \$RPM_BUILD_ROOT/usr/share/man/man8/acmetool.8
+
+%clean
+rm -rf \$RPM_BUILD_ROOT
+
+%files
+%attr(755,root,root) %{_bindir}/acmetool
+%attr(644,root,root) %{_mandir}/man8/acmetool.8.gz
+END
+
