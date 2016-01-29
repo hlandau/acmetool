@@ -41,6 +41,8 @@ type Store interface {
 	ImportCertificate(url string) (*Certificate, error)                                // Imports a certificate if it isn't already imported.
 
 	SetPreferredCertificateForHostname(hostname string, c *Certificate) error
+
+	WriteMiscellaneousConfFile(filename string, data []byte) error
 }
 
 var StopVisiting = errors.New("[stop visiting]")

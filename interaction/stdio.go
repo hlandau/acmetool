@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hlandau/degoutils/text"
 	"github.com/hlandauf/pb"
+	"github.com/mitchellh/go-wordwrap"
 	"os"
 	"strconv"
 	"strings"
@@ -60,7 +61,7 @@ func (ss *stdioStatusSink) loop() {
 	bar.ShowSpeed = false
 	bar.ShowCounters = false
 	bar.ShowTimeLeft = false
-	bar.SetMaxWidth(80)
+	bar.SetMaxWidth(lineLength)
 
 A:
 	for {
@@ -121,13 +122,14 @@ func stdioAcknowledge(c *Challenge) (*Response, error) {
 		p = "Press Return to continue."
 	}
 
-	fmt.Fprintf(os.Stderr, `%s
-%s
-
-%s`, titleLine(c.Title), c.Body, p)
+	PrintStderrMessage(c.Title, fmt.Sprintf("%s\n\n%s", c.Body, p))
 
 	waitReturn()
 	return &Response{}, nil
+}
+
+func PrintStderrMessage(title, body string) {
+	fmt.Fprintf(os.Stderr, "%s\n%s\n", titleLine(title), wordwrap.WrapString(body, lineLength))
 }
 
 func stdioYesNo(c *Challenge) (*Response, error) {
@@ -151,10 +153,7 @@ func stdioLineString(c *Challenge) (*Response, error) {
 		p = ">"
 	}
 
-	fmt.Fprintf(os.Stderr, `%s
-%s
-
-%s `, titleLine(c.Title), c.Body, p)
+	PrintStderrMessage(c.Title, fmt.Sprintf("%s\n\n%s", c.Body, p))
 
 	v := waitLine()
 	return &Response{Value: v}, nil
@@ -167,10 +166,7 @@ func stdioSelect(c *Challenge) (*Response, error) {
 		p = ">"
 	}
 
-	fmt.Fprintf(os.Stderr, `%s
-%s
-
-`, titleLine(c.Title), c.Body)
+	PrintStderrMessage(c.Title, fmt.Sprintf("%s\n\n", c.Body))
 
 	for i, o := range c.Options {
 		t := o.Title

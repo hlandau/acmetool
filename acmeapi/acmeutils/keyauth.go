@@ -7,15 +7,23 @@ import (
 	"github.com/square/go-jose"
 )
 
-func KeyAuthorization(accountKey crypto.PrivateKey, token string) (string, error) {
-	k := jose.JsonWebKey{Key: accountKey}
-
+func Base64Thumbprint(key crypto.PrivateKey) (string, error) {
+	k := jose.JsonWebKey{Key: key}
 	thumbprint, err := k.Thumbprint(crypto.SHA256)
 	if err != nil {
 		return "", err
 	}
 
-	return token + "." + b64enc(thumbprint), nil
+	return b64enc(thumbprint), nil
+}
+
+func KeyAuthorization(accountKey crypto.PrivateKey, token string) (string, error) {
+	thumbprint, err := Base64Thumbprint(accountKey)
+	if err != nil {
+		return "", err
+	}
+
+	return token + "." + thumbprint, nil
 }
 
 func ChallengeResponseJSON(accountKey crypto.PrivateKey, token, challengeType string) ([]byte, error) {

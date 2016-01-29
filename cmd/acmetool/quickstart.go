@@ -564,9 +564,13 @@ Do you want to continue? To enter a different webroot path, select No.`,
 }
 
 func promptGettingStarted() {
-	_, err := interaction.Auto.Prompt(&interaction.Challenge{
-		Title: "Quickstart Complete",
-		Body: fmt.Sprintf(`The quickstart process is complete.
+	if *batchFlag {
+		return
+	}
+
+	interaction.PrintStderrMessage(
+		"Quickstart Complete",
+		fmt.Sprintf(`The quickstart process is complete.
 
 Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation: https://github.com/hlandau/acme/blob/master/_doc/WSCONFIG.md
 
@@ -574,10 +578,8 @@ To request a certificate, run:
     
 $ sudo acmetool want example.com www.example.com
 
-If the certificate is successfully obtained, it will be placed in %s/live/example.com/{cert,chain,fullchain,privkey}.`, *stateFlag),
-		UniqueID: "acmetool-quickstart-complete",
-	})
-	log.Fatale(err, "interaction")
+If the certificate is successfully obtained, it will be placed in %s/live/example.com/{cert,chain,fullchain,privkey}.
+`, *stateFlag))
 }
 
 func promptHookMethod() string {
