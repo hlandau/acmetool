@@ -17,6 +17,7 @@ import (
 	"github.com/jmhodges/clock"
 	"golang.org/x/net/context"
 	"sort"
+	"strings"
 )
 
 var log, Log = xlog.New("acme.reconcilator")
@@ -598,7 +599,7 @@ func (r *reconcile) createCSR(t *storage.Target) ([]byte, error) {
 		})
 	}
 
-	pk, err := generateKey(&t.Request.Key)
+	pk, err := r.generateOrGetKey(&t.Request.Key)
 	if err != nil {
 		log.Errore(err, "could not generate key while generating CSR for %v", t)
 		return nil, err
@@ -616,6 +617,19 @@ func (r *reconcile) createCSR(t *storage.Target) ([]byte, error) {
 	}
 
 	return x509.CreateCertificateRequest(rand.Reader, csr, pk)
+}
+
+func (r *reconcile) generateOrGetKey(trk *storage.TargetRequestKey) (crypto.PrivateKey, error) {
+	if trk.ID != "" {
+		k := r.store.KeyByID(strings.TrimSpace(strings.ToLower(trk.ID)))
+		if k != nil {
+			return k.PrivateKey, nil
+		}
+
+		log.Warnf("target requests specific key %q but it cannot be found, generating a new key", trk.ID)
+	}
+
+	return generateKey(trk)
 }
 
 func DoesCertificateSatisfy(c *storage.Certificate, t *storage.Target) bool {

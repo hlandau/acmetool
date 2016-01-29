@@ -110,6 +110,10 @@ type TargetRequestKey struct {
 
 	// N. ECDSA curve. "nistp256" (default), "nistp384" or "nistp521".
 	ECDSACurve string `yaml:"ecdsa-curve,omitempty"`
+
+	// N. The key ID of an existing key to use for the purposes of making
+	// requests. If not set, always generate a new key.
+	ID string `yaml:"id,omitempty"`
 }
 
 func (k *TargetRequestKey) String() string {

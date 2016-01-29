@@ -241,6 +241,11 @@ specification and documentation. acmetool supports the following extensions:
         # will not support nistp521.
         ecdsa-curve: nistp256 (must be "nistp256", "nistp384" or "nistp521")
 
+        # If specified, specifies a key ID which should be used as the private
+        # key for all generated requests. If not set or the key ID is not found,
+        # generate a new key for every request.
+        id: string
+
       # Request OCSP Must Staple in certificates. Defaults to false.
       ocsp-must-staple: true
 
