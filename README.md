@@ -274,7 +274,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Quickstart wizard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
 <tr><td>Modifies webserver config</td><td>No</td><td>By default</td><td>No</td><td>No</td></tr>
-<tr><td>Non-root support</td><td><a href="https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md">Optional</a></td><td>Optional</td><td>Optional</td><td>—</td></tr>
+<tr><td>Non-root support</td><td><a href="_doc/NOROOT.md">Optional</a></td><td>Optional</td><td>Optional</td><td>—</td></tr>
 <tr><td>Supports Apache</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Supports nginx</td><td>Yes</td><td>Experimental</td><td>—</td><td>—</td></tr>
 <tr><td>Supports HAProxy</td><td>Yes</td><td>No</td><td>—</td><td>—</td></tr>
@@ -284,6 +284,7 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Authorization via port 80 redirector</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via proxy</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via listener§</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<tr><td>Authorization via DNS</td><td><a href="_doc/dns.hook">Hook only</a></td><td>No</td><td>Yes</td><td>No</td></tr>
 <tr><td>Authorization via custom hook</td><td><a href="https://hlandau.github.io/acme/userguide#challenge-hooks">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Import state from official client</td><td>Yes</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>Windows (basic) support</td><td>No</td><td>No</td><td>Yes</td><td>—</td></tr>

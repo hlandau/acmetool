@@ -1,0 +1,102 @@
+#!/bin/bash
+# This is an example DNS hook script which uses the nsupdate utility to update
+# nameservers. The script waits until updates have propagated to all
+# nameservers listed for a zone. The script fails if this takes more than 60
+# seconds by default; this timeout can be adjusted.
+#
+# The script is ready to use, but to use it you must create
+# /etc/default/acme-dns or /etc/conf.d/acme-dns and set the following options:
+#
+#   # Needed if using TKIP for updates. If authenticating updates by source IP,
+#   # not necessary.
+#   TKIP_KEY_NAME="hmac-sha256:tk1"
+#   TKIP_KEY="a base64-encoded TKIP key"
+# 
+#   # DNS synchronization timeout in seconds. Default is 60.
+#   DNS_SYNC_TIMEOUT=60
+#
+#   # Optional: inject extra arguments and commands to nsupdate.
+#   NSUPDATE_ARGS="-v"
+#   nsupdate_cmds() {
+#     # Usually not necessary:
+#     echo zone example.com.
+#   }
+#
+# Having done this, rename it to /usr/lib[exec]/acme/hooks/dns.
+#
+# How to test this script:
+#   ./dns.hook challenge-dns-start example.com "" "foobar"
+#   ./dns.hook challenge-dns-stop  example.com "" "foobar"
+#
+set -e
+
+get_apex() {
+  local name="$1"
+  if [ -z "$name" ]; then
+    echo "$0: couldn't get apex for $name" >&2
+    return 1
+  fi
+  if [ "`dig +noall +answer SOA "${name}." |grep SOA|wc -l`" == "1" ]; then
+    APEX="$name"
+    return
+  fi
+  local sname="$(echo $name | sed 's/^[^.]\+\.//')"
+  get_apex "$sname"
+}
+
+waitns() {
+  local ns="$1"
+  for ctr in $(seq 1 "$DNS_SYNC_TIMEOUT"); do
+    [ "$(dig +short "@${ns}" TXT "_acme-challenge.${CH_HOSTNAME}." | grep "$CH_TXT_VALUE" | wc -l)" == "1" ] && return 0
+    sleep 1
+  done
+
+  # Best effort cleanup.
+  echo $0: timed out waiting ${DNS_SYNC_TIMEOUT}s for nameserver $ns >&2
+  updns del || echo $0: failed to clean up records after timing out >&2
+
+  return 1
+}
+
+updns() {
+  local op="$1"
+  (
+    declare -f nsupdate_cmds >/dev/null && nsupdate_cmds
+    [ -n "$TKIP_KEY" ] && echo key "$TKIP_KEY_NAME" "$TKIP_KEY"
+    echo $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
+    echo send
+  ) | nsupdate $NSUPDATE_ARGS
+}
+
+[ -e "/etc/default/acme-dns" ] && . /etc/default/acme-dns
+[ -e "/etc/conf.d/acme-dns" ] && . /etc/conf.d/acme-dns
+# e.g.
+#   TKIP_KEY_NAME="hmac-sha256:tk1"
+#   TKIP_KEY="base64-key-value"
+
+EVENT_NAME="$1"
+CH_HOSTNAME="$2"
+CH_TARGET_FILENAME="$3"
+CH_TXT_VALUE="$4"
+[ -z "$DNS_SYNC_TIMEOUT" ] && DNS_SYNC_TIMEOUT=60
+
+case "$EVENT_NAME" in
+  challenge-dns-start)
+    get_apex "$CH_HOSTNAME"
+    updns add
+
+    # Wait for all nameservers to update.
+    for ns in $(dig +short NS "${APEX}."); do
+      waitns "$ns"
+    done
+    ;;
+
+  challenge-dns-stop)
+    get_apex "$CH_HOSTNAME"
+    updns del
+    ;;
+
+  *)
+    exit 42
+    ;;
+esac
