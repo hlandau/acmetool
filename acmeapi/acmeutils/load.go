@@ -35,6 +35,21 @@ func LoadCertificates(pemBlock []byte) ([][]byte, error) {
 	return certs, nil
 }
 
+// Writes one or more DER-formatted certificates in PEM format.
+func SaveCertificates(w io.Writer, certificates ...[]byte) error {
+	for _, c := range certificates {
+		err := pem.Encode(w, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: c,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Load a PEM private key from a stream.
 func LoadPrivateKey(keyPEMBlock []byte) (crypto.PrivateKey, error) {
 	var keyDERBlock *pem.Block

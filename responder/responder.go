@@ -54,8 +54,6 @@ type Config struct {
 	AccountKey crypto.PrivateKey // The account private key.
 	Token      string            // The challenge token.
 
-	N int // "tls-sni-01": Number of iterations.
-
 	// "http-01", "proofOfPossession": The hostname being verified. May be used
 	// for pre-initiation self-testing. Optional. Required for
 	// proofOfPossession.

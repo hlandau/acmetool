@@ -5,7 +5,6 @@ package storage
 import (
 	"crypto"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
@@ -671,19 +670,13 @@ func (s *fdbStore) SaveCertificate(cert *Certificate) error {
 	}
 	defer ffullchain.CloseAbort()
 
-	err = pem.Encode(io.MultiWriter(fcert, ffullchain), &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Certificates[0],
-	})
+	err = acmeutils.SaveCertificates(io.MultiWriter(fcert, ffullchain), cert.Certificates[0])
 	if err != nil {
 		return err
 	}
 
 	for _, ec := range cert.Certificates[1:] {
-		err = pem.Encode(io.MultiWriter(fchain, ffullchain), &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: ec,
-		})
+		err = acmeutils.SaveCertificates(io.MultiWriter(fchain, ffullchain), ec)
 		if err != nil {
 			return err
 		}

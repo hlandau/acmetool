@@ -44,7 +44,6 @@ func (s *dnsResponder) Start() error {
 		err := startFunc(&DNSChallengeInfo{
 			Body: s.dnsString,
 		})
-		log.Errore(err, "failed to install DNS challenge via hook")
 		return err
 	}
 
@@ -58,7 +57,7 @@ func (s *dnsResponder) Stop() error {
 		err := stopFunc(&DNSChallengeInfo{
 			Body: s.dnsString,
 		})
-		log.Errore(err, "failed to uninstall DNS challenge via hook (ignoring)")
+		log.Warne(err, "failed to uninstall DNS challenge via hook (ignoring)")
 		return nil
 	}
 

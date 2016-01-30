@@ -68,6 +68,16 @@ func ChallengeHTTPStop(hookDirectory, stateDirectory, hostname, targetFileName, 
 	return err
 }
 
+func ChallengeTLSSNIStart(hookDirectory, stateDirectory, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
+	return runParts(hookDirectory, stateDirectory, []byte(pem),
+		"challenge-tls-sni-start", hostname, targetFileName, validationName1, validationName2)
+}
+
+func ChallengeTLSSNIStop(hookDirectory, stateDirectory, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
+	return runParts(hookDirectory, stateDirectory, []byte(pem),
+		"challenge-tls-sni-start", hostname, targetFileName, validationName1, validationName2)
+}
+
 func ChallengeDNSStart(hookDirectory, stateDirectory, hostname, targetFileName, body string) (installed bool, err error) {
 	return runParts(hookDirectory, stateDirectory, nil,
 		"challenge-dns-start", hostname, targetFileName, body)
@@ -119,10 +129,31 @@ func runParts(directory, stateDirectory string, stdinData []byte, args ...string
 			continue
 		}
 
+		// Ignore 'hidden' files.
+		if strings.HasPrefix(fi.Name(), ".") {
+			continue
+		}
+
+		mode := fi.Mode()
+		mType := mode & os.ModeType
+
+		// Make sure it's not a directory, device, socket, pipe, etc.
+		if mType != 0 && mType != os.ModeSymlink {
+			log.Debugf("cannot execute hook, not a file: %s", m)
+			continue
+		}
+
 		// Yes, this is vulnerable to race conditions; it's just to stop people
 		// from shooting themselves in the foot.
-		if (fi.Mode() & 02) != 0 {
-			log.Errorf("refusing to execute world-writable hook script: %s", m)
+		if (mode & 02) != 0 {
+			log.Errorf("refusing to execute world-writable hook: %s", m)
+			continue
+		}
+
+		// This doesn't check which mode bit (user,group,world) is applicable to
+		// us but avoids cluttering the log for non-executable files.
+		if (mode & 0111) == 0 {
+			log.Debugf("cannot execute non-executable hook: %s", m)
 			continue
 		}
 

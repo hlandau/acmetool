@@ -12,27 +12,36 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strings"
 	"time"
 )
 
+type TLSSNIChallengeInfo struct {
+	Hostname1, Hostname2 string // must appear in certificate
+	Certificate          []byte
+	Key                  crypto.PrivateKey
+}
+
 type tlssniResponder struct {
 	requestDetectedChan chan struct{}
-	stoppedChan         chan struct{}
-	cfg                 *tls.Config
-	l                   net.Listener
-	validation          []byte
+	notifySupported     bool
+	rcfg                Config
+
+	stoppedChan        chan struct{}
+	cfg                *tls.Config
+	l                  net.Listener
+	validation         []byte
+	validationHostname string
+	cert               []byte
+	privateKey         crypto.PrivateKey
 }
 
 func newTLSSNIResponder(rcfg Config) (Responder, error) {
-	if rcfg.N == 0 {
-		rcfg.N = 2
-		// boulder doesn't return N currently.
-		//return nil, fmt.Errorf("tls-sni-01: N must be nonzero")
-	}
-
 	r := &tlssniResponder{
+		rcfg:                rcfg,
 		requestDetectedChan: make(chan struct{}, 1),
 		stoppedChan:         make(chan struct{}),
+		notifySupported:     true,
 	}
 
 	ka, err := rcfg.keyAuthorization()
@@ -40,63 +49,44 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 		return nil, err
 	}
 
-	zN := make([]string, 0, rcfg.N)
-	zN = append(zN, hashBytesHex([]byte(ka)))
-	for i := 1; i < rcfg.N; i++ {
-		zN = append(zN, hashBytesHex([]byte(zN[i-1])))
-	}
+	kaHex := hashBytesHex([]byte(ka))
 
-	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, err
 	}
 
-	certs := map[string]*tls.Certificate{}
-
-	r.cfg = &tls.Config{
-		GetCertificate: func(ch *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			crt := certs[ch.ServerName]
-			return crt, nil
+	r.privateKey = privateKey
+	r.validationHostname = kaHex[0:32] + "." + kaHex[32:64] + ".acme.invalid"
+	xc := x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: r.validationHostname,
 		},
+		Issuer: pkix.Name{
+			CommonName: r.validationHostname,
+		},
+		SerialNumber:          big.NewInt(1),
+		NotBefore:             time.Now().Add(-24 * time.Hour),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              []string{r.validationHostname},
 	}
 
-	for i := 0; i < rcfg.N; i++ {
-		name := zN[i][0:32] + "." + zN[i][32:64] + ".acme.invalid"
+	r.cert, err = x509.CreateCertificate(rand.Reader, &xc, &xc,
+		&privateKey.PublicKey, privateKey)
+	if err != nil {
+		return nil, err
+	}
 
-		xc := x509.Certificate{
-			Subject: pkix.Name{
-				CommonName: name,
-			},
-			Issuer: pkix.Name{
-				CommonName: name,
-			},
-			SerialNumber:          big.NewInt(1),
-			NotBefore:             time.Now().Add(-24 * time.Hour),
-			NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-			BasicConstraintsValid: true,
-			DNSNames:              []string{name},
-		}
+	c := &tls.Certificate{
+		Certificate: [][]byte{r.cert},
+		PrivateKey:  privateKey,
+	}
 
-		b, err := x509.CreateCertificate(rand.Reader, &xc, &xc, &pk.PublicKey, pk)
-		if err != nil {
-			return nil, err
-		}
-
-		c := &tls.Certificate{
-			Certificate: [][]byte{
-				b,
-			},
-			PrivateKey: pk,
-		}
-
-		if i == 0 {
-			r.cfg.Certificates = []tls.Certificate{*c}
-		}
-
-		certs[name] = c
-		//r.cfg.NameToCertificate[name] = c
+	r.cfg = &tls.Config{
+		Certificates: []tls.Certificate{*c},
 	}
 
 	r.validation, err = rcfg.responseJSON("tls-sni-01")
@@ -112,6 +102,36 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 var InternalTLSSNIPort uint16 = 443
 
 func (r *tlssniResponder) Start() error {
+	listenErr := r.startListener()
+	log.Debuge(listenErr, "failed to start TLS-SNI listener")
+
+	// Try hooks.
+	var hookErr error
+	if startFunc := r.rcfg.ChallengeConfig.StartHookFunc; startFunc != nil {
+		hookErr = startFunc(&TLSSNIChallengeInfo{
+			Hostname1:   r.validationHostname,
+			Hostname2:   r.validationHostname,
+			Certificate: r.cert,
+			Key:         r.privateKey,
+		})
+		log.Debuge(hookErr, "failed to install TLS-SNI challenge via hook")
+	}
+
+	if listenErr != nil && hookErr != nil {
+		return listenErr
+	}
+
+	err := r.selfTest()
+	if err != nil {
+		log.Debuge(err, "tls-sni-01 self-test failed")
+		r.Stop()
+		return err
+	}
+
+	return nil
+}
+
+func (r *tlssniResponder) startListener() error {
 	l, err := tls.Listen("tcp", fmt.Sprintf(":%d", InternalTLSSNIPort), r.cfg)
 	if err != nil {
 		return err
@@ -138,8 +158,80 @@ func (r *tlssniResponder) Start() error {
 }
 
 func (r *tlssniResponder) Stop() error {
-	r.l.Close()
-	<-r.stoppedChan
+	if r.l != nil {
+		r.l.Close()
+		<-r.stoppedChan
+		r.l = nil
+	}
+
+	// Try hooks.
+	if stopFunc := r.rcfg.ChallengeConfig.StopHookFunc; stopFunc != nil {
+		err := stopFunc(&TLSSNIChallengeInfo{
+			Hostname1:   r.validationHostname,
+			Hostname2:   r.validationHostname,
+			Certificate: r.cert,
+			Key:         r.privateKey,
+		})
+		log.Errore(err, "failed to uninstall TLS-SNI challenge via hook")
+	}
+
+	return nil
+}
+
+func containsHostname(hostname string, hostnames []string) bool {
+	for _, x := range hostnames {
+		if strings.TrimSuffix(strings.ToLower(x), ".") == hostname {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *tlssniResponder) selfTest() error {
+	if r.rcfg.Hostname == "" {
+		return nil
+	}
+
+	conn, err := tls.Dial("tcp", net.JoinHostPort(r.rcfg.Hostname, fmt.Sprintf("%d", InternalTLSSNIPort)), &tls.Config{
+		ServerName:         r.validationHostname,
+		InsecureSkipVerify: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+	err = conn.Handshake()
+	if err != nil {
+		return err
+	}
+
+	certs := conn.ConnectionState().PeerCertificates
+	if len(certs) != 1 {
+		return fmt.Errorf("when doing self-test, got %d certificates, expected 1", len(certs))
+	}
+
+	if !containsHostname(r.validationHostname, certs[0].DNSNames) {
+		return fmt.Errorf("certificate does not contain expected challenge name")
+	}
+
+	// If we detected a request, we support notifications, otherwise we don't.
+	select {
+	case <-r.requestDetectedChan:
+	default:
+		r.notifySupported = false
+	}
+
+	// Drain the notification channel in case we somehow made several requests.
+L:
+	for {
+		select {
+		case <-r.requestDetectedChan:
+		default:
+			break L
+		}
+	}
+
 	return nil
 }
 
@@ -151,6 +243,10 @@ func (r *tlssniResponder) notify() {
 }
 
 func (r *tlssniResponder) RequestDetectedChan() <-chan struct{} {
+	if !r.notifySupported {
+		return nil
+	}
+
 	return r.requestDetectedChan
 }
 

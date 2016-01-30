@@ -2,6 +2,7 @@
 package storageops
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeapi/acmeendpoints"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"github.com/hlandau/acme/hooks"
 	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/solver"
@@ -398,6 +400,22 @@ func (r *reconcile) determineNecessaryAuthorizations(names []string, a *storage.
 	return neededs
 }
 
+func generateHookPEM(info *responder.TLSSNIChallengeInfo) (string, error) {
+	b := bytes.Buffer{}
+
+	err := acmeutils.SaveCertificates(&b, info.Certificate)
+	if err != nil {
+		return "", err
+	}
+
+	err = acmeutils.SavePrivateKey(&b, info.Key)
+	if err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
+}
+
 func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetFilename string, trc *storage.TargetRequestChallenge) error {
 	cl := r.getClientForAccount(a)
 
@@ -405,6 +423,14 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 		switch v := challengeInfo.(type) {
 		case *responder.HTTPChallengeInfo:
 			_, err := hooks.ChallengeHTTPStart("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+			return err
+		case *responder.TLSSNIChallengeInfo:
+			hookPEM, err := generateHookPEM(v)
+			if err != nil {
+				return err
+			}
+
+			_, err = hooks.ChallengeTLSSNIStart("", r.store.Path(), name, targetFilename, v.Hostname1, v.Hostname2, hookPEM)
 			return err
 		case *responder.DNSChallengeInfo:
 			installed, err := hooks.ChallengeDNSStart("", r.store.Path(), name, targetFilename, v.Body)
@@ -421,6 +447,14 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 		switch v := challengeInfo.(type) {
 		case *responder.HTTPChallengeInfo:
 			return hooks.ChallengeHTTPStop("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+		case *responder.TLSSNIChallengeInfo:
+			hookPEM, err := generateHookPEM(v)
+			if err != nil {
+				return err
+			}
+
+			_, err = hooks.ChallengeTLSSNIStop("", r.store.Path(), name, targetFilename, v.Hostname1, v.Hostname2, hookPEM)
+			return err
 		case *responder.DNSChallengeInfo:
 			uninstalled, err := hooks.ChallengeDNSStop("", r.store.Path(), name, targetFilename, v.Body)
 			if err == nil && !uninstalled {

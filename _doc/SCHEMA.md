@@ -537,6 +537,34 @@ ACME_STATE_DIR=/var/lib/acme /usr/lib/acme/hooks/foo \
   evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA
 ```
 
+### challenge-tls-sni-start, challenge-tls-sni-stop
+
+These hooks are invoked when a TLS-SNI challenge begins and ends. They can be
+used to install the necessary validation certificate by arbitrary means.
+
+The hook MUST return 0 only if it succeeds at provisioning/deprovisioning the
+challenge. When returning 0 in the `challenge-tls-sni-start` case, it MUST
+return only once the certificate is globally visible.
+
+The first argument is the hostname to which the challenge relates.
+
+The second argument is the filename of the target file causing the challenge to
+be completed. This may be the empty string in some circumstances; for example,
+when an authorization is being obtained for the purposes of performing
+revocation rather than for obtaining a certificate.
+
+The third argument is the hostname which will be specified via SNI when the
+validation server checks for the certificate.
+
+The fourth argument is an additional hostname which must appear in the certificate.
+Both hostnames must appear as dNSName SubjectAlternateNames in the certificate returned.
+
+The third and fourth argument may be equal in some cases.
+
+A PEM-encoded certificate followed by a PEM-encoded private key is fed on
+stdin. A hook can choose to provision this certificate to satisfy the
+challenge. It can also construct its own certificate.
+
 ### challenge-dns-start, challenge-dns-stop
 
 These hooks are invoked when a DNS challenge begins and ends. They can be used
@@ -544,10 +572,10 @@ to install the necessary validation DNS records, for example via DNS UPDATE.
 
 The hook MUST return 0 only if it succeeds at provisioning/deprovisioning the
 challenge. When returning 0 in the `challenge-dns-start` case, it MUST return
-only once the record to be provisioned is globally visible at the primary
-authoritative nameserver for the applicable zone. The primary nameserver is the
-nameserver listed in the SOA record. The hook is not required to consider the
-effects of caching resolvers as ACME servers will perform the lookup directly.
+only once the record to be provisioned is globally visible at all of the
+authoritative nameservers for the applicable zone. The hook is not required to
+consider the effects of caching resolvers as ACME servers will perform the
+lookup directly.
 
 The first argument is the hostname to which the challenge relates.
 

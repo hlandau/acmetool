@@ -130,7 +130,6 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 	r, err := responder.New(responder.Config{
 		Type:                   ch.Type,
 		Token:                  ch.Token,
-		N:                      ch.N,
 		AccountKey:             c.AccountKey,
 		Hostname:               dnsName,
 		AcceptableCertificates: certs,

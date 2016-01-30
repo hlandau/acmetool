@@ -38,9 +38,6 @@ type Challenge struct {
 	Validated time.Time `json:"validated,omitempty"` // RFC 3339
 	Token     string    `json:"token"`
 
-	// tls-sni-01
-	N int `json:"n,omitempty"`
-
 	// proofOfPossession
 	Certs []denet.Base64up `json:"certs,omitempty"`
 
