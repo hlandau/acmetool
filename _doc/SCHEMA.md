@@ -535,6 +535,39 @@ ACME_STATE_DIR=/var/lib/acme /usr/lib/acme/hooks/foo \
   evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA
 ```
 
+### challenge-dns-start, challenge-dns-stop
+
+These hooks are invoked when a DNS challenge begins and ends. They can be used
+to install the necessary validation DNS records, for example via DNS UPDATE.
+
+The hook MUST return 0 only if it succeeds at provisioning/deprovisioning the
+challenge. When returning 0 in the `challenge-dns-start` case, it MUST return
+only once the record to be provisioned is globally visible at the primary
+authoritative nameserver for the applicable zone. The primary nameserver is the
+nameserver listed in the SOA record. The hook is not required to consider the
+effects of caching resolvers as ACME servers will perform the lookup directly.
+
+The first argument is the hostname to which the challenge relates.
+
+The second argument is the filename of the target file causing the challenge to
+be completed. This may be the empty string in some circumstances; for example,
+when an authorization is being obtained for the purposes of performing
+revocation rather than for obtaining a certificate.
+
+The third argument is the value of the DNS TXT record to be provisioned.
+
+Note that as per the ACME specification, the TXT record must be provisioned at
+`_acme-challenge.HOSTNAME`, where HOSTNAME is the hostname given.
+
+Example call:
+
+```sh
+ACME_STATE_DIR=/var/lib/acme /usr/lib/acme/hooks/foo \
+  challenge-dns-start example.com some-target-file \
+  evaGxfADs6pSRb2LAv9IZf17Dt3juxGJ-PCt92wr-oA
+```
+
+
 SRV-ID
 ------
 

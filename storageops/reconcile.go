@@ -27,13 +27,20 @@ var InternalClock = clock.Default()
 
 type reconcile struct {
 	store storage.Store
+
+	// Cache of account clients to avoid duplicated directory lookups.
+	accountClients map[*storage.Account]*acmeapi.Client
+}
+
+func makeReconcile(store storage.Store) *reconcile {
+	return &reconcile{
+		store:          store,
+		accountClients: map[*storage.Account]*acmeapi.Client{},
+	}
 }
 
 func EnsureRegistration(store storage.Store) error {
-	r := reconcile{
-		store: store,
-	}
-
+	r := makeReconcile(store)
 	return r.EnsureRegistration()
 }
 
@@ -49,9 +56,7 @@ func (r *reconcile) EnsureRegistration() error {
 
 // Runs the reconcilation operation.
 func Reconcile(store storage.Store) error {
-	r := reconcile{
-		store: store,
-	}
+	r := makeReconcile(store)
 
 	reconcileErr := r.Reconcile()
 	log.Errore(reconcileErr, "failed to reconcile")
@@ -339,8 +344,13 @@ func (r *reconcile) getClientForDirectoryURL(directoryURL string) *acmeapi.Clien
 }
 
 func (r *reconcile) getClientForAccount(a *storage.Account) *acmeapi.Client {
-	cl := r.getClientForDirectoryURL(a.DirectoryURL)
-	cl.AccountInfo.AccountKey = a.PrivateKey
+	cl := r.accountClients[a]
+	if cl == nil {
+		cl = r.getClientForDirectoryURL(a.DirectoryURL)
+		cl.AccountInfo.AccountKey = a.PrivateKey
+		r.accountClients[a] = cl
+	}
+
 	return cl
 }
 
@@ -395,6 +405,12 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 		case *responder.HTTPChallengeInfo:
 			_, err := hooks.ChallengeHTTPStart("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
 			return err
+		case *responder.DNSChallengeInfo:
+			installed, err := hooks.ChallengeDNSStart("", r.store.Path(), name, targetFilename, v.Body)
+			if err == nil && !installed {
+				return fmt.Errorf("could not install DNS challenge, no hooks succeeded")
+			}
+			return err
 		default:
 			return nil
 		}
@@ -404,6 +420,12 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 		switch v := challengeInfo.(type) {
 		case *responder.HTTPChallengeInfo:
 			return hooks.ChallengeHTTPStop("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+		case *responder.DNSChallengeInfo:
+			uninstalled, err := hooks.ChallengeDNSStop("", r.store.Path(), name, targetFilename, v.Body)
+			if err == nil && !uninstalled {
+				return fmt.Errorf("could not uninstall DNS challenge, no hooks succeeded")
+			}
+			return err
 		default:
 			return nil
 		}
@@ -541,16 +563,35 @@ func (r *reconcile) processTargets() error {
 	return nil
 }
 
+func (r *reconcile) getRequestAccount(tr *storage.TargetRequest) (*storage.Account, error) {
+	if tr.Account != nil {
+		return tr.Account, nil
+	}
+
+	// This will create the account if it doesn't exist.
+	acct, err := r.getAccountByDirectoryURL(tr.Provider)
+	if err != nil {
+		return nil, err
+	}
+
+	return acct, nil
+}
+
 func (r *reconcile) requestCertificateForTarget(t *storage.Target) error {
 	//return fmt.Errorf("not requesting certificate") // debugging neuter
-	cl := r.getClientForAccount(t.Request.Account)
-
-	err := solver.AssistedUpsertRegistration(cl, nil, context.TODO())
+	acct, err := r.getRequestAccount(&t.Request)
 	if err != nil {
 		return err
 	}
 
-	err = r.obtainNecessaryAuthorizations(t.Request.Names, t.Request.Account, t.Filename, &t.Request.Challenge)
+	cl := r.getClientForAccount(acct)
+
+	err = solver.AssistedUpsertRegistration(cl, nil, context.TODO())
+	if err != nil {
+		return err
+	}
+
+	err = r.obtainNecessaryAuthorizations(t.Request.Names, acct, t.Filename, &t.Request.Challenge)
 	if err != nil {
 		return err
 	}

@@ -579,8 +579,7 @@ func (s *fdbStore) validateTargetInner(desiredKey string, c *fdb.Collection, loa
 		tgt.Request.implicitNames = true
 	}
 
-	// May be nil.
-	tgt.Request.Account = s.AccountByDirectoryURL(tgt.Request.Provider)
+	// tgt.Request.Account is not set; it is for use by other code.
 
 	return tgt, nil
 }

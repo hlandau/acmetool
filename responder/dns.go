@@ -8,13 +8,20 @@ import (
 	"github.com/hlandau/acme/interaction"
 )
 
+type DNSChallengeInfo struct {
+	Body string
+}
+
 type dnsResponder struct {
+	rcfg       Config
 	validation []byte
 	dnsString  string
 }
 
 func newDNSResponder(rcfg Config) (Responder, error) {
-	s := &dnsResponder{}
+	s := &dnsResponder{
+		rcfg: rcfg,
+	}
 
 	var err error
 	s.validation, err = rcfg.responseJSON("dns-01")
@@ -34,31 +41,30 @@ func newDNSResponder(rcfg Config) (Responder, error) {
 
 // Start is a no-op for the DNS method.
 func (s *dnsResponder) Start(interactor interaction.Interactor) error {
-	if interactor == nil {
-		return fmt.Errorf("interaction func not provided but required")
-	}
-
-	log.Debug("dns-01 interaction prompt")
-	_, err := interactor.Prompt(&interaction.Challenge{
-		Title: "Verification DNS Record", Body: fmt.Sprintf(`All other verification methods have failed. In order to complete the DNS verification method, you must place the verification DNS record at
-
-  _acme-challenge IN TXT %#v
-
-under the name to be verified before continuing.
-
-However, you should consider that it is likely to be easier for you to investigate and rectify the reason that the HTTP and TLSSNI challenges did not work. You may wish to consider this notice a failure condition.`, s.dnsString),
-	})
-	if err != nil {
+	// Try hooks.
+	if startFunc := s.rcfg.ChallengeConfig.StartHookFunc; startFunc != nil {
+		err := startFunc(&DNSChallengeInfo{
+			Body: s.dnsString,
+		})
+		log.Errore(err, "failed to install DNS challenge via hook")
 		return err
 	}
 
-	return nil
+	return fmt.Errorf("DNS challenge not supported")
 }
 
 // Stop is a no-op for the DNS method.
 func (s *dnsResponder) Stop() error {
-	log.Debug("dns-01 stopped")
-	return nil
+	// Try hooks.
+	if stopFunc := s.rcfg.ChallengeConfig.StopHookFunc; stopFunc != nil {
+		err := stopFunc(&DNSChallengeInfo{
+			Body: s.dnsString,
+		})
+		log.Errore(err, "failed to uninstall DNS challenge via hook (ignoring)")
+		return nil
+	}
+
+	return fmt.Errorf("DNS challenge not supported")
 }
 
 func (s *dnsResponder) RequestDetectedChan() <-chan struct{} {
