@@ -261,6 +261,27 @@ func cmdWant() {
 	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
+	alreadyExists := false
+	s.VisitTargets(func(t *storage.Target) error {
+		nm := map[string]struct{}{}
+		for _, n := range t.Satisfy.Names {
+			nm[n] = struct{}{}
+		}
+
+		for _, w := range *wantArg {
+			if _, ok := nm[w]; !ok {
+				return nil
+			}
+		}
+
+		alreadyExists = true
+		return nil
+	})
+
+	if alreadyExists {
+		return
+	}
+
 	tgt := storage.Target{
 		Satisfy: storage.TargetSatisfy{
 			Names: *wantArg,

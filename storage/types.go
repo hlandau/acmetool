@@ -86,7 +86,8 @@ type TargetRequest struct {
 	// probably be added.
 	Provider string `yaml:"provider,omitempty"`
 
-	// D. Account to use, determined via Provider string.
+	// D. Account to use. The storage package does not set this; it is for the
+	// convenience of consuming code. To be determined via Provider string.
 	Account *Account `yaml:"-"`
 
 	// Settings relating to the creation of new keys used to request

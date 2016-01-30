@@ -43,11 +43,13 @@ func targetGt(a *storage.Target, b *storage.Target) bool {
 	return len(a.Satisfy.Names) > len(b.Satisfy.Names)
 }
 
+const renewalMargin = 14 * 24 * time.Hour // close enough to 14 days
+
 func renewTime(notBefore, notAfter time.Time) time.Time {
 	validityPeriod := notAfter.Sub(notBefore)
 	renewSpan := validityPeriod / 3
-	if renewSpan > 30*24*time.Hour { // close enough to 30 days
-		renewSpan = 30 * 24 * time.Hour
+	if renewSpan > renewalMargin {
+		renewSpan = renewalMargin
 	}
 
 	return notAfter.Add(-renewSpan)

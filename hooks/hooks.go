@@ -68,6 +68,16 @@ func ChallengeHTTPStop(hookDirectory, stateDirectory, hostname, targetFileName, 
 	return err
 }
 
+func ChallengeDNSStart(hookDirectory, stateDirectory, hostname, targetFileName, body string) (installed bool, err error) {
+	return runParts(hookDirectory, stateDirectory, nil,
+		"challenge-dns-start", hostname, targetFileName, body)
+}
+
+func ChallengeDNSStop(hookDirectory, stateDirectory, hostname, targetFileName, body string) (uninstalled bool, err error) {
+	return runParts(hookDirectory, stateDirectory, nil,
+		"challenge-dns-stop", hostname, targetFileName, body)
+}
+
 // Implements functionality similar to the "run-parts" command on many distros.
 // Implementations vary, so it is reimplemented here.
 func runParts(directory, stateDirectory string, stdinData []byte, args ...string) (anySucceeded bool, err error) {

@@ -70,12 +70,34 @@ func (as *authState) authorize() (az *acmeapi.Authorization, fatal bool, err err
 				continue
 			}
 
+			// The combination failed and failed challenge types have been removed
+			// from the preference map. Assume that a newly created authorization
+			// will offer the same combinations. So, if we still don't have a
+			// viable combination, we fail here rather than creating an authorization
+			// that won't get used.
+			if !as.haveAnyViableCombinations(az) {
+				break
+			}
+
 			return nil, false, err
 		}
 		return az, false, nil
 	}
 
 	return nil, true, ErrFailedAllCombinations
+}
+
+func (as *authState) haveAnyViableCombinations(az *acmeapi.Authorization) bool {
+	for _, com := range az.Combinations {
+		for _, i := range com {
+			ch := az.Challenges[i]
+			p, ok := as.pref[ch.Type]
+			if ok && p > NonviableThreshold {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (as *authState) attemptCombination(az *acmeapi.Authorization, combination []int) (invalidated bool, err error) {
