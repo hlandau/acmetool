@@ -121,6 +121,8 @@ $ makepkg -s
 $ sudo pacman -U ./acmetool*.pkg.tar.xz
 ```
 
+**Alpine Linux users:** [An APKBUILD for building from source is available.](_doc/APKBUILD)
+
 **Building from source:** You will need Go installed to build from source.
 
 If you are on Linux, you will need to make sure the development files for

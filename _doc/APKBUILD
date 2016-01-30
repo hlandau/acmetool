@@ -1,0 +1,51 @@
+# Contributor: Hugo Landau <hlandau@devever.net>
+# Maintainer: Hugo Landau <hlandau@devever.net>
+#
+# This is a build script for the Alpine Linux build system.
+# Please do not submit it to Alpine Linux at this time.
+#
+# To build, put this file in an empty directory and run abuild.
+# You may need to setup abuild signing keys first; see Alpine documentation.
+#
+if [ "$(find version -mmin -30 2>/dev/null | wc -l)" == "0" ]; then
+  curl -s -H 'Accept: application/vnd.github.v3+json' \
+  'https://api.github.com/repos/hlandau/acme/releases/latest' | \
+  sed 's/^.*"tag_name": *"v\([^"]*\)".*$/\1/;tx;d;:x' > version.tmp || exit 1
+  mv version.tmp version
+fi
+
+pkgname=acmetool
+pkgver="$(cat version)"
+pkgrel=0
+pkgdesc="ACME/Let's Encrypt client"
+url="https://github.com/hlandau/acme"
+arch="all"
+license="MIT"
+depends="libcap"
+makedepends="libcap-dev go bash git curl"
+install=""
+subpackages="$pkgname-doc"
+options="!strip"
+source=""
+
+prepare() {
+  cd "$srcdir"
+  git clone -b "v$pkgver" https://github.com/hlandau/acme || return 1
+}
+
+build() {
+  cd "$srcdir/acme" || return 1
+  make USE_BUILDINFO=1 || return 1
+
+  # For some reason this is necessary in order for the buildinfo to get
+  # included properly.
+  rm "$srcdir/acme/bin/$pkgname" || return 1
+  make USE_BUILDINFO=1 || return 1
+}
+
+package() {
+  install -Dm0755 "$srcdir/acme/bin/$pkgname" "$pkgdir"/usr/bin/$pkgname || return 1
+	mkdir -p "$pkgdir"/usr/share/man/man8
+	"$pkgdir"/usr/bin/$pkgname --help-man | gzip > \
+		"$pkgdir"/usr/share/man/man8/acmetool.man.gz || return 1
+}
