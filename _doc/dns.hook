@@ -78,7 +78,7 @@ updns() {
         return 1  # not implemented
     fi
     echo send
-  ) | nsupdate $NSUPDATE_ARGS
+  ) | nsupdate -t 10 $NSUPDATE_ARGS
 }
 
 [ -e "/etc/default/acme-dns" ] && . /etc/default/acme-dns
