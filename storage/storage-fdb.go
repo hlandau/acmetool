@@ -242,6 +242,7 @@ func (s *fdbStore) loadAccounts() error {
 		sc := c.Collection(serverName)
 
 		accountNames, err := sc.List()
+		log.Errore(err, "failed to list accounts for server ", serverName)
 		if err != nil {
 			return err
 		}
@@ -250,7 +251,10 @@ func (s *fdbStore) loadAccounts() error {
 			ac := sc.Collection(accountName)
 
 			err := s.validateAccount(serverName, accountName, ac)
-			if err != nil {
+			log.Errore(err, "failed to load account ", accountName)
+			if err != nil && IsWellFormattedCertificateOrKeyID(accountName) {
+				// If the account name is not a well-formatted key ID and it fails to
+				// load, ignore errors.
 				return err
 			}
 		}
@@ -317,9 +321,7 @@ func (s *fdbStore) validateAuthorizations(account *Account, c *fdb.Collection) e
 	for _, auth := range auths {
 		auc := ac.Collection(auth)
 		err := s.validateAuthorization(account, auth, auc)
-		if err != nil {
-			return err
-		}
+		log.Errore(err, "failed to load authorization, ignoring: ", auth)
 	}
 
 	return nil
@@ -365,7 +367,9 @@ func (s *fdbStore) loadKeys() error {
 		kc := c.Collection(keyID)
 
 		err := s.validateKey(keyID, kc)
-		if err != nil {
+		log.Errore(err, "failed to load key ", keyID)
+		if err != nil && IsWellFormattedCertificateOrKeyID(keyID) {
+			// If the key fails to load and it has an invalid key ID, ignore errors.
 			return err
 		}
 	}
@@ -424,7 +428,10 @@ func (s *fdbStore) loadCerts() error {
 		kc := c.Collection(certID)
 
 		err := s.validateCert(certID, kc)
-		if err != nil {
+		log.Errore(err, "failed to load certificate ", certID)
+		if err != nil && IsWellFormattedCertificateOrKeyID(certID) {
+			// If the certificate fails to load and it has an invalid cert ID,
+			// ignore errors.
 			return err
 		}
 	}
@@ -519,9 +526,8 @@ func (s *fdbStore) loadTargets() error {
 
 	for _, desiredKey := range desiredKeys {
 		err := s.validateTarget(desiredKey, c)
-		if err != nil {
-			return err
-		}
+		log.Errore(err, "failed to load target ", desiredKey)
+		// Ignore errors, best effort.
 	}
 
 	return nil
