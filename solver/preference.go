@@ -1,11 +1,13 @@
 package solver
 
 import (
-	"github.com/hlandau/acme/acmeapi"
 	"sort"
+
+	"github.com/hlandau/acme/acmeapi"
 )
 
-// Any challenge having a preference at or below this value will never be used.
+// NonviableThreshold is a threshold below which any challenge
+// having a preference equal or below this value will never be used.
 const NonviableThreshold int32 = -1000000
 
 // Sorter.
@@ -59,7 +61,7 @@ func satAdd(x, y int32) int32 {
 // Unknown challenge types are nonviable.
 type TypePreferencer map[string]int32
 
-// Implements Preferencer.
+// Preference implements Preferencer.
 func (p TypePreferencer) Preference(ch *acmeapi.Challenge) int32 {
 	v, ok := p[ch.Type]
 	if !ok {
@@ -68,7 +70,7 @@ func (p TypePreferencer) Preference(ch *acmeapi.Challenge) int32 {
 	return v
 }
 
-// Returns a copy of TypePreferencer, so that it can be mutated without
+// Copy returns a copy of TypePreferencer, so that it can be mutated without
 // changing the original.
 func (p TypePreferencer) Copy() TypePreferencer {
 	tp := TypePreferencer{}
@@ -83,8 +85,11 @@ var PreferFast = TypePreferencer{
 	"tls-sni-01": 1,
 	"http-01":    0,
 
-	// Disable DNS challenges for now. They're practically unusable and the Let's
-	// Encrypt live server doesn't support them at this time anyway.
+	// dns-01 requires being able to update DNS records programmatically.
+	// For example, one may use a hook script to update records by signed
+	// DNS updates (nsupdate). There is no general method for this, and
+	// it's not possible to use a fixed record for domain validation so
+	// the preference is low.
 	"dns-01": -10,
 
 	// Avoid unless necessary. In future we might want to determine whether we
@@ -92,15 +97,16 @@ var PreferFast = TypePreferencer{
 	"proofOfPossession:": -40,
 }
 
-// Determines the degree to which a challenge is preferred. Higher values are
-// more preferred. Any value <= NonviableThreshold will never be used.
+// Preferencer determines the degree to which a challenge is preferred.
+// Higher values are more preferred. Any value <= NonviableThreshold will
+// never be used.
 type Preferencer interface {
 	// Get the preference for the given challenge.
 	Preference(ch *acmeapi.Challenge) int32
 }
 
-// Sort authorization combinations by preference. Crops Combinations to viable
-// combinations.
+// SortCombinations sorts authorization combinations by preference.
+// Crops Combinations to viable combinations.
 func SortCombinations(authz *acmeapi.Authorization, preferencer Preferencer) {
 	s := sorter{
 		authz:       authz,
