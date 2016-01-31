@@ -11,7 +11,7 @@
 #   # not necessary.
 #   TKIP_KEY_NAME="hmac-sha256:tk1"
 #   TKIP_KEY="a base64-encoded TKIP key"
-# 
+#
 #   # DNS synchronization timeout in seconds. Default is 60.
 #   DNS_SYNC_TIMEOUT=60
 #
@@ -32,15 +32,22 @@ set -e
 
 get_apex() {
   local name="$1"
-  if [ -z "$name" ]; then
-    echo "$0: couldn't get apex for $name" >&2
+  if [[ -z "$name" ]]; then
+    echo "$0: couldn't get apex for empty name" >&2
     return 1
   fi
-  if [ "`dig +noall +answer SOA "${name}." |grep SOA|wc -l`" == "1" ]; then
+  # Look up SOA to get APEX and nameserver
+  APEX_NS=$(dig +noall +answer SOA "$name"|awk 'NR==1 && $4 == "SOA" {print $5}')
+  if [[ -n "$APEX_NS" ]]; then
     APEX="$name"
     return
   fi
-  local sname="$(echo $name | sed 's/^[^.]\+\.//')"
+  # If no SOA, check parent domain name (foo.example.com -> example.com)
+  local sname="$(echo $name | sed 's/^[^.]*\.//')"
+  if [[ "$sname" == "$name" ]]; then
+      echo "$0: could not get apex for $CH_HOSTNAME" >&2
+      return 1
+  fi
   get_apex "$sname"
 }
 
