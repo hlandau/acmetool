@@ -70,7 +70,13 @@ updns() {
   (
     declare -f nsupdate_cmds >/dev/null && nsupdate_cmds
     [ -n "$TKIP_KEY" ] && echo key "$TKIP_KEY_NAME" "$TKIP_KEY"
-    echo $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
+    if [[ $op == "add" ]]; then
+        echo update add "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
+    elif [[ $op == "del" ]]; then
+        echo update delete "_acme-challenge.${CH_HOSTNAME}." IN TXT
+    else
+        return 1  # not implemented
+    fi
     echo send
   ) | nsupdate $NSUPDATE_ARGS
 }
