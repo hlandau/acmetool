@@ -1,6 +1,7 @@
 package acmeutils
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
@@ -428,6 +429,32 @@ func TestLoadKey(t *testing.T) {
 
 	if !reflect.DeepEqual(epk2, testECKeyValue) {
 		t.Fatalf("EC key mismatch: %#v %#v", epk2, testECKeyValue)
+	}
+
+	b := bytes.Buffer{}
+	err = SavePrivateKey(&b, pk)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	pkc, err := LoadPrivateKey(b.Bytes())
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !reflect.DeepEqual(pk, pkc) {
+		t.Fatalf("mismatch after save-load")
+	}
+
+	b = bytes.Buffer{}
+	err = SavePrivateKey(&b, epk)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	epkc, err := LoadPrivateKey(b.Bytes())
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !reflect.DeepEqual(epk, epkc) {
+		t.Fatalf("mismatch after save-load")
 	}
 }
 

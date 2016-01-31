@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/xlog"
 	"github.com/square/go-jose"
 )
@@ -28,7 +27,7 @@ var log, Log = xlog.New("acme.responder")
 // when polling may be fruitful.
 type Responder interface {
 	// Become ready to be interrogated by the ACME server.
-	Start(interactor interaction.Interactor) error
+	Start() error
 
 	// Stop responding to any queries by the ACME server.
 	Stop() error

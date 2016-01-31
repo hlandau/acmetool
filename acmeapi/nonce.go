@@ -1,7 +1,10 @@
 package acmeapi
 
+import "errors"
+
 type nonceSource struct {
-	pool map[string]struct{}
+	pool         map[string]struct{}
+	GetNonceFunc func() (string, error)
 }
 
 func (ns *nonceSource) init() {
@@ -28,7 +31,11 @@ func (ns *nonceSource) Nonce() (string, error) {
 }
 
 func (ns *nonceSource) obtainNonce() (string, error) {
-	panic("...")
+	if ns.GetNonceFunc == nil {
+		return "", errors.New("out of nonces - this should never happen")
+	}
+
+	return ns.GetNonceFunc()
 }
 
 func (ns *nonceSource) AddNonce(nonce string) {

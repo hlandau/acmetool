@@ -1,3 +1,4 @@
+// Package storageops implements operations on the state directory.
 package storageops
 
 import (
@@ -347,7 +348,7 @@ func (r *reconcile) getClientForAccount(a *storage.Account) *acmeapi.Client {
 	cl := r.accountClients[a]
 	if cl == nil {
 		cl = r.getClientForDirectoryURL(a.DirectoryURL)
-		cl.AccountInfo.AccountKey = a.PrivateKey
+		cl.AccountKey = a.PrivateKey
 		r.accountClients[a] = cl
 	}
 
@@ -439,7 +440,7 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 		StopHookFunc:  stopHookFunc,
 	}
 
-	az, err := solver.Authorize(cl, name, ccfg, nil, context.TODO())
+	az, err := solver.Authorize(cl, name, ccfg, context.TODO())
 	if err != nil {
 		return err
 	}

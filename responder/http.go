@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
-	"github.com/hlandau/acme/interaction"
 	deos "github.com/hlandau/degoutils/os"
 	"gopkg.in/tylerb/graceful.v1"
 	"io/ioutil"
@@ -82,7 +81,7 @@ func (s *httpResponder) notify() {
 }
 
 // Start handling HTTP requests.
-func (s *httpResponder) Start(interactor interaction.Interactor) error {
+func (s *httpResponder) Start() error {
 	err := s.startActual()
 	if err != nil {
 		return err

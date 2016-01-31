@@ -16,6 +16,17 @@ func TestFDB(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
+	const permissionsfile = `
+  
+  # This is an example permissions file
+  alpha 0604 0705
+  alpha/foo  0640 0750
+  `
+	err = ioutil.WriteFile(filepath.Join(dir, "Permissionsfile"), []byte(permissionsfile), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	db, err := Open(Config{
 		Path: dir,
 		Permissions: []Permission{
@@ -24,6 +35,7 @@ func TestFDB(t *testing.T) {
 			{Path: "beta", FileMode: 0600, DirMode: 0700},
 			{Path: "tmp", FileMode: 0600, DirMode: 0700},
 		},
+		PermissionsPath: "Permissionsfile",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -36,20 +48,25 @@ func TestFDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c := db.Collection("alpha/foo")
+	c := db.Collection("alpha/foo/x")
 	if c.DB() != db {
 		panic("...")
 	}
 
-	if c.Name() != "alpha/foo" {
+	if c.Name() != "alpha/foo/x" {
 		panic(c.Name())
 	}
 
-	if c.OSPath("") != filepath.Join(dir, "alpha/foo") {
+	if c.OSPath("") != filepath.Join(dir, "alpha/foo/x") {
 		panic(c.OSPath(""))
 	}
 
-	if c.OSPath("xyz") != filepath.Join(dir, "alpha/foo/xyz") {
+	if c.OSPath("xyz") != filepath.Join(dir, "alpha/foo/x/xyz") {
+		panic(c.OSPath("xyz"))
+	}
+
+	cc := db.Collection("alpha").Collection("foo").Collection("x")
+	if cc.OSPath("xyz") != filepath.Join(dir, "alpha/foo/x/xyz") {
 		panic(c.OSPath("xyz"))
 	}
 
@@ -73,6 +90,29 @@ func TestFDB(t *testing.T) {
 
 	if Exists(c, "xyz1") {
 		t.Fatalf("did not expect xyz1 to exist")
+	}
+
+	fi, err := os.Stat(c.OSPath("xyz"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fi.Mode() != 0640 {
+		t.Fatal("unexpected mode")
+	}
+
+	err = CreateEmpty(db.Collection("alpha"), "nak")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err = os.Stat(db.Collection("alpha").OSPath("nak"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fi.Mode() != 0604 {
+		t.Fatal("unexpected mode")
 	}
 
 	err = CreateEmpty(c, "xyz1")
@@ -122,7 +162,7 @@ func TestFDB(t *testing.T) {
 		t.Fatal("mismatch")
 	}
 
-	err = c.WriteLink("lnk", Link{Target: "alpha/foo/xyz"})
+	err = c.WriteLink("lnk", Link{Target: "alpha/foo/x/xyz"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +172,7 @@ func TestFDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if lnk.Target != "alpha/foo/xyz" {
+	if lnk.Target != "alpha/foo/x/xyz" {
 		t.Fatal(lnk.Target)
 	}
 

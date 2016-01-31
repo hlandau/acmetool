@@ -5,7 +5,6 @@ package solver
 import (
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/interaction"
 	"github.com/hlandau/acme/responder"
 	denet "github.com/hlandau/degoutils/net"
 	"github.com/hlandau/xlog"
@@ -21,7 +20,6 @@ var ErrFailedAllCombinations = fmt.Errorf("failed all combinations")
 type authState struct {
 	c            *acmeapi.Client
 	dnsName      string
-	interactor   interaction.Interactor
 	ccfg         responder.ChallengeConfig
 	ctx          context.Context
 	pref         TypePreferencer
@@ -30,17 +28,16 @@ type authState struct {
 	priorKeyFunc responder.PriorKeyFunc
 }
 
-// Attempts to authorize a hostname using the given client. webPaths,
-// interactor and priorKeyFunc are passed to responders. Returns the
-// successfully validated authorization on success.
-func Authorize(c *acmeapi.Client, dnsName string, ccfg responder.ChallengeConfig, interactor interaction.Interactor, ctx context.Context) (*acmeapi.Authorization, error) {
+// Attempts to authorize a hostname using the given client. webPaths and
+// priorKeyFunc are passed to responders. Returns the successfully validated
+// authorization on success.
+func Authorize(c *acmeapi.Client, dnsName string, ccfg responder.ChallengeConfig, ctx context.Context) (*acmeapi.Authorization, error) {
 	as := authState{
-		c:          c,
-		dnsName:    dnsName,
-		interactor: defaultInteraction(interactor),
-		ctx:        ctx,
-		pref:       PreferFast.Copy(),
-		ccfg:       ccfg,
+		c:       c,
+		dnsName: dnsName,
+		ctx:     ctx,
+		pref:    PreferFast.Copy(),
+		ccfg:    ccfg,
 	}
 
 	for {
@@ -103,7 +100,7 @@ func (as *authState) haveAnyViableCombinations(az *acmeapi.Authorization) bool {
 func (as *authState) attemptCombination(az *acmeapi.Authorization, combination []int) (invalidated bool, err error) {
 	for _, i := range combination {
 		ch := az.Challenges[i]
-		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.ccfg, as.interactor, as.ctx)
+		invalidated, err := CompleteChallenge(as.c, ch, as.dnsName, as.ccfg, as.ctx)
 		if err != nil {
 			delete(as.pref, ch.Type)
 			return invalidated, err
@@ -116,13 +113,13 @@ func (as *authState) attemptCombination(az *acmeapi.Authorization, combination [
 // Completes a given challenge, polling it until it is complete. Can be
 // cancelled using ctx.
 //
-// dnsName is the hostname which is being authorized. webPaths, interactor and
-// priorKeyFunc are passed to responders.
+// dnsName is the hostname which is being authorized. webPaths and priorKeyFunc
+// are passed to responders.
 //
 // The return value indicates whether the whole authorization has been invalidated
 // (set to "failed" status) as a result of an error. In this case a new authorization
 // must be created.
-func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string, ccfg responder.ChallengeConfig, interactor interaction.Interactor, ctx context.Context) (invalidated bool, err error) {
+func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string, ccfg responder.ChallengeConfig, ctx context.Context) (invalidated bool, err error) {
 	log.Debugf("attempting challenge type %s", ch.Type)
 
 	var certs [][]byte
@@ -134,7 +131,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 		Type:                   ch.Type,
 		Token:                  ch.Token,
 		N:                      ch.N,
-		AccountKey:             c.AccountInfo.AccountKey,
+		AccountKey:             c.AccountKey,
 		Hostname:               dnsName,
 		AcceptableCertificates: certs,
 		ChallengeConfig:        ccfg,
@@ -145,9 +142,7 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 		return false, err
 	}
 
-	interactor = defaultInteraction(interactor)
-
-	err = r.Start(interactor)
+	err = r.Start()
 	if err != nil {
 		log.Debuge(err, "challenge start failed")
 		return false, err

@@ -1,11 +1,14 @@
 package acmeapi
 
 import (
+	"github.com/hlandau/degoutils/clock"
 	"golang.org/x/net/context"
 	"net/http"
 	"strconv"
 	"time"
 )
+
+var defaultClock = clock.Real
 
 func parseRetryAfter(h http.Header) (t time.Time, ok bool) {
 	v := h.Get("Retry-After")
@@ -23,7 +26,7 @@ func parseRetryAfter(h http.Header) (t time.Time, ok bool) {
 		return t, true
 	}
 
-	return time.Now().Add(time.Duration(n) * time.Second), true
+	return defaultClock.Now().Add(time.Duration(n) * time.Second), true
 }
 
 func retryAtDefault(h http.Header, d time.Duration) time.Time {
@@ -32,7 +35,7 @@ func retryAtDefault(h http.Header, d time.Duration) time.Time {
 		return t
 	}
 
-	return time.Now().Add(d)
+	return defaultClock.Now().Add(d)
 }
 
 // Wait until time t. If t is before the current time, returns immediately.
@@ -41,9 +44,9 @@ func retryAtDefault(h http.Header, d time.Duration) time.Time {
 func waitUntil(t time.Time, ctx context.Context) error {
 	var ch <-chan time.Time
 	ch = closedChannel
-	now := time.Now()
+	now := defaultClock.Now()
 	if t.After(now) {
-		ch = time.After(t.Sub(now))
+		ch = defaultClock.After(t.Sub(now))
 	}
 
 	// make sure ctx.Done() is checked here even when we are using closedChannel,

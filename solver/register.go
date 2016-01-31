@@ -18,8 +18,10 @@ func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Inter
 
 	email := ""
 
+	reg := &acmeapi.Registration{}
+	agreementURIs := map[string]struct{}{}
 	for {
-		err := cl.AgreeRegistration(ctx)
+		err := cl.AgreeRegistration(reg, agreementURIs, ctx)
 		if err != nil {
 			if e, ok := err.(*acmeapi.AgreementError); ok {
 				res, err := interactor.Prompt(&interaction.Challenge{
@@ -49,12 +51,9 @@ Do you agree to the terms of service set out in the above document?`, e.URI),
 						}
 					}
 
-					if cl.AccountInfo.AgreementURIs == nil {
-						cl.AccountInfo.AgreementURIs = map[string]struct{}{}
-					}
-					cl.AccountInfo.AgreementURIs[e.URI] = struct{}{}
+					agreementURIs[e.URI] = struct{}{}
 					if email != "" {
-						cl.AccountInfo.ContactURIs = []string{"mailto:" + email}
+						reg.ContactURIs = []string{"mailto:" + email}
 					}
 					continue
 				}

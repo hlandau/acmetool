@@ -1,5 +1,5 @@
-// Package storage implements the state directory specification and operations
-// upon it.
+// Package storage implements the state directory specification, providing
+// a logical API access layer.
 package storage
 
 import (

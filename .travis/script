@@ -51,7 +51,7 @@ echo ----------------------------------------------------------------
 cd "$ACME_DIR"
 
 echo travis_fold:start:go-tests
-time go test -v ./...
+time go test -v -tags=integration ./...
 RESULT=$?
 echo travis_fold:end:go-tests
 

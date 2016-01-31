@@ -10,7 +10,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"fmt"
-	"github.com/hlandau/acme/interaction"
 	"math/big"
 	"net"
 	"time"
@@ -112,7 +111,7 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 // listens on for development purposes.
 var InternalTLSSNIPort uint16 = 443
 
-func (r *tlssniResponder) Start(interactor interaction.Interactor) error {
+func (r *tlssniResponder) Start() error {
 	l, err := tls.Listen("tcp", fmt.Sprintf(":%d", InternalTLSSNIPort), r.cfg)
 	if err != nil {
 		return err

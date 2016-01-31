@@ -77,7 +77,7 @@ func guessParameters(e *Endpoint) {
 	}
 
 	if e.CertificateURLTemplate == "" {
-		e.CertificateURLTemplate = "https://" + regexp.QuoteMeta(u.Host) + "/acme/cert/{{.Certificate.SerialNumber|printf \"%036x\"}}"
+		e.CertificateURLTemplate = "https://" + u.Host + "/acme/cert/{{.Certificate.SerialNumber|printf \"%036x\"}}"
 	}
 }
 
@@ -134,7 +134,7 @@ func CertificateToEndpointURL(cl *acmeapi.Client, cert *x509.Certificate, ctx co
 
 	for _, e := range es {
 		if e.certificateURLTemplate == nil {
-			return nil, "", ErrNotFound
+			continue
 		}
 
 		var b bytes.Buffer

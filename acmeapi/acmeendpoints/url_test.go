@@ -1,10 +1,16 @@
 package acmeendpoints
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
+	"github.com/hlandau/degoutils/test"
 	"golang.org/x/net/context"
+	"math/big"
+	"net/http"
 	"testing"
 )
 
@@ -87,6 +93,11 @@ var urlTestCases = []*urlTestCase{
 }
 
 func TestURL(t *testing.T) {
+	_, err := ByDirectoryURL("https://unknown/directory")
+	if err != ErrNotFound {
+		t.Fail()
+	}
+
 	for _, tc := range urlTestCases {
 		e, err := ByDirectoryURL(tc.Endpoint.DirectoryURL)
 		if err != nil {
@@ -113,6 +124,11 @@ func TestURL(t *testing.T) {
 			t.Fatalf("cannot map certificate to endpoint")
 		}
 
+		e2, err := CertificateToEndpoint(&cl, c0, context.TODO())
+		if e2 != e {
+			t.Fatalf("mismatch")
+		}
+
 		if e != tc.Endpoint {
 			t.Fatalf("certificate mapped to wrong endpoint: %v != %v", e, tc.Endpoint)
 		}
@@ -125,5 +141,119 @@ func TestURL(t *testing.T) {
 		if dURL != e.DirectoryURL {
 			t.Fatalf("directory URL mismatch: %v != %v", dURL, e.DirectoryURL)
 		}
+	}
+}
+
+func TestGuess(t *testing.T) {
+	crt := &x509.Certificate{
+		OCSPServer: []string{
+			"https://example.com/",
+		},
+		SerialNumber: big.NewInt(0xdeadb33f),
+	}
+
+	endp, certain, err := CertificateToEndpoints(crt)
+	if err != ErrNotFound || endp != nil || certain {
+		t.Fail()
+	}
+
+	e, err := CreateByDirectoryURL("https://unknown-boulder.test/directory")
+	if err != nil {
+		t.Fail()
+	}
+
+	RegisterEndpoint(e)
+
+	e2, err := CreateByDirectoryURL("https://unknown-boulder.test/directory")
+	if e2 != e || err != nil {
+		t.Fatal()
+	}
+
+	e3, err := CreateByDirectoryURL("https://unknown-boulder3.test/")
+	if err != nil {
+		t.Fatal()
+	}
+
+	RegisterEndpoint(e3)
+
+	e4, err := CreateByDirectoryURL("https://unknown-boulder4.test/directory")
+	if err != nil {
+		t.Fatal()
+	}
+
+	RegisterEndpoint(e4)
+
+	du, err := CertificateURLToDirectoryURL("https://unknown-boulder.test/acme/cert/deadb33f")
+	if err != nil {
+		t.Fatal()
+	}
+	if du != e.DirectoryURL {
+		t.Fatal()
+	}
+
+	du, err = CertificateURLToDirectoryURL("https://other-boulder.test/acme/cert/deadb33f")
+	if err != ErrNotFound {
+		t.Fatal()
+	}
+
+	endp, certain, err = CertificateToEndpoints(crt)
+	if err != nil || certain || len(endp) != 3 {
+		t.Fatal()
+	}
+	if endp[0] != e || endp[1] != e3 {
+		t.Fail()
+	}
+
+	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	crtb, err := x509.CreateCertificate(rand.Reader, crt, crt, &privKey.PublicKey, privKey)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	crtb2 := make([]byte, len(crtb))
+	copy(crtb2, crtb)
+	mt := test.HTTPMockTransport{}
+	mt.Add("unknown-boulder4.test/acme/cert/0000000000000000000000000000deadb33f", &http.Response{
+		StatusCode: 200,
+		Header: http.Header{
+			"Content-Type": []string{"application/pkix-cert"},
+		},
+	}, crtb2)
+	crt, _ = x509.ParseCertificate(crtb)
+	cl := &acmeapi.Client{
+		HTTPClient: &http.Client{
+			Transport: &mt,
+		},
+	}
+	_, cURL, err := CertificateToEndpointURL(cl, crt, context.TODO())
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if cURL != "https://unknown-boulder4.test/acme/cert/0000000000000000000000000000deadb33f" {
+		t.Fatalf("curl %v", cURL)
+	}
+	mt.Clear()
+	mt.Add("unknown-boulder.test/acme/cert/0000000000000000000000000000deadb33f", &http.Response{
+		StatusCode: 200,
+		Header: http.Header{
+			"Content-Type": []string{"application/pkix-cert"},
+		},
+	}, crtb2)
+	_, cURL, err = CertificateToEndpointURL(cl, crt, context.TODO())
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if cURL != "https://unknown-boulder.test/acme/cert/0000000000000000000000000000deadb33f" {
+		t.Fatalf("curl %v", cURL)
+	}
+	crtb2[5] ^= 1
+	_, cURL, err = CertificateToEndpointURL(cl, crt, context.TODO())
+	if err == nil {
+		t.Fatal()
+	}
+	mt.Clear()
+	_, cURL, err = CertificateToEndpointURL(cl, crt, context.TODO())
+	if err == nil {
+		t.Fatal()
 	}
 }

@@ -3,6 +3,7 @@
 package redirector
 
 import (
+	"errors"
 	"fmt"
 	deos "github.com/hlandau/degoutils/os"
 	"github.com/hlandau/xlog"
@@ -141,7 +142,7 @@ func (r *Redirector) Start() error {
 
 	serveMux.HandleFunc("/", r.handleRedirect)
 	serveMux.Handle("/.well-known/acme-challenge/",
-		http.StripPrefix("/.well-known/acme-challenge/", http.FileServer(http.Dir(challengePath))))
+		http.StripPrefix("/.well-known/acme-challenge/", http.FileServer(nolsDir(challengePath))))
 
 	go func() {
 		err := r.httpServer.Serve(r.httpListener)
@@ -186,12 +187,6 @@ func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 	//
 	// ... However, the HTTP specification makes it impossible to delete a cookie
 	// unless we know its domain and path, which aren't transmitted in requests.
-	/*for _, c := range req.Cookies() {
-	  http.SetCookie(rw, &http.Cookie{
-	    Name: c.Name,
-	    MaxAge: -1,
-	  })
-	}*/
 
 	if req.Method == "GET" {
 		rw.Header().Set("Cache-Control", "public; max-age=31536000")
@@ -220,5 +215,30 @@ const redirBody = `<!DOCTYPE html>
 <p>This resource has <strong>moved permanently</strong> to
  <a href="%s">%s</a>.</p>
 </body></html>`
+
+// Like http.Dir, but doesn't allow directory listings.
+type nolsDir string
+
+var errNoListing = errors.New("http: directory listing not allowed")
+
+func (d nolsDir) Open(name string) (http.File, error) {
+	f, err := http.Dir(d).Open(name)
+	if err != nil {
+		return nil, err
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+
+	if fi.IsDir() {
+		f.Close()
+		return nil, os.ErrNotExist
+	}
+
+	return f, nil
+}
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

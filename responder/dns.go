@@ -4,8 +4,6 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
-
-	"github.com/hlandau/acme/interaction"
 )
 
 type DNSChallengeInfo struct {
@@ -40,7 +38,7 @@ func newDNSResponder(rcfg Config) (Responder, error) {
 }
 
 // Start is a no-op for the DNS method.
-func (s *dnsResponder) Start(interactor interaction.Interactor) error {
+func (s *dnsResponder) Start() error {
 	// Try hooks.
 	if startFunc := s.rcfg.ChallengeConfig.StartHookFunc; startFunc != nil {
 		err := startFunc(&DNSChallengeInfo{

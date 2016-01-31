@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/interaction"
 	"github.com/square/go-jose"
 )
 
@@ -78,7 +77,7 @@ func newProofOfPossessionResponder(rcfg Config) (Responder, error) {
 	return r, nil
 }
 
-func (r *proofOfPossessionResponder) Start(interactor interaction.Interactor) error {
+func (r *proofOfPossessionResponder) Start() error {
 	return nil
 }
 

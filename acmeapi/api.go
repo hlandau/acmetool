@@ -84,21 +84,8 @@ var TestingAllowHTTP = false
 //
 // You must set at least AccountKey and DirectoryURL.
 type Client struct {
-	AccountInfo struct {
-		// Account private key. Required.
-		AccountKey crypto.PrivateKey
-
-		// Set of agreement URIs to automatically accept.
-		AgreementURIs map[string]struct{}
-
-		// Registration URI, if found. You can set this if known, which will save a
-		// round trip in some cases. Optional.
-		RegistrationURI string
-
-		// Contact URIs. These will be used when registering or when updating a
-		// registration. Optional.
-		ContactURIs []string
-	}
+	// Account private key. Required.
+	AccountKey crypto.PrivateKey
 
 	// The ACME server directory URL. Required. (However, you can omit this if
 	// you only use the client to load existing resources at known URLs.)
@@ -147,7 +134,7 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 	}
 
 	if key == nil {
-		key = c.AccountInfo.AccountKey
+		key = c.AccountKey
 	}
 
 	var rdr io.Reader
@@ -256,42 +243,16 @@ func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
 
 // API Methods
 
-// Find the registration URI, by registering a new account if necessary.
-func (c *Client) getRegistrationURI(ctx context.Context) (string, error) {
-	if c.AccountInfo.RegistrationURI != "" {
-		return c.AccountInfo.RegistrationURI, nil
-	}
+var newRegCodes = []int{201, 409}
+var updateRegCodes = []int{200, 202}
 
-	di, err := c.getDirectory(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	reqInfo := Registration{
-		Resource:    "new-reg",
-		ContactURIs: c.AccountInfo.ContactURIs,
-	}
-
-	var resInfo *Registration
-	res, err := c.doReq("POST", di.NewReg, &reqInfo, &resInfo, ctx)
-	if res == nil {
-		return "", err
-	}
-
-	if res.StatusCode == 201 || res.StatusCode == 409 {
-		loc := res.Header.Get("Location")
-		if !ValidURL(loc) {
-			return "", fmt.Errorf("invalid URL: %#v", loc)
+func isStatusCode(res *http.Response, codes []int) bool {
+	for _, c := range codes {
+		if c == res.StatusCode {
+			return true
 		}
-
-		c.AccountInfo.RegistrationURI = loc
-	} else if err != nil {
-		return "", err
-	} else {
-		return "", fmt.Errorf("unexpected status code: %v", res.StatusCode)
 	}
-
-	return c.AccountInfo.RegistrationURI, nil
+	return false
 }
 
 // Loads an existing registration. If reg.URI is set, then that registration is
@@ -302,58 +263,85 @@ func (c *Client) getRegistrationURI(ctx context.Context) (string, error) {
 // Note that this operation requires an account key, since the registration is
 // private data requiring authentication to access.
 func (c *Client) UpsertRegistration(reg *Registration, ctx context.Context) error {
-	reg.Resource = "reg"
-
-	if reg.URI == "" {
-		var err error
-		reg.URI, err = c.getRegistrationURI(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	res, err := c.doReq("POST", reg.URI, reg, reg, ctx)
+	di, err := c.getDirectory(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Determine whether we need to get the registration URI.
+	endp := reg.URI
+	resource := "reg"
+	expectCode := updateRegCodes
+	if endp == "" {
+		endp = di.NewReg
+		resource = "new-reg"
+		expectCode = newRegCodes
+	}
+
+	// Make request.
+	reg.Resource = resource
+	res, err := c.doReq("POST", endp, reg, reg, ctx)
+	if res == nil {
+		return err
+	}
+
+	// Get TOS URI.
 	lg := link.ParseResponse(res)
 	if tosLink, ok := lg["terms-of-service"]; ok {
 		reg.LatestAgreementURI = tosLink.URI
+	}
+
+	// Ensure status code is an expected value.
+	if !isStatusCode(res, expectCode) {
+		if err != nil {
+			return err
+		}
+
+		return fmt.Errorf("unexpected status code: %d: %v", res.StatusCode, endp)
+	}
+
+	// Process registration URI.
+	loc := res.Header.Get("Location")
+	switch {
+	case resource == "reg":
+		// Updating existing registration, so we already have the URL and
+		// shouldn't be redirected anywhere.
+		if loc != "" {
+			return fmt.Errorf("unexpected Location header: %q", loc)
+		}
+	case !ValidURL(loc):
+		return fmt.Errorf("invalid URL: %q", loc)
+	default:
+		// Save the registration URL.
+		reg.URI = loc
+	}
+
+	// If conflict occurred, need to issue the request again to update fields.
+	if res.StatusCode == 409 {
+		return c.UpsertRegistration(reg, ctx)
 	}
 
 	return nil
 }
 
 // This is a higher-level account registration method built on
-// UpsertRegistration. It does two things that UpsertRegistration
-// does not:
-//
-// Firstly, it automatically sets the ContactURIs specified in the Client
-// structure.  If no ContactURIs are specified, the contact URIs are not
-// changed, so no existing contact URIs on the account are erased.
-//
-// Secondly, if a new agreement is required and its URI is set in
-// AgreementURIs, it will be agreed to automatically. Otherwise AgreementError
-// will be returned.
-func (c *Client) AgreeRegistration(ctx context.Context) error {
-	reg := Registration{
-		ContactURIs: c.AccountInfo.ContactURIs,
-	}
-
-	err := c.UpsertRegistration(&reg, ctx)
+// UpsertRegistration. If a new agreement is required and its URI
+// is set in agreementURIs, it will be agreed to automatically. Otherwise
+// AgreementError will be returned.
+func (c *Client) AgreeRegistration(reg *Registration, agreementURIs map[string]struct{}, ctx context.Context) error {
+	err := c.UpsertRegistration(reg, ctx)
 	if err != nil {
 		return err
 	}
 
 	if reg.LatestAgreementURI != reg.AgreementURI {
-		_, ok := c.AccountInfo.AgreementURIs[reg.LatestAgreementURI]
+		_, ok := agreementURIs[reg.LatestAgreementURI]
 		if !ok {
 			return &AgreementError{reg.LatestAgreementURI}
 		}
 
 		reg.AgreementURI = reg.LatestAgreementURI
-		err = c.UpsertRegistration(&reg, ctx)
+		err = c.UpsertRegistration(reg, ctx)
 		if err != nil {
 			return err
 		}
@@ -646,6 +634,10 @@ func (c *Client) Revoke(certificateDER []byte, revocationKey crypto.PrivateKey, 
 	di, err := c.getDirectory(ctx)
 	if err != nil {
 		return err
+	}
+
+	if di.RevokeCert == "" {
+		return fmt.Errorf("endpoint does not support revocation")
 	}
 
 	req := &revokeReq{
