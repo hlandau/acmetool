@@ -708,8 +708,7 @@ func (c *Collection) WriteLink(name string, target Link) error {
 	return os.Rename(tmpName, from)
 }
 
-// List the objects and collections in the collection.
-func (c *Collection) List() ([]string, error) {
+func (c *Collection) ListAll() ([]string, error) {
 	ms, err := filepath.Glob(filepath.Join(c.db.path, c.name, "*"))
 	if err != nil {
 		return nil, err
@@ -721,6 +720,26 @@ func (c *Collection) List() ([]string, error) {
 	}
 
 	return objs, nil
+}
+
+// List the objects and collections in the collection. Filenames beginning with
+// '.' are hidden.
+func (c *Collection) List() ([]string, error) {
+	s, err := c.ListAll()
+	if err != nil {
+		return nil, err
+	}
+
+	s2 := make([]string, 0, len(s))
+	for _, x := range s {
+		if strings.HasPrefix(x, ".") {
+			continue
+		}
+
+		s2 = append(s2, x)
+	}
+
+	return s2, nil
 }
 
 // © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License
