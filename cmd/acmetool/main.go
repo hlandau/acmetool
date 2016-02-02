@@ -425,5 +425,3 @@ func revokeByCertificateID(certID string) {
 	err = storageops.Reconcile(s)
 	log.Fatale(err, "reconcile")
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

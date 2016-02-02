@@ -294,5 +294,3 @@ func (merr MultiError) Error() string {
 	}
 	return "the following errors occurred:\n" + s
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

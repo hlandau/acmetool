@@ -182,5 +182,3 @@ func logFailedExecution(hookPath string, err error) {
 		log.Errore(err, "hook script: ", hookPath)
 	}
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

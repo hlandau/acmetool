@@ -100,5 +100,3 @@ func (r *proofOfPossessionResponder) ValidationSigningKey() crypto.PrivateKey {
 func init() {
 	RegisterResponder("proofOfPossession", newProofOfPossessionResponder)
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

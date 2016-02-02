@@ -100,5 +100,3 @@ func defaultInteraction(interactor interaction.Interactor) interaction.Interacto
 	}
 	return interactor
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

@@ -359,5 +359,3 @@ func (s *httpResponder) ValidationSigningKey() crypto.PrivateKey {
 func init() {
 	RegisterResponder("http-01", newHTTP)
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

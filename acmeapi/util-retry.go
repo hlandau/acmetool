@@ -70,5 +70,3 @@ var closedChannel = make(chan time.Time)
 func init() {
 	close(closedChannel)
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

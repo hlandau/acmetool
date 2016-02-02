@@ -538,5 +538,3 @@ func TestLoadCSR(t *testing.T) {
 		t.Fatalf("bad csr")
 	}
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

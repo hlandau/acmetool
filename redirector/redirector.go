@@ -240,5 +240,3 @@ func (d nolsDir) Open(name string) (http.File, error) {
 
 	return f, nil
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -76,5 +76,3 @@ func init() {
 	kingpin.CommandLine.Author("Hugo Landau")
 	kingpin.ManPageTemplate = manPageTemplate
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -66,5 +66,3 @@ func TestCLI(t *testing.T) {
 	cmdWant()
 	cmdReconcile()
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

@@ -188,5 +188,3 @@ func CompleteChallenge(c *acmeapi.Client, ch *acmeapi.Challenge, dnsName string,
 
 	return false, nil
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

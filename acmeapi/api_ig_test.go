@@ -68,5 +68,3 @@ func TestAPIIntegration(t *testing.T) {
 
 	testAPIWithKey(t, ecdsaPK)
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

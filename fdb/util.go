@@ -95,5 +95,3 @@ func Uint(c *Collection, name string, bits int) (uint64, error) {
 	s = strings.TrimSpace(s)
 	return strconv.ParseUint(s, 10, bits)
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

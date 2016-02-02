@@ -661,5 +661,3 @@ func userAgent(ua string) string {
 
 	return fmt.Sprintf("%sacmeapi Go-http-client/1.1 %s/%s", ua, runtime.GOOS, runtime.GOARCH)
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

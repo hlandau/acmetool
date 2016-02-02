@@ -224,5 +224,3 @@ func titleLine(title string) string {
 	}
 	return s
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

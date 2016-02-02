@@ -741,5 +741,3 @@ func (c *Collection) List() ([]string, error) {
 
 	return s2, nil
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

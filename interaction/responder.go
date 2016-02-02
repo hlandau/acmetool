@@ -32,5 +32,3 @@ func SetResponse(uniqueID string, res *Response) {
 	res.Noninteractive = true
 	responses[uniqueID] = res
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

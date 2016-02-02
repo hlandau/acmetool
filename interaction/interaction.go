@@ -90,5 +90,3 @@ type Interactor interface {
 	// Asynchronously present status information to the user.
 	Status(*StatusInfo) (StatusSink, error)
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

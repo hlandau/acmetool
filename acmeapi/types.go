@@ -133,5 +133,3 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 	*s = Status(ss)
 	return nil
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

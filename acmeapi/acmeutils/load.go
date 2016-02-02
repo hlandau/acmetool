@@ -128,5 +128,3 @@ func LoadCSR(pemBlock []byte) ([]byte, error) {
 
 	return derBlock.Bytes, nil
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

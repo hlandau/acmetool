@@ -46,5 +46,3 @@ func getECDSACurve(curveName string) elliptic.Curve {
 		return nil
 	}
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License

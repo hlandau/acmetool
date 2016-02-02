@@ -76,5 +76,3 @@ func TestNotify(t *testing.T) {
 		}
 	}
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

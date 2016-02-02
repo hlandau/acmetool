@@ -116,5 +116,3 @@ func SortCombinations(authz *acmeapi.Authorization, preferencer Preferencer) {
 		}
 	}
 }
-
-// © 2015 Hugo Landau <hlandau@devever.net>    MIT License

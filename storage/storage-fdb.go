@@ -884,5 +884,3 @@ func (s *fdbStore) revokeByKeyID(keyID string) error {
 
 	return nil
 }
-
-// © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License
