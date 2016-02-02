@@ -114,7 +114,9 @@ parameters of a new certificate request made to satisfy the target.
   - `names`: A list of hostname strings. If not set, and the filename is a valid
     hostname, defaults to a list containing only that hostname. Hostnames SHOULD
     be in lowercase with no trailing dot but hostnames not in this form MUST be
-    accepted and so canonicalized.
+    accepted and so canonicalized. IDN domain names in Unicode form MUST be converted
+    to their equivalent ASCII form. (All text files in a State Directory must be
+    UTF-8 encoded.)
 
 (The lumping of hostnames into different target files controls when separate
 certificates are issued, and when single certificates with multiple SANs are
@@ -152,7 +154,7 @@ The procedure operates as follows:
 - Take the list of targets and sort it in descending order of priority value.
   For targets with equal priority, tiebreak using the number of hostnames to be
   satisfied in descending order. Where the number of hostnames is equal, the
-  tiebraker is implementation-specified, but SHOULD be deterministic.
+  tiebreaker is implementation-specified, but SHOULD be deterministic.
 
 - Now iterate through the targets in that order. Create an empty dictionary
   mapping hostnames to targets. This dictionary shall be called the
@@ -356,7 +358,7 @@ be written in the certificate subdirectory:
     validate the certificate. In other words, this contains any necessary
     intermediate certificates.
 
-  - "fullchain": A file which MUST contains the concatenation of the "cert" and
+  - "fullchain": A file which MUST contain the concatenation of the "cert" and
     "chain" files.
 
   - "privkey": This MUST be a relative symlink to the privkey file of the
