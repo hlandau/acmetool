@@ -103,7 +103,7 @@ func areAnyInPath(names ...string) bool {
 	return false
 }
 
-const reloadHookFile = `#!/bin/bash
+const reloadHookFile = `#!/bin/sh
 ## This file was installed by acmetool. Any updates to this script will
 ## overwrite changes you make. If you don't want acmetool to manage
 ## this file, remove the following line.
@@ -111,7 +111,7 @@ const reloadHookFile = `#!/bin/bash
 
 set -e
 EVENT_NAME="$1"
-[ "$EVENT_NAME" == "live-updated" ] || exit 42
+[ "$EVENT_NAME" = "live-updated" ] || exit 42
 
 SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
@@ -140,7 +140,7 @@ if [ -e "/etc/init.d" ]; then
   exit 0
 fi`
 
-const haproxyReloadHookFile = `#!/bin/bash
+const haproxyReloadHookFile = `#!/bin/sh
 ## This file was installed by acmetool. Any updates to this script will
 ## overwrite changes you make. If you don't want acmetool to manage
 ## this file, remove the following line.
@@ -151,7 +151,7 @@ const haproxyReloadHookFile = `#!/bin/bash
 
 set -e
 EVENT_NAME="$1"
-[ "$EVENT_NAME" == "live-updated" ] || exit 42
+[ "$EVENT_NAME" = "live-updated" ] || exit 42
 
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
@@ -160,7 +160,7 @@ EVENT_NAME="$1"
 [ -z "$HAPROXY_DH_PATH" ] && HAPROXY_DH_PATH="$ACME_STATE_DIR/conf/dhparams"
 
 # Don't do anything if neither HAProxy nor Hitch are installed.
-[ -n "$HAPROXY_ALWAYS_GENERATE" ] || which haproxy &>/dev/null || which hitch &>/dev/null || exit 0
+[ -n "$HAPROXY_ALWAYS_GENERATE" ] || which haproxy >/dev/null 2>/dev/null || which hitch >/dev/null 2>/dev/null || exit 0
 
 # Create coalesced files and a haproxy repository.
 mkdir -p "$ACME_STATE_DIR/haproxy"
