@@ -84,23 +84,12 @@ func cmdQuickstart() {
 	}
 
 	installDefaultHooks()
-	if areAnyInPath("haproxy", "hitch") {
-		if promptInstallHAProxyHooks() {
-			installHAProxyHooks()
-		}
+	if promptInstallCombinedHooks() {
+		installCombinedHooks()
 	}
 
 	promptCron()
 	promptGettingStarted()
-}
-
-func areAnyInPath(names ...string) bool {
-	for _, n := range names {
-		if _, err := exec.LookPath(n); err == nil {
-			return true
-		}
-	}
-	return false
 }
 
 const reloadHookFile = `#!/bin/sh
@@ -109,6 +98,20 @@ const reloadHookFile = `#!/bin/sh
 ## this file, remove the following line.
 ##!acmetool-managed!##
 
+# This file reloads services when the preferred certificate for a hostname
+# changes. A list of commonly used daemons is preconfigured. You can override
+# this list by setting $SERVICES in /etc/{default,conf.d}/acme-reload.
+#
+# Configuration options:
+#   /etc/{default,conf.d}/acme-reload
+#     Sourced if they exist. Specify variables here.
+#     Please note that most of the time, you don't need to specify anything.
+#
+#   $SERVICES
+#     Space-separated list of daemons to reload.
+#     Append with SERVICES="$SERVICES mydaemon".
+
+###############################################################################
 set -e
 EVENT_NAME="$1"
 [ "$EVENT_NAME" = "live-updated" ] || exit 42
@@ -140,31 +143,98 @@ if [ -e "/etc/init.d" ]; then
   exit 0
 fi`
 
-const haproxyReloadHookFile = `#!/bin/sh
+const combinedReloadHookFile = `#!/bin/sh
 ## This file was installed by acmetool. Any updates to this script will
 ## overwrite changes you make. If you don't want acmetool to manage
 ## this file, remove the following line.
 ##!acmetool-managed!##
 
-# This file should be executed before 'reload'. So long as it is named
-# 'haproxy' and reload is named 'reload', that is assured.
+# This file generates combined certificate+private key files for daemons which
+# require them. It is called haproxy for legacy reasons, HAProxy being a common
+# example of such a daemon, but can also be used with other daemons taking the
+# same input format such as Hitch and Quasselcore.
+#
+# This is done outside of acmetool, because it is desired to avoid making
+# unnecessary copies of private keys except in environments where it is
+# necessary. This also demonstrates the power and flexibility of the hooks
+# system.
+#
+# The files consist of the private key, followed by the certificate and
+# certificate chain, followed by any data placed in conf/dhparams.
+#
+# This script is a no-op unless a daemon known to require combined files is
+# found. You can override this by setting $HAPROXY_ALWAYS_GENERATE or
+# $HAPROXY_DAEMONS in /etc/{default,conf.d}/acme-reload.
+#
+# (This file should be executed before 'reload'. So long as it is named
+# 'haproxy' and reload is named 'reload', that is assured.)
+#
+# DEBUGGING NOTE: If you make changes to the configuration this will not
+# be reflected simply by rerunning 'acmetool', because this script is only
+# called when a symlink in 'live' is updated. You can force this script to
+# be rerun by deleting all symlinks in 'live' and running 'acmetool'.
+#
+# Output:
+#   $ACME_STATE_DIR/live/$HOSTNAME/haproxy
+#     The combined certificate file for a hostname.
+#
+#   $ACME_STATE_DIR/haproxy/$HOSTNAME
+#     Symlinked to the combined certificate file. Daemons such as HAProxy
+#     can prefer directories such as these, where each file is a hostname
+#     containing combined data.
+#
+# Configuration options:
+#   /etc/{default,conf.d}/acme-reload
+#     Sourced if they exist. Specify variables here.
+#     Please note that most of the time, you don't need to specify anything.
+#
+#   $HAPROXY_ALWAYS_GENERATE
+#     If non-empty, always generate combined files.
+#
+#   $HAPROXY_DAEMONS
+#     Space-separated list of binaries to search for in path. If any are found
+#     (or $HAPROXY_ALWAYS_GENERATE is set), generate combined files.
+#     Append with HAPROXY_DAEMONS="$HAPROXY_DAEMONS mydaemon".
+#     Defaults: see below.
+#
+#   $HAPROXY_DH_PATH
+#     Defaults to "$ACME_STATE_DIR/conf/dhparams". If the file exists, it is
+#     appended verbatim to combined certificate files. Commonly used to attach
+#     custom Diffie-Hellman parameters.
+#
+#   $HAPROXY_UMASK
+#     Don't change this unless you know what you're doing.
+#     If you change this, you must create a conf/perm file to reconfigure
+#     acmetool's permissions enforcement. See _doc directory in repository.
+#     Override path "certs/*/haproxy".
 
+###############################################################################
 set -e
 EVENT_NAME="$1"
 [ "$EVENT_NAME" = "live-updated" ] || exit 42
 
+# List of services. If any of these are in PATH (or HAPROXY_ALWAYS_GENERATE is
+# set), assume we need to generate combined files.
+HAPROXY_DAEMONS="haproxy hitch quasselcore quassel"
+HAPROXY_UMASK="0077"
+
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 [ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
-
 [ -z "$HAPROXY_DH_PATH" ] && HAPROXY_DH_PATH="$ACME_STATE_DIR/conf/dhparams"
 
-# Don't do anything if neither HAProxy nor Hitch are installed.
-[ -n "$HAPROXY_ALWAYS_GENERATE" ] || which haproxy >/dev/null 2>/dev/null || which hitch >/dev/null 2>/dev/null || exit 0
+# Don't do anything if no daemon requiring combined files is found.
+[ -n "$HAPROXY_ALWAYS_GENERATE" ] || {
+  ok=
+  for exe in $HAPROXY_DAEMONS; do
+    which "$exe" >/dev/null 2>/dev/null && ok=1 && break
+  done
+  [ -z "$ok" ] && exit 0
+}
 
 # Create coalesced files and a haproxy repository.
 mkdir -p "$ACME_STATE_DIR/haproxy"
-umask 0077
+umask $HAPROXY_UMASK
 while read name; do
   certdir="$ACME_STATE_DIR/live/$name"
   if [ -z "$name" -o ! -e "$certdir" ]; then
@@ -178,8 +248,7 @@ while read name; do
   fi
 
   [ -h "$ACME_STATE_DIR/haproxy/$name" ] || ln -s "../live/$name/haproxy" "$ACME_STATE_DIR/haproxy/$name"
-done
-`
+done`
 
 func installHook(name, value string) {
 	hooks.Replace(*hooksFlag, name, strings.Replace(value, "@@ACME_STATE_DIR@@", *stateFlag, -1))
@@ -190,8 +259,8 @@ func installDefaultHooks() {
 	installHook("reload", reloadHookFile)
 }
 
-func installHAProxyHooks() {
-	installHook("haproxy", haproxyReloadHookFile)
+func installCombinedHooks() {
+	installHook("haproxy", combinedReloadHookFile)
 }
 
 var errStop = fmt.Errorf("stop")
@@ -357,7 +426,7 @@ func setUserCron(b []byte) error {
 	return setCmd.Run()
 }
 
-func promptInstallHAProxyHooks() bool {
+func promptInstallCombinedHooks() bool {
 	// Always install if the hook is already installed.
 	hooksPath := *hooksFlag
 	if hooksPath == "" {
@@ -370,20 +439,28 @@ func promptInstallHAProxyHooks() bool {
 
 	// Prompt.
 	r, err := interaction.Auto.Prompt(&interaction.Challenge{
-		Title: "Install HAProxy/Hitch hooks?",
-		Body: fmt.Sprintf(`You appear to have HAProxy or Hitch installed. By default, acmetool doesn't support these too well because they require the certificate chain, private key (and custom Diffie-Hellman parameters, if used) to be placed in the same file.
+		Title: "Install combined certificate files?",
+		Body: fmt.Sprintf(`By default, acmetool stores certificates and private keys separately. The vast majority of daemons prefer this format. However, some daemons, such as HAProxy, require combined files which contain both certificate and private key.
 
-acmetool can install a notification hook that will generate an additional file called "haproxy" in every certificate directory. This means that you can point HAProxy to "%s/live/HOSTNAME/haproxy". These files will also be accessible in a directory of their own, as "%s/haproxy/HOSTNAME". (Despite their naming, these files work for Hitch as well as HAProxy.)
+acmetool doesn't create such files by default to avoid creating unnecessary copies of private keys. acmetool can install a notification hook that will automatically generate an additional file called "haproxy" in every certificate directory. (These files are accepted by more than just HAProxy; the name is used for legacy reasons.) This means that you can point such daemons at "%s/live/HOSTNAME/haproxy".
 
-If you place a PEM-encoded DH parameter file at %s/conf/dhparams, those will also be included in each haproxy file. This is optional.
+These files will also be accessible in a directory of their own, "%s/haproxy/HOSTNAME", for daemons which like a directory of files named after hostnames.
 
-Do you want to install the HAProxy/Hitch notification hook?
-    `, *stateFlag, *stateFlag, *stateFlag),
+If you place a PEM-encoded DH parameter file at "%s/conf/dhparams", those will also be included in each
+"haproxy" file. This is optional.
+
+Examples of daemons requiring combined files include HAProxy, Hitch and Quassel. The hook script will not generate the files unless one of these daemons is detected, or you configure it to always generate combined files. (See the hook script for configuration documentation.) Therefore, installing the script is a no-op on systems without these daemons installed, and it is always safe to say yes here.
+
+Do you want to install the combined file generation hook? If in doubt, say yes.`,
+			*stateFlag, *stateFlag, *stateFlag),
 		ResponseType: interaction.RTYesNo,
+		Implicit:     !*expertFlag,
 		UniqueID:     "acmetool-quickstart-install-haproxy-script",
 	})
 	if err != nil {
-		return false
+		// Install by default, since the hook script does nothing unless a service requiring it is
+		// installed. Can still be overriden by --expert or response file.
+		return true
 	}
 
 	return !r.Cancelled
