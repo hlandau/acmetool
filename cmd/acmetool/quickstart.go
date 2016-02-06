@@ -329,6 +329,9 @@ func formulateCron(root bool) string {
 	if *stateFlag != storage.RecommendedPath {
 		s += fmt.Sprintf(`--state="%s" `, *stateFlag)
 	}
+	if *hooksFlag != hooks.RecommendedPath {
+		s += fmt.Sprintf(`--hooks="%s" `, *hooksFlag)
+	}
 
 	s += "reconcile\n"
 	return s

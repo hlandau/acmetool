@@ -35,9 +35,9 @@ var (
 			String()
 
 	hooksFlag = kingpin.Flag("hooks", "Path to the notification hooks directory (env: ACME_HOOKS_DIR)").
-			Default(hooks.DefaultPath).
+			Default(hooks.RecommendedPath).
 			Envar("ACME_HOOKS_DIR").
-			PlaceHolder(hooks.DefaultPath).
+			PlaceHolder(hooks.RecommendedPath).
 			String()
 
 	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs. (acmetool can still obtain responses from a response file, if one was provided.)").

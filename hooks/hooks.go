@@ -15,9 +15,13 @@ import (
 // Log site.
 var log, Log = xlog.New("acme.hooks")
 
-// The default hook path is the path at which executable hooks are looked for.
-// On POSIX-like systems, this is usually "/usr/lib/acme/hooks" (or
+// The recommended hook path is the path at which executable hooks are looked
+// for. On POSIX-like systems, this is usually "/usr/lib/acme/hooks" (or
 // "/usr/libexec/acme/hooks" if /usr/libexec exists).
+var RecommendedPath string
+
+// The default hook path defaults to the recommended hook path but could be
+// changed at runtime.
 var DefaultPath string
 
 func init() {
@@ -32,6 +36,7 @@ func init() {
 	}
 
 	DefaultPath = p
+	RecommendedPath = p
 }
 
 // Notifies hook programs that a live symlink has been updated.
