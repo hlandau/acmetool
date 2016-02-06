@@ -22,12 +22,16 @@ func TestParsePerm(t *testing.T) {
      beta  0644 0755  42 42
      gamma  0644 0755  $r $r
      delta   inherit
+     x 0644 0755 root -
+     y 0644 0755 - root
      `, []Permission{
 			{Path: "foo/bar", FileMode: 0644, DirMode: 0755},
 			{Path: "foo/*/baz", FileMode: 0640, DirMode: 0750},
 			{Path: "alpha", FileMode: 0644, DirMode: 0755, UID: "root", GID: "root"},
 			{Path: "beta", FileMode: 0644, DirMode: 0755, UID: "42", GID: "42"},
 			{Path: "gamma", FileMode: 0644, DirMode: 0755, UID: "$r", GID: "$r"},
+			{Path: "x", FileMode: 0644, DirMode: 0755, UID: "root", GID: ""},
+			{Path: "y", FileMode: 0644, DirMode: 0755, UID: "", GID: "root"},
 		}, map[string]struct{}{"delta": struct{}{}}},
 	}
 
@@ -38,7 +42,7 @@ func TestParsePerm(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(ps, tst.Out) {
-			t.Fatalf("permissions don't match: got %v, expected %v", ps, tst.Out)
+			t.Fatalf("permissions don't match: got %#v, expected %#v", ps, tst.Out)
 		}
 
 		if !reflect.DeepEqual(erase, tst.Erase) {

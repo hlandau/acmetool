@@ -191,30 +191,31 @@ func (db *DB) loadPermissions() error {
 	return nil
 }
 
-func resolveUIDGID(p *Permission) (uid, gid int, enforce bool, err error) {
-	if p.UID == "" || p.GID == "" {
-		return
-	}
-
+// Returns the UID and GID to enforce. If the UID or GID is -1, it is not
+// to be enforced. Neither or both or either of the UID or GID may be -1.
+func resolveUIDGID(p *Permission) (uid, gid int, err error) {
 	if p.UID == "$r" {
 		uid = os.Getuid()
-	} else {
+	} else if p.UID != "" {
 		uid, err = passwd.ParseUID(p.UID)
 		if err != nil {
 			return
 		}
+	} else {
+		uid = -1
 	}
 
 	if p.GID == "$r" {
 		gid = os.Getgid()
-	} else {
+	} else if p.GID != "" {
 		gid, err = passwd.ParseGID(p.GID)
 		if err != nil {
 			return
 		}
+	} else {
+		gid = -1
 	}
 
-	enforce = true
 	return
 }
 
@@ -295,12 +296,12 @@ func (db *DB) conformPermissions() error {
 				}
 			}
 
-			correctUID, correctGID, enforceOwner, err := resolveUIDGID(perm)
+			correctUID, correctGID, err := resolveUIDGID(perm)
 			if err != nil {
 				return err
 			}
 
-			if enforceOwner {
+			if correctUID >= 0 || correctGID >= 0 {
 				curUID, err := deos.GetFileUID(info)
 				if err != nil {
 					return err
@@ -309,6 +310,14 @@ func (db *DB) conformPermissions() error {
 				curGID, err := deos.GetFileGID(info)
 				if err != nil {
 					return err
+				}
+
+				if correctUID < 0 {
+					correctUID = curUID
+				}
+
+				if correctGID < 0 {
+					correctGID = curGID
 				}
 
 				if curUID != correctUID || curGID != correctGID {
@@ -610,17 +619,24 @@ func (cw *closeWrapper) Close() error {
 		if p != nil {
 			// TempFile creates files with mode 0600, so it's OK to chmod/chown it here, race-wise
 
-			if p.UID != "" {
-				uid, gid, enforce, err := resolveUIDGID(p)
-				if err != nil {
-					return err
-				}
+			correctUID, correctGID, err := resolveUIDGID(p)
+			if err != nil {
+				return err
+			}
 
-				if enforce && (uid != os.Getuid() || gid != os.Getgid()) {
-					err := os.Lchown(cw.finalName, uid, gid)
-					// failure is nonfatal, may not be root
-					log.Errore(err, "could not set correct owner for file", cw.finalName)
-				}
+			curUID := os.Getuid()
+			curGID := os.Getgid()
+			if correctUID < 0 {
+				correctUID = curUID
+			}
+			if correctGID < 0 {
+				correctGID = curGID
+			}
+
+			if correctUID != curUID || correctGID != curGID {
+				err := os.Lchown(cw.finalName, correctUID, correctGID)
+				// failure is nonfatal, may not be root
+				log.Errore(err, "could not set correct owner for file", cw.finalName)
 			}
 
 			err = os.Chmod(cw.finalName, p.FileMode)
