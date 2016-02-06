@@ -116,7 +116,7 @@ set -e
 EVENT_NAME="$1"
 [ "$EVENT_NAME" = "live-updated" ] || exit 42
 
-SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch"
+SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch quassel quasselcore"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 [ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
@@ -215,7 +215,7 @@ EVENT_NAME="$1"
 
 # List of services. If any of these are in PATH (or HAPROXY_ALWAYS_GENERATE is
 # set), assume we need to generate combined files.
-HAPROXY_DAEMONS="haproxy hitch quasselcore quassel"
+HAPROXY_DAEMONS="haproxy hitch quasselcore quassel lighttpd"
 HAPROXY_UMASK="0077"
 
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
