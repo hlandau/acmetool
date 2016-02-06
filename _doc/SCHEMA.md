@@ -706,7 +706,7 @@ This operation is idempotent.
 
 **Near expiry.** A certificate is near expiry if the difference between the
 current time and the "Not After" time is less than some implementation-specific
-threshold. The RECOMMENDED threshold is 30 days or 33% of the validity period,
+threshold. The RECOMMENDED threshold is 14 days or 33% of the validity period,
 whichever is lower.
 
 **Most Preferred Certificate.** The Most Preferred Certificate for a given
