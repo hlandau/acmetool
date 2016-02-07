@@ -21,6 +21,7 @@ type Store interface {
 
 	DefaultTarget() *Target // Returns the default target.
 	PreferredCertificateForHostname(hostname string) (*Certificate, error)
+	VisitPreferredCertificates(func(hostname string, c *Certificate) error) error
 
 	// The Visit methods call the given function for each known object of the
 	// given type. Returning an error short-circuits.
@@ -35,6 +36,11 @@ type Store interface {
 
 	SaveCertificate(*Certificate) error // Saves certificate information.
 	SaveAccount(*Account) error         // Save account information.
+
+	// Erase a whole certificate directory including URL, certificates, etc.
+	RemoveCertificate(certificateID string) error
+	// Erase a private key directory.
+	RemoveKey(keyID string) error
 
 	ImportKey(privateKey crypto.PrivateKey) (*Key, error)                              // Imports the key if it isn't already imported.
 	ImportAccount(directoryURL string, privateKey crypto.PrivateKey) (*Account, error) // Imports an account key if it isn't already imported.

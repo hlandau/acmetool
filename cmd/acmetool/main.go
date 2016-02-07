@@ -49,6 +49,9 @@ var (
 
 	reconcileCmd = kingpin.Command("reconcile", reconcileHelp).Default()
 
+	cullCmd          = kingpin.Command("cull", "Delete expired, unused certificates")
+	cullSimulateFlag = cullCmd.Flag("simulate", "Show which certificates would be deleted without deleting any").Short('n').Bool()
+
 	statusCmd = kingpin.Command("status", "Show active configuration")
 
 	wantCmd       = kingpin.Command("want", "Add a target with one or more hostnames")
@@ -126,6 +129,8 @@ func main() {
 	switch cmd {
 	case "reconcile":
 		cmdReconcile()
+	case "cull":
+		cmdCull()
 	case "status":
 		cmdStatus()
 	case "account-thumbprint":
@@ -188,6 +193,14 @@ func cmdReconcile() {
 
 	err = storageops.Reconcile(s)
 	log.Fatale(err, "reconcile")
+}
+
+func cmdCull() {
+	s, err := storage.NewFDB(*stateFlag)
+	log.Fatale(err, "storage")
+
+	err = storageops.Cull(s, *cullSimulateFlag)
+	log.Fatale(err, "cull")
 }
 
 func cmdStatus() {

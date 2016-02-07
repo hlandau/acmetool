@@ -29,6 +29,7 @@ type fdbStore struct {
 	accounts      map[string]*Account     // key: account ID
 	keys          map[string]*Key         // key: key ID
 	targets       map[string]*Target      // key: target filename
+	preferred     map[string]*Certificate // key: hostname
 	defaultTarget *Target                 // from conf
 }
 
@@ -113,23 +114,63 @@ func (s *fdbStore) VisitKeys(f func(k *Key) error) error {
 	return nil
 }
 
-func (s *fdbStore) PreferredCertificateForHostname(hostname string) (*Certificate, error) {
-	lnk, err := s.db.Collection("live").ReadLink(hostname)
+func (s *fdbStore) loadPreferred() error {
+	s.preferred = map[string]*Certificate{}
+
+	c := s.db.Collection("live")
+	links, err := c.List()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	certID := lnk.Target[6:]
-	c := s.CertificateByID(certID)
+	for _, linkName := range links {
+		link, err := c.ReadLink(linkName)
+		if err != nil {
+			return err
+		}
+
+		certID := link.Target[6:]
+		cert := s.CertificateByID(certID)
+		if cert == nil {
+			// This should never happen because fdb checks symlinks, though maybe if
+			// there was an empty certificate directory...
+			return fmt.Errorf("unknown certificate: %q", certID)
+		}
+
+		s.preferred[linkName] = cert
+	}
+
+	return nil
+}
+
+func (s *fdbStore) VisitPreferredCertificates(f func(hostname string, c *Certificate) error) error {
+	for hostname, c := range s.preferred {
+		err := f(hostname, c)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *fdbStore) PreferredCertificateForHostname(hostname string) (*Certificate, error) {
+	c := s.preferred[hostname]
 	if c == nil {
-		return nil, fmt.Errorf("unknown certificate: %q", certID)
+		return nil, fmt.Errorf("not found: %q", hostname)
 	}
 
 	return c, nil
 }
 
 func (s *fdbStore) SetPreferredCertificateForHostname(hostname string, c *Certificate) error {
-	return s.db.Collection("live").WriteLink(hostname, fdb.Link{Target: "certs/" + c.ID()})
+	err := s.db.Collection("live").WriteLink(hostname, fdb.Link{Target: "certs/" + c.ID()})
+	if err != nil {
+		return err
+	}
+
+	s.preferred[hostname] = c
+	return nil
 }
 
 // Default paths and permissions. {{{1
@@ -221,6 +262,11 @@ func (s *fdbStore) Reload() error {
 	}
 
 	err := s.loadTargets()
+	if err != nil {
+		return err
+	}
+
+	err = s.loadPreferred()
 	if err != nil {
 		return err
 	}
@@ -718,6 +764,38 @@ func (s *fdbStore) SaveAccount(a *Account) error {
 		}
 	}
 
+	return nil
+}
+
+// Removal {{{1
+
+func (s *fdbStore) RemoveCertificate(certificateID string) error {
+	_, ok := s.certs[certificateID]
+	if !ok {
+		return fmt.Errorf("certificate does not exist: %s", certificateID)
+	}
+
+	err := s.db.Collection("certs").Delete(certificateID)
+	if err != nil {
+		return err
+	}
+
+	delete(s.certs, certificateID)
+	return nil
+}
+
+func (s *fdbStore) RemoveKey(keyID string) error {
+	_, ok := s.keys[keyID]
+	if !ok {
+		return fmt.Errorf("key does not exist: %s", keyID)
+	}
+
+	err := s.db.Collection("keys").Delete(keyID)
+	if err != nil {
+		return err
+	}
+
+	delete(s.keys, keyID)
 	return nil
 }
 

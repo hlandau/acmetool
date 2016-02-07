@@ -96,12 +96,12 @@ func Open(cfg Config) (*DB, error) {
 		extantDirs: map[string]struct{}{},
 	}
 
-	err = db.Verify()
+	err = db.clearTmp()
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.clearTmp()
+	err = db.Verify()
 	if err != nil {
 		return nil, err
 	}
@@ -136,42 +136,9 @@ func (db *DB) Verify() error {
 		return err
 	}
 
-	err = db.cleanTmp() // ignore errors
-	log.Errore(err, "could not clean tmp")
-
 	err = db.conformPermissions()
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// Currently this only removes normal files or symlinks as this is all we
-// expect to find.
-func (db *DB) cleanTmp() error {
-	f, err := os.Open(filepath.Join(db.path, "tmp"))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	fis, err := f.Readdir(-1)
-	if err != nil {
-		return err
-	}
-
-	for _, fi := range fis {
-		switch fi.Mode() & os.ModeType {
-		case 0, os.ModeSymlink: // normal file or symlink
-			fpath := filepath.Join(db.path, "tmp", fi.Name())
-			err = os.Remove(fpath)
-			if err != nil {
-				return err
-			}
-
-		default:
-		}
 	}
 
 	return nil

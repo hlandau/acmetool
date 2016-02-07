@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-var log, Log = xlog.New("acme.reconcilator")
+var log, Log = xlog.New("acme.storageops")
 
 // Internal use only. Used for testing purposes. Do not change.
 var InternalClock = clock.Default()
@@ -78,6 +78,15 @@ func Reconcile(store storage.Store) error {
 		err = relinkErr
 	}
 
+	return err
+}
+
+// Runs the relink operation without running the reconcile operation.
+func Relink(store storage.Store) error {
+	r := makeReconcile(store)
+
+	err := r.Relink()
+	log.Errore(err, "failed to relink")
 	return err
 }
 
@@ -821,4 +830,37 @@ func CertificateNeedsRenewing(c *storage.Certificate) bool {
 
 	log.Debugf("%v needsRenewing=%v notAfter=%v", c, needsRenewing, cc.NotAfter)
 	return needsRenewing
+}
+
+// This is used to detertmine whether to cull certificates.
+func CertificateGenerallyValid(c *storage.Certificate) bool {
+	// This function is very conservative because if we return false
+	// the certificate will get deleted. Revocation and expiry are
+	// good reasons to delete. We already know the certificate is
+	// unreferenced.
+
+	if c.Revoked {
+		log.Debugf("%v not generally valid because it is revoked", c)
+		return false
+	}
+
+	if len(c.Certificates) == 0 {
+		// If we have no actual certificates, give the benefit of the doubt.
+		// Maybe the certificate is undownloaded.
+		log.Debugf("%v has no actual certificates, assuming valid", c)
+		return true
+	}
+
+	cc, err := x509.ParseCertificate(c.Certificates[0])
+	if err != nil {
+		log.Debugf("%v cannot be parsed, assuming valid", c)
+		return false
+	}
+
+	if !InternalClock.Now().Before(cc.NotAfter) {
+		log.Debugf("%v not generally valid because it is expired", c)
+		return false
+	}
+
+	return true
 }
