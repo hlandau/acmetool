@@ -136,9 +136,42 @@ func (db *DB) Verify() error {
 		return err
 	}
 
+	err = db.cleanTmp() // ignore errors
+	log.Errore(err, "could not clean tmp")
+
 	err = db.conformPermissions()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// Currently this only removes normal files or symlinks as this is all we
+// expect to find.
+func (db *DB) cleanTmp() error {
+	f, err := os.Open(filepath.Join(db.path, "tmp"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fis, err := f.Readdir(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, fi := range fis {
+		switch fi.Mode() & os.ModeType {
+		case 0, os.ModeSymlink: // normal file or symlink
+			fpath := filepath.Join(db.path, "tmp", fi.Name())
+			err = os.Remove(fpath)
+			if err != nil {
+				return err
+			}
+
+		default:
+		}
 	}
 
 	return nil
@@ -150,7 +183,12 @@ func (db *DB) createDirs() error {
 			continue
 		}
 
-		err := os.MkdirAll(filepath.Join(db.path, p.Path), p.DirMode)
+		uid, gid, err := resolveUIDGID(&p)
+		if err != nil {
+			return err
+		}
+
+		err = mkdirAllWithOwner(filepath.Join(db.path, p.Path), p.DirMode, uid, gid)
 		if err != nil {
 			return err
 		}
@@ -323,11 +361,9 @@ func (db *DB) conformPermissions() error {
 				if curUID != correctUID || curGID != correctGID {
 					log.Warnf("%#v has wrong UID/GID %v/%v, changing to %v/%v", rpath, curUID, curGID, correctUID, correctGID)
 
-					err := os.Lchown(rpath, correctUID, correctGID)
-					if err != nil {
-						// Can't chown if not root so be a bit forgiving, but always moan
-						log.Errore(err, "could not lchown file ", rpath)
-					}
+					err := os.Lchown(path, correctUID, correctGID)
+					// Can't chown if not root so be a bit forgiving, but always moan
+					log.Errore(err, "could not lchown file ", rpath)
 				}
 			}
 		}
@@ -417,7 +453,12 @@ func (db *DB) ensurePath(path string) error {
 		mode = perm.DirMode
 	}
 
-	err := os.MkdirAll(filepath.Join(db.path, path), mode)
+	uid, gid, err := resolveUIDGID(perm)
+	if err != nil {
+		return err
+	}
+
+	err = mkdirAllWithOwner(filepath.Join(db.path, path), mode, uid, gid)
 	if err != nil {
 		return err
 	}
@@ -615,38 +656,52 @@ func (cw *closeWrapper) Close() error {
 	}
 
 	if cw.writing {
-		p := cw.db.longestMatching(cw.finalNameRel)
-		if p != nil {
-			// TempFile creates files with mode 0600, so it's OK to chmod/chown it here, race-wise
-
-			correctUID, correctGID, err := resolveUIDGID(p)
-			if err != nil {
-				return err
-			}
-
-			curUID := os.Getuid()
-			curGID := os.Getgid()
-			if correctUID < 0 {
-				correctUID = curUID
-			}
-			if correctGID < 0 {
-				correctGID = curGID
-			}
-
-			if correctUID != curUID || correctGID != curGID {
-				err := os.Lchown(cw.finalName, correctUID, correctGID)
-				// failure is nonfatal, may not be root
-				log.Errore(err, "could not set correct owner for file", cw.finalName)
-			}
-
-			err = os.Chmod(cw.finalName, p.FileMode)
-			if err != nil {
-				return err
-			}
+		err = cw.db.enforcePermissionsOnFile(cw.finalNameRel, cw.finalNameRel, false)
+		if err != nil {
+			return err
 		}
 	}
 
 	cw.closed = true
+	return nil
+}
+
+func (db *DB) enforcePermissionsOnFile(rpath, rpathFinal string, symlink bool) error {
+	p := db.longestMatching(rpathFinal)
+	if p == nil {
+		return nil
+	}
+
+	fpath := filepath.Join(db.path, rpath)
+
+	// TempFile creates files with mode 0600, so it's OK to chmod/chown it here, race-wise.
+	correctUID, correctGID, err := resolveUIDGID(p)
+	if err != nil {
+		return err
+	}
+
+	curUID, curGID := os.Getuid(), os.Getgid()
+	if correctUID < 0 {
+		correctUID = curUID
+	}
+	if correctGID < 0 {
+		correctGID = curGID
+	}
+
+	log.Debugf("enforce permissions: %s %d/%d %d/%d", rpath, curUID, curGID, correctUID, correctGID)
+	if correctUID != curUID || correctGID != curGID {
+		err := os.Lchown(fpath, correctUID, correctGID)
+		// failure is nonfatal, may not be root
+		log.Errore(err, "could not set correct owner for file", fpath)
+	}
+
+	if !symlink {
+		err = os.Chmod(fpath, p.FileMode)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -717,6 +772,12 @@ func (c *Collection) WriteLink(name string, target Link) error {
 	}
 
 	tmpName, err := tempSymlink(toRel, filepath.Join(c.db.path, "tmp"))
+	if err != nil {
+		return err
+	}
+
+	err = c.db.enforcePermissionsOnFile(filepath.Join("tmp", filepath.Base(tmpName)),
+		filepath.Join(c.name, name), true)
 	if err != nil {
 		return err
 	}
