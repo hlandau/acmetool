@@ -6,7 +6,7 @@ import (
 	"fmt"
 	deos "github.com/hlandau/degoutils/os"
 	"github.com/hlandau/xlog"
-	"gopkg.in/hlandau/service.v2/passwd"
+	"gopkg.in/hlandau/svcutils.v1/passwd"
 	"io/ioutil"
 	"os"
 	"path/filepath"

@@ -3,7 +3,7 @@ package fdb
 import (
 	"bufio"
 	"fmt"
-	"gopkg.in/hlandau/service.v2/passwd"
+	"gopkg.in/hlandau/svcutils.v1/passwd"
 	"io"
 	"os"
 	"path/filepath"
