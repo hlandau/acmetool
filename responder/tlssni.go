@@ -2,18 +2,12 @@ package responder
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"net"
 	"strings"
-	"time"
 )
 
 type TLSSNIChallengeInfo struct {
@@ -44,52 +38,30 @@ func newTLSSNIResponder(rcfg Config) (Responder, error) {
 		notifySupported:     true,
 	}
 
-	ka, err := rcfg.keyAuthorization()
+	// Validation hostname.
+	var err error
+	r.validationHostname, err = acmeutils.TLSSNIHostname(rcfg.AccountKey, rcfg.Token)
 	if err != nil {
 		return nil, err
 	}
 
-	kaHex := hashBytesHex([]byte(ka))
-
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	r.privateKey = privateKey
-	r.validationHostname = kaHex[0:32] + "." + kaHex[32:64] + ".acme.invalid"
-	xc := x509.Certificate{
-		Subject: pkix.Name{
-			CommonName: r.validationHostname,
-		},
-		Issuer: pkix.Name{
-			CommonName: r.validationHostname,
-		},
-		SerialNumber:          big.NewInt(1),
-		NotBefore:             time.Now().Add(-24 * time.Hour),
-		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-		DNSNames:              []string{r.validationHostname},
-	}
-
-	r.cert, err = x509.CreateCertificate(rand.Reader, &xc, &xc,
-		&privateKey.PublicKey, privateKey)
+	// Certificate and private key.
+	r.cert, r.privateKey, err = acmeutils.CreateTLSSNICertificate(r.validationHostname)
 	if err != nil {
 		return nil, err
 	}
 
 	c := &tls.Certificate{
 		Certificate: [][]byte{r.cert},
-		PrivateKey:  privateKey,
+		PrivateKey:  r.privateKey,
 	}
 
 	r.cfg = &tls.Config{
 		Certificates: []tls.Certificate{*c},
 	}
 
-	r.validation, err = rcfg.responseJSON("tls-sni-01")
+	// Validation response.
+	r.validation, err = acmeutils.ChallengeResponseJSON(rcfg.AccountKey, rcfg.Token, "tls-sni-01")
 	if err != nil {
 		return nil, err
 	}

@@ -20,8 +20,6 @@
 //
 // The following additional packages are likely to be of interest:
 //
-//   https://godoc.org/github.com/hlandau/acme/responder              Challenge type implementations
-//   https://godoc.org/github.com/hlandau/acme/solver                 Authorization solver
 //   https://godoc.org/github.com/hlandau/acme/acmeapi/acmeendpoints  Known providers
 //   https://godoc.org/github.com/hlandau/acme/acmeapi/acmeutils      Certificate loading utilities
 //

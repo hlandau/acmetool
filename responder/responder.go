@@ -3,13 +3,9 @@ package responder
 
 import (
 	"crypto"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/xlog"
-	"github.com/square/go-jose"
 )
 
 // Log site.
@@ -114,48 +110,4 @@ func New(rcfg Config) (Responder, error) {
 // responder of the same type.
 func RegisterResponder(typeName string, createFunc func(Config) (Responder, error)) {
 	responderTypes[typeName] = createFunc
-}
-
-func b64enc(b []byte) string {
-	return base64.RawURLEncoding.EncodeToString(b)
-}
-
-func hashBytes(b []byte) []byte {
-	h := sha256.New()
-	h.Write(b)
-	return h.Sum(nil)
-}
-
-func hashBytesHex(b []byte) string {
-	return hex.EncodeToString(hashBytes(b))
-}
-
-func (rcfg *Config) keyAuthorization() (string, error) {
-	k := jose.JsonWebKey{Key: rcfg.AccountKey}
-	thumbprint, err := k.Thumbprint(crypto.SHA256)
-	if err != nil {
-		return "", err
-	}
-
-	return rcfg.Token + "." + b64enc(thumbprint), nil
-}
-
-func (rcfg *Config) responseJSON(challengeType string) ([]byte, error) {
-	ka, err := rcfg.keyAuthorization()
-	if err != nil {
-		return nil, err
-	}
-
-	info := map[string]interface{}{
-		"resource":         "challenge",
-		"type":             challengeType,
-		"keyAuthorization": ka,
-	}
-
-	bb, err := json.Marshal(&info)
-	if err != nil {
-		return nil, err
-	}
-
-	return bb, nil
 }

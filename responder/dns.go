@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 )
 
 type DNSChallengeInfo struct {
@@ -22,17 +23,15 @@ func newDNSResponder(rcfg Config) (Responder, error) {
 	}
 
 	var err error
-	s.validation, err = rcfg.responseJSON("dns-01")
+	s.validation, err = acmeutils.ChallengeResponseJSON(rcfg.AccountKey, rcfg.Token, "dns-01")
 	if err != nil {
 		return nil, err
 	}
 
-	ka, err := rcfg.keyAuthorization()
+	s.dnsString, err = acmeutils.DNSKeyAuthorization(rcfg.AccountKey, rcfg.Token)
 	if err != nil {
 		return nil, err
 	}
-
-	s.dnsString = b64enc(hashBytes([]byte(ka)))
 
 	return s, nil
 }

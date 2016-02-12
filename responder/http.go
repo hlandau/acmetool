@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	deos "github.com/hlandau/degoutils/os"
 	"gopkg.in/tylerb/graceful.v1"
 	"io/ioutil"
@@ -49,14 +50,14 @@ func newHTTP(rcfg Config) (Responder, error) {
 	// Configure the HTTP server
 	s.serveMux.HandleFunc("/.well-known/acme-challenge/"+rcfg.Token, s.handle)
 
-	ka, err := rcfg.keyAuthorization()
+	ka, err := acmeutils.KeyAuthorization(rcfg.AccountKey, rcfg.Token)
 	if err != nil {
 		return nil, err
 	}
 
 	s.ka = []byte(ka)
 
-	s.validation, err = rcfg.responseJSON("http-01")
+	s.validation, err = acmeutils.ChallengeResponseJSON(rcfg.AccountKey, rcfg.Token, "http-01")
 	if err != nil {
 		return nil, err
 	}
