@@ -621,8 +621,40 @@ func (r *reconcile) getRequestAccount(tr *storage.TargetRequest) (*storage.Accou
 	return acct, nil
 }
 
+// Returns the strings in ys not contained in xs.
+func stringsNotIn(xs, ys []string) []string {
+	m := map[string]struct{}{}
+	for _, x := range xs {
+		m[x] = struct{}{}
+	}
+	var zs []string
+	for _, y := range ys {
+		_, ok := m[y]
+		if !ok {
+			zs = append(zs, y)
+		}
+	}
+	return zs
+}
+
+func ensureConceivablySatisfiable(t *storage.Target) {
+	// We ensure that every stipulation in the satisfy section can be met by the request
+	// parameters.
+	excludedNames := stringsNotIn(t.Request.Names, t.Satisfy.Names)
+	if len(excludedNames) > 0 {
+		log.Warnf("%v can never be satisfied because names to be requested are not a superset of the names to be satisfied; adding names automatically to render target satisfiable", t)
+	}
+
+	for _, n := range excludedNames {
+		t.Request.Names = append(t.Request.Names, n)
+	}
+}
+
 func (r *reconcile) requestCertificateForTarget(t *storage.Target) error {
 	//return fmt.Errorf("not requesting certificate") // debugging neuter
+
+	ensureConceivablySatisfiable(t)
+
 	acct, err := r.getRequestAccount(&t.Request)
 	if err != nil {
 		return err
