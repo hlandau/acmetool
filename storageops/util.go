@@ -43,7 +43,9 @@ func targetGt(a *storage.Target, b *storage.Target) bool {
 	return len(a.Satisfy.Names) > len(b.Satisfy.Names)
 }
 
-const renewalMargin = 14 * 24 * time.Hour // close enough to 14 days
+// This is 30 days, which is a bit high, but Let's Encrypt sends expiration
+// emails at 19 days, so...
+const renewalMargin = 30 * 24 * time.Hour // close enough to 30 days
 
 func renewTime(notBefore, notAfter time.Time) time.Time {
 	validityPeriod := notAfter.Sub(notBefore)
