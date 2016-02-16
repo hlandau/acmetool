@@ -18,17 +18,17 @@ func (e *AgreementError) Error() string {
 
 // Internal type for representing error HTTP responses. Used so that the
 // response can still be examined if desired.
-type httpError struct {
+type HttpError struct {
 	Res         *http.Response
 	ProblemBody string
 }
 
-func (he *httpError) Error() string {
+func (he *HttpError) Error() string {
 	return fmt.Sprintf("HTTP error: %v\n%v\n%v", he.Res.Status, he.Res.Header, he.ProblemBody)
 }
 
 func newHTTPError(res *http.Response) error {
-	he := &httpError{
+	he := &HttpError{
 		Res: res,
 	}
 	if res.Header.Get("Content-Type") == "application/problem+json" {
