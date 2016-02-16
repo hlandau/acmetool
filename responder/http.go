@@ -180,7 +180,7 @@ func webrootWriteChallenge(webroots map[string]struct{}, token string, ka []byte
 			f, err = os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		}
 		if err != nil {
-			log.Errore(err, "failed to open webroot file ", fn)
+			log.Infoe(err, "failed to open webroot file ", fn)
 			continue
 		}
 
