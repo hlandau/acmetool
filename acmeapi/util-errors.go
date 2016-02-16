@@ -16,19 +16,26 @@ func (e *AgreementError) Error() string {
 	return fmt.Sprintf("Registration requires agreement with the following agreement: %#v", e.URI)
 }
 
-// Internal type for representing error HTTP responses. Used so that the
-// response can still be examined if desired.
-type httpError struct {
-	Res         *http.Response
+// Error returned when an HTTP request results in a valid response, but which
+// has an unexpected failure status code. Used so that the response can still
+// be examined if desired.
+type HTTPError struct {
+	// The HTTP response.
+	Res *http.Response
+
+	// If the response had an application/problem+json response body, this is
+	// that JSON data.
 	ProblemBody string
 }
 
-func (he *httpError) Error() string {
+// Summarises the response status, headers, and the JSON problem body if
+// available.
+func (he *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP error: %v\n%v\n%v", he.Res.Status, he.Res.Header, he.ProblemBody)
 }
 
 func newHTTPError(res *http.Response) error {
-	he := &httpError{
+	he := &HTTPError{
 		Res: res,
 	}
 	if res.Header.Get("Content-Type") == "application/problem+json" {
