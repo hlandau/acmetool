@@ -355,6 +355,7 @@ func promptCron() {
 	}
 	if err != nil {
 		log.Warnf("Don't know how to install a cron job on this system, please install the following job:\n%s\n", cronString)
+		return
 	}
 
 	r, err := interaction.Auto.Prompt(&interaction.Challenge{
