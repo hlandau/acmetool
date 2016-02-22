@@ -266,9 +266,11 @@ func (s *fdbStore) Reload() error {
 		return err
 	}
 
-	err = s.loadPreferred()
-	if err != nil {
-		return err
+	if !isNeutered {
+		err = s.loadPreferred()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

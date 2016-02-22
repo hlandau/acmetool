@@ -151,6 +151,7 @@ func (r *Redirector) Start() error {
 		}
 	}()
 
+	log.Debugf("redirector running")
 	return nil
 }
 
