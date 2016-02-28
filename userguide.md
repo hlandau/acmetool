@@ -492,9 +492,8 @@ definitely in place and is globally accessible.
 [See the specification for more
 information.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#hooks)
 
-Currently, challenge hooks are only supported for HTTP-based challenges.
-Support for challenge hooks for TLS-SNI or DNS challenges is under
-consideration.
+Challenge hooks are supported for HTTP, TLS-SNI and DNS challenges.
+[A list of third party challenge hook scripts can be found here.](https://hlandau.github.io/acme/userguide#annex-external-resources-and-third-party-extentions)
 
 ## Command line options
 

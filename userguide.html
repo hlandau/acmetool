@@ -258,7 +258,7 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p>In some complex use cases, it may be necessary to install HTTP challenge files via some arbitrary programmatic means, rather than via one of the standard methods of webroot, proxy, redirector or listener.</p>
 <p>Challenge hooks are executed when challenge files need to be added or removed. Your hook must be synchronous; it must exit only when the challenge file is definitely in place and is globally accessible.</p>
 <p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#hooks">See the specification for more information.</a></p>
-<p>Currently, challenge hooks are only supported for HTTP-based challenges. Support for challenge hooks for TLS-SNI or DNS challenges is under consideration.</p>
+<p>Challenge hooks are supported for HTTP, TLS-SNI and DNS challenges. <a href="https://hlandau.github.io/acme/userguide#annex-external-resources-and-third-party-extentions">A list of third party challenge hook scripts can be found here.</a></p>
 <h2 id="command-line-options">Command line options</h2>
 <p><a href="acmetool.8">See the acmetool(8) manual page.</a></p>
 <h2 id="troubleshooting">Troubleshooting</h2>
