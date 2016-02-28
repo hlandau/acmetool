@@ -48,6 +48,9 @@
 <li><a href="#annex-root-configured-non-root-operation">Annex: Root-configured non-root operation</a><ul>
 <li><a href="#rootless-setup-as-root">Rootless setup as root</a></li>
 </ul></li>
+<li><a href="#annex-external-resources-and-third-party-extentions">Annex: External resources and third party extentions</a><ul>
+<li><a href="#dns-hook-scripts">DNS hook scripts</a></li>
+</ul></li>
 </ul></nav>
 <h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
 <p>acmetool is an easy-to-use command line tool for automatically acquiring TLS certificates from ACME servers such as Let's Encrypt, designed to flexibly integrate into your webserver setup to enable automatic verification.</p>
@@ -298,6 +301,15 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p><strong>Listener:</strong> This is not usable under non-root operation unless you can enable acmetool to bind to ports 80/443. On Linux you can do this by running <code>setcap 'cap_net_bind_service=+ep' /path/to/acmetool</code> as root. Other POSIX platforms may have sysctls to allow non-root processes to bind to low ports. However, this mode is not really useful for anything other than development anyway.</p>
 <p><strong>Hook:</strong> See <a href="#challenge-hooks">Challenge Hooks</a>.</p></li>
 </ul>
+<h2 id="annex-external-resources-and-third-party-extentions">Annex: External resources and third party extentions</h2>
+<p>This is a list of things people have made for working with acmetool. PRs to amend this list are welcome.</p>
+<h3 id="dns-hook-scripts">DNS hook scripts</h3>
+<p>Use of DNS challenges requires that you provision a hook script which can install and remove DNS challenge values. The following hook scripts are available:</p>
+<ul>
+<li><a href="https://github.com/hlandau/acme/blob/master/_doc/dns.hook">dns.hook</a> (official, maintained here) — a hook script using nsupdate (DNS UPDATE)</li>
+<li><a href="https://github.com/yinguanhao/acme-dns-hook-cloudflare">Cloudflare hook</a> (unofficial, Python 3) — third party hook by yinguanhao</li>
+</ul>
+<p>You can <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop">implement your own hook</a>.</p>
 </div>
 
 </body>

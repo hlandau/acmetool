@@ -632,3 +632,18 @@ wherever you want it), before running acmetool, do the following:
 
     **Hook:** See [Challenge Hooks](#challenge-hooks).
 
+## Annex: External resources and third party extentions
+
+This is a list of things people have made for working with acmetool. PRs to
+amend this list are welcome.
+
+### DNS hook scripts
+
+Use of DNS challenges requires that you provision a hook script which can
+install and remove DNS challenge values. The following hook scripts are
+available:
+
+- [dns.hook](https://github.com/hlandau/acme/blob/master/_doc/dns.hook) (official, maintained here) — a hook script using nsupdate (DNS UPDATE)
+- [Cloudflare hook](https://github.com/yinguanhao/acme-dns-hook-cloudflare) (unofficial, Python 3) — third party hook by yinguanhao
+
+You can [implement your own hook](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop).
