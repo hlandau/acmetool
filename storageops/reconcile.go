@@ -705,8 +705,15 @@ var (
 )
 
 func (r *reconcile) createCSR(t *storage.Target) ([]byte, error) {
+	if len(t.Request.Names) == 0 {
+		return nil, fmt.Errorf("cannot request a certificate with no names")
+	}
+
 	csr := &x509.CertificateRequest{
 		DNSNames: t.Request.Names,
+		Subject: pkix.Name{
+			CommonName: t.Request.Names[0],
+		},
 	}
 
 	if t.Request.OCSPMustStaple {
