@@ -30,24 +30,20 @@ index 347883e..448295f 100755
  
      # If we reach here, a child died early. Log what died:
 diff --git a/test/boulder-config.json b/test/boulder-config.json
-index cb3b70a..9b92ea1 100644
+index 77a533a..4ccfb5a 100644
 --- a/test/boulder-config.json
 +++ b/test/boulder-config.json
-@@ -161,9 +161,9 @@
-     "userAgent": "boulder",
+@@ -200,7 +200,7 @@
+     "issuerDomain": "happy-hacker-ca.invalid",
      "debugAddr": "localhost:8004",
      "portConfig": {
 -      "httpPort": 5002,
--      "httpsPort": 5001,
--      "tlsPort": 5001
 +      "httpPort": 80,
-+      "httpsPort": 5001,
-+      "tlsPort": 5001
+       "httpsPort": 5001,
+       "tlsPort": 5001
      },
-     "maxConcurrentRPCServerRequests": 16,
-     "amqp": {
 diff --git a/test/rate-limit-policies.yml b/test/rate-limit-policies.yml
-index 05e76cf..1f1f4f8 100644
+index 83c5f61..fca0e72 100644
 --- a/test/rate-limit-policies.yml
 +++ b/test/rate-limit-policies.yml
 @@ -4,7 +4,7 @@ totalCertificates:
@@ -59,9 +55,14 @@ index 05e76cf..1f1f4f8 100644
    overrides:
      ratelimit.me: 1
      # Hostnames used by the letsencrypt client integration test.
-@@ -22,4 +22,4 @@ registrationsPerIP:
+@@ -24,7 +24,7 @@ registrationsPerIP:
      127.0.0.1: 1000000
  pendingAuthorizationsPerAccount:
    window: 168h # 1 week, should match pending authorization lifetime.
 -  threshold: 3
 +  threshold: 300
+ certificatesPerFQDNSet:
+   window: 24h
+-  threshold: 5
+\ No newline at end of file
++  threshold: 500
