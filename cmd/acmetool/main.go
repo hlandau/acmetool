@@ -56,7 +56,7 @@ var (
 
 	wantCmd       = kingpin.Command("want", "Add a target with one or more hostnames")
 	wantReconcile = wantCmd.Flag("reconcile", "Specify --no-reconcile to skip reconcile after adding target").Default("1").Bool()
-	wantArg       = wantCmd.Arg("hostname", "hostnames for which a certicate should be obtained").Required().Strings()
+	wantArg       = wantCmd.Arg("hostname", "hostnames for which a certificate should be obtained").Required().Strings()
 
 	unwantCmd = kingpin.Command("unwant", "Modify targets to remove any mentions of the given hostnames")
 	unwantArg = unwantCmd.Arg("hostname", "hostnames which should be removed from all target files").Required().Strings()
