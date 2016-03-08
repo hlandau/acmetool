@@ -60,7 +60,7 @@ certificates from ACME server such as Let's Encrypt. It emphasises automation,
 idempotency and the minimisation of state.
 
 You use acmetool by configuring targets (typically using the "want") command.
-acmetool then requests certificates as necessary to satisify the configured
+acmetool then requests certificates as necessary to satisfy the configured
 targets. New certificates are requested where existing ones are soon to expire.
 
 acmetool stores its state in a state directory. It can be specified on
