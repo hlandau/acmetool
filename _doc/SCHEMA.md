@@ -263,7 +263,7 @@ specification and documentation. acmetool supports the following extensions:
         webroot-paths:
           - /some/webroot/path/.well-known/acme-challenge
 
-        # A list of additional ports to listen on. Each item can be a port
+        # A list of ports to listen on. Each item can be a port
         # number, or an explicit bind address (e.g. "[::1]:402"). Specifying a
         # port number x is equivalent to specifying "[::1]:x" and "127.0.0.1:x".
         http-ports:

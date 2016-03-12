@@ -227,6 +227,10 @@ func (s *httpResponder) getWebroots() map[string]struct{} {
 }
 
 func parseListenAddrs(addrs []string) map[string]struct{} {
+	if addrs == nil {
+		return nil;
+	}
+
 	m := map[string]struct{}{}
 
 	for _, s := range addrs {
@@ -250,14 +254,17 @@ func parseListenAddrs(addrs []string) map[string]struct{} {
 }
 
 func (s *httpResponder) startActual() error {
-	// Here's our brute force method: listen on everything that might work.
 	addrs := parseListenAddrs(s.rcfg.ChallengeConfig.HTTPPorts)
-	addrs["[::1]:80"] = struct{}{}
-	addrs["127.0.0.1:80"] = struct{}{}
-	addrs["[::1]:402"] = struct{}{}
-	addrs["127.0.0.1:402"] = struct{}{}
-	addrs["[::1]:4402"] = struct{}{}
-	addrs["127.0.0.1:4402"] = struct{}{}
+	if addrs == nil {
+		log.Debugf("http-ports not configured, using defaults")
+		addrs = map[string]struct{}{}
+		addrs["[::1]:80"] = struct{}{}
+		addrs["127.0.0.1:80"] = struct{}{}
+		addrs["[::1]:402"] = struct{}{}
+		addrs["127.0.0.1:402"] = struct{}{}
+		addrs["[::1]:4402"] = struct{}{}
+		addrs["127.0.0.1:4402"] = struct{}{}
+	}
 
 	for k := range addrs {
 		s.startListener(k)
