@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -249,18 +250,63 @@ func parseListenAddrs(addrs []string) map[string]struct{} {
 	return m
 }
 
-func (s *httpResponder) startActual() error {
+func addrWeight(x string) int {
+	host, _, err := net.SplitHostPort(x)
+	if err != nil {
+		return 0
+	}
+
+	if host == "" {
+		return -1
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil && ip.IsUnspecified() {
+		if ip.To4() != nil {
+			return -1
+		}
+		return -2
+	}
+
+	return 0
+}
+
+type addrSorter []string
+
+func (a addrSorter) Len() int      { return len(a) }
+func (a addrSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a addrSorter) Less(i, j int) bool {
+	return addrWeight(a[i]) < addrWeight(a[j])
+}
+
+func determineListenAddrs(userAddrs []string) []string {
 	// Here's our brute force method: listen on everything that might work.
-	addrs := parseListenAddrs(s.rcfg.ChallengeConfig.HTTPPorts)
-	addrs["[::1]:80"] = struct{}{}
-	addrs["127.0.0.1:80"] = struct{}{}
+	addrs := parseListenAddrs(userAddrs)
+	addrs["[::]:80"] = struct{}{} // OpenBSD
+	addrs[":80"] = struct{}{}
 	addrs["[::1]:402"] = struct{}{}
 	addrs["127.0.0.1:402"] = struct{}{}
 	addrs["[::1]:4402"] = struct{}{}
 	addrs["127.0.0.1:4402"] = struct{}{}
 
+	// Sort the strings so that 'all interfaces' addresses appear first, so that
+	// they are not blocked by more specific entries such as the ones above,
+	// which are always attempted.
+	var addrsl []string
 	for k := range addrs {
-		s.startListener(k)
+		addrsl = append(addrsl, k)
+	}
+
+	sort.Stable(addrSorter(addrsl))
+	return addrsl
+}
+
+func (s *httpResponder) startActual() error {
+	// Determine and listen on sorted list of addresses.
+	addrs := determineListenAddrs(s.rcfg.ChallengeConfig.HTTPPorts)
+
+	for _, a := range addrs {
+		s.startListener(a)
 	}
 
 	// Even if none of the listeners managed to start, the webroot or redirector
