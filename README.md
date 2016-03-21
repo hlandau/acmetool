@@ -211,7 +211,7 @@ will use those ports. Either port being available is sufficient. This is only
 really useful for development purposes.
 
 **Hook:** You can write custom shell scripts (or binary executables) which
-acmetool invokes to provison challenge files at the desired location. For
+acmetool invokes to provision challenge files at the desired location. For
 example, you could rsync challenge files to a directory on a remote server. [More information.](https://hlandau.github.io/acme/userguide#challenge-hooks)
 
 ## Renewal
