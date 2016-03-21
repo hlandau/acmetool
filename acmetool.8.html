@@ -101,6 +101,8 @@ OPTIONS
 <p class="level0">
 <span class="bold">--service.daemon</span> Run as daemon? (doesn't fork)
 <p class="level0">
+<span class="bold">--service.stderr</span> Keep stderr open when daemonizing
+<p class="level0">
 <span class="bold">--service.chroot=SERVICE.CHROOT</span> Chroot to a directory (must set UID, GID) (&quot;/&quot; disables)
 <p class="level0">
 <span class="bold">--service.pidfile=SERVICE.PIDFILE</span> Write PID to file with given filename and hold a write lock
@@ -125,6 +127,14 @@ Show help. <a name=""></a>
 Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets.
 <p class="level0">
 This is the default command. <a name=""></a>
+<h2 class="nroffsh">
+</h2>
+<p class="level0">
+<span class="bold">cull [&lt;flags&gt;]</span>
+<p class="level0">
+Delete expired, unused certificates
+<p class="level0">
+<span class="bold">-n, --simulate</span> Show which certificates would be deleted without deleting any <a name=""></a>
 <h2 class="nroffsh">
 </h2>
 <p class="level0">
