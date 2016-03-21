@@ -14,17 +14,24 @@ acmetool is an easy-to-use command line tool for automatically acquiring TLS cer
 
 **Fully automatic renewal.** acmetool can automatically reload your webserver when it changes the target of a `live` symlink. In conjunction with acmetool's use of stable filenames and idempotent design, this means that renewal can be fully automatic.
 
-**Flexible validation methods.** acmetool supports four different validation methods:
+**Flexible validation methods.** acmetool supports six different validation methods:
 
 - **Webroot:** acmetool places challenge files in a given directory, allowing your normal web server to serve them. You must ensure the directory is served at `/.well-known/acme-challenge/`.
 
 - **Proxy:** When acmetool needs to validate for a domain, it temporarily spins up a built-in web server on port 402 or 4402 (if being used under the non-root validation mode). You configure your web server to proxy requests for `/.well-known/acme-challenge/` to this server at the same path.
 
+- **Stateless:** You configure your webserver to respond statelessly to challenges for a given account key without consulting acmetool. This requires nothing more than a one-time web server configuration change and no “moving parts”.
+
 - **Redirector:** If the only thing you want to do with port 80 is redirect people to port 443, you can use acmetool's built in redirector HTTP server. You must ensure that your existing web server does not listen on port 80. acmetool redirects requests to HTTPS, but its control of port 80 ensures it can complete validation.
 
 - **Listen:** Listen on port 80 or 443. This is only really useful for development purposes.
 
+- **Hook:** You can write custom shell scripts or binary executables which acmetool invokes to provision challenges at the desired location.
+
 **Non-root operation.** If you don't want to trust acmetool, you can setup acmetool to operate without running as root. If you don't have root access to a system, you may still be able to use acmetool by configuring it to use a local directory and webroot mode.
+
+**Designed for automation.** acmetool is designed to be fully automatable.
+Response files allow you to run the quickstart wizard automatically.
 
 ## Installation
 
@@ -33,7 +40,7 @@ You can install acmetool by building from source or by using a binary release. B
 **Installing: using binary releases.** [Binary releases are found here.](https://github.com/hlandau/acme/releases) Unpack, copy the binary to `/usr/local/bin/acmetool` (or wherever you like), and you're done.
 
 `_cgo` releases are preferred over non-`_cgo` releases where available, but
-non-`_cgo` releases may be moe compatible with older OSes. (The main drawback
+non-`_cgo` releases may be more compatible with older OSes. (The main drawback
 of non-`_cgo` releases is that they exhibit reduced functionality in relation
 to privilege dropping and daemonization functionality for the redirector
 daemon.)
@@ -63,6 +70,16 @@ You can also [download .deb files manually.](https://launchpad.net/~hlandau/+arc
 
 (Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)
 
+**Installing: RPM-based distros:** [A copr RPM repository is available.](https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/)
+
+If you have `dnf` installed:
+```bash
+$ sudo dnf copr enable hlandau/acmetool
+$ sudo dnf install acmetool
+```
+
+Otherwise use the `.repo` files on the [repository page](https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/) and use `yum`, or download RPMs and use `rpm` directly.
+
 **Installing: Arch Linux users.** [An AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
 
 ```sh
@@ -73,7 +90,7 @@ $ makepkg -s
 $ sudo pacman -U ./acmetool*.pkg.tar.xz
 ```
 
-<!-- **Installing: Alpine Linux users.** TODO -->
+**Installing: Alpine Linux users.** [An APKBUILD for building from source is available.](https://github.com/hlandau/acme/blob/master/_doc/APKBUILD)
 
 **Installing: from source.** Clone, make, make install. You will need Go 1.5.2 or later installed to build from source.
 

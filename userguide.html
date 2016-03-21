@@ -59,18 +59,21 @@
 <p><strong>Clear and minimal state.</strong> acmetool is designed to minimise the use of state and be transparent in the state that it does use. All state, including certificates, is stored in a single directory, by default <code>/var/lib/acme</code>. The schema for this directory is simple, comprehensible and <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">documented.</a></p>
 <p><strong>Stable filenames.</strong> The certificate for a given hostname <code>example.com</code> always lives at <code>/var/lib/acme/live/example.com/{cert,chain,privkey}</code>. This is a symlink to the real certificate directory and gets changed as certificates are renewed.</p>
 <p><strong>Fully automatic renewal.</strong> acmetool can automatically reload your webserver when it changes the target of a <code>live</code> symlink. In conjunction with acmetool's use of stable filenames and idempotent design, this means that renewal can be fully automatic.</p>
-<p><strong>Flexible validation methods.</strong> acmetool supports four different validation methods:</p>
+<p><strong>Flexible validation methods.</strong> acmetool supports six different validation methods:</p>
 <ul>
 <li><p><strong>Webroot:</strong> acmetool places challenge files in a given directory, allowing your normal web server to serve them. You must ensure the directory is served at <code>/.well-known/acme-challenge/</code>.</p></li>
 <li><p><strong>Proxy:</strong> When acmetool needs to validate for a domain, it temporarily spins up a built-in web server on port 402 or 4402 (if being used under the non-root validation mode). You configure your web server to proxy requests for <code>/.well-known/acme-challenge/</code> to this server at the same path.</p></li>
+<li><p><strong>Stateless:</strong> You configure your webserver to respond statelessly to challenges for a given account key without consulting acmetool. This requires nothing more than a one-time web server configuration change and no “moving parts”.</p></li>
 <li><p><strong>Redirector:</strong> If the only thing you want to do with port 80 is redirect people to port 443, you can use acmetool's built in redirector HTTP server. You must ensure that your existing web server does not listen on port 80. acmetool redirects requests to HTTPS, but its control of port 80 ensures it can complete validation.</p></li>
 <li><p><strong>Listen:</strong> Listen on port 80 or 443. This is only really useful for development purposes.</p></li>
+<li><p><strong>Hook:</strong> You can write custom shell scripts or binary executables which acmetool invokes to provision challenges at the desired location.</p></li>
 </ul>
 <p><strong>Non-root operation.</strong> If you don't want to trust acmetool, you can setup acmetool to operate without running as root. If you don't have root access to a system, you may still be able to use acmetool by configuring it to use a local directory and webroot mode.</p>
+<p><strong>Designed for automation.</strong> acmetool is designed to be fully automatable. Response files allow you to run the quickstart wizard automatically.</p>
 <h2 id="installation">Installation</h2>
 <p>You can install acmetool by building from source or by using a binary release. Both are easy.</p>
 <p><strong>Installing: using binary releases.</strong> <a href="https://github.com/hlandau/acme/releases">Binary releases are found here.</a> Unpack, copy the binary to <code>/usr/local/bin/acmetool</code> (or wherever you like), and you're done.</p>
-<p><code>_cgo</code> releases are preferred over non-<code>_cgo</code> releases where available, but non-<code>_cgo</code> releases may be moe compatible with older OSes. (The main drawback of non-<code>_cgo</code> releases is that they exhibit reduced functionality in relation to privilege dropping and daemonization functionality for the redirector daemon.)</p>
+<p><code>_cgo</code> releases are preferred over non-<code>_cgo</code> releases where available, but non-<code>_cgo</code> releases may be more compatible with older OSes. (The main drawback of non-<code>_cgo</code> releases is that they exhibit reduced functionality in relation to privilege dropping and daemonization functionality for the redirector daemon.)</p>
 <p><strong>Installing: Ubuntu users.</strong> A binary release PPA, <code>ppa:hlandau/rhea</code> (package <code>acmetool</code>) is available.</p>
 <pre class="sh"><code>$ sudo add-apt-repository ppa:hlandau/rhea
 $ sudo apt-get update
@@ -84,13 +87,18 @@ $ sudo apt-get install acmetool</code></pre>
 # apt-get install acmetool</code></pre>
 <p>You can also <a href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages">download .deb files manually.</a></p>
 <p>(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)</p>
+<p><strong>Installing: RPM-based distros:</strong> <a href="https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/">A copr RPM repository is available.</a></p>
+<p>If you have <code>dnf</code> installed:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">sudo</span> dnf copr enable hlandau/acmetool
+$ <span class="kw">sudo</span> dnf install acmetool</code></pre></div>
+<p>Otherwise use the <code>.repo</code> files on the <a href="https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/">repository page</a> and use <code>yum</code>, or download RPMs and use <code>rpm</code> directly.</p>
 <p><strong>Installing: Arch Linux users.</strong> <a href="https://aur.archlinux.org/packages/acmetool-git/">An AUR PKGBUILD for building from source is available.</a></p>
 <pre class="sh"><code>$ wget https://aur.archlinux.org/cgit/aur.git/snapshot/acmetool-git.tar.gz
 $ tar xvf acmetool-git.tar.gz
 $ cd acmetool-git
 $ makepkg -s
 $ sudo pacman -U ./acmetool*.pkg.tar.xz</code></pre>
-<!-- **Installing: Alpine Linux users.** TODO -->
+<p><strong>Installing: Alpine Linux users.</strong> <a href="https://github.com/hlandau/acme/blob/master/_doc/APKBUILD">An APKBUILD for building from source is available.</a></p>
 <p><strong>Installing: from source.</strong> Clone, make, make install. You will need Go 1.5.2 or later installed to build from source.</p>
 <p>If you are using Linux, you will need to make sure the development files for <code>libcap</code> are installed. This is probably a package for your distro called <code>libcap-dev</code> or <code>libcap-devel</code> or similar.</p>
 <pre class="sh"><code>$ git clone https://github.com/hlandau/acme
