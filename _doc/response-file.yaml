@@ -11,7 +11,7 @@
 "acmetool-quickstart-choose-server": https://acme-staging.api.letsencrypt.org/directory
 "acmetool-quickstart-choose-method": redirector
 # This is only used if "acmetool-quickstart-choose-method" is "webroot".
-"acmetool-quickstart-webroot-path": "/var/www/foo/bar"
+"acmetool-quickstart-webroot-path": "/var/www/foo/bar/.well-known/acme-challenge"
 "acmetool-quickstart-complete": true
 "acmetool-quickstart-install-cronjob": true
 "acmetool-quickstart-install-haproxy-script": true
