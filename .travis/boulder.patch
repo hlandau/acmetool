@@ -1,7 +1,32 @@
-diff --git a/cmd/policy-loader/base-rules.json b/cmd/policy-loader/base-rules.json
+diff --git a/start.py b/start.py
+index 347883e..448295f 100755
+--- a/start.py
++++ b/start.py
+@@ -18,6 +18,7 @@ import startservers
+ if not startservers.start(race_detection=False):
+     sys.exit(1)
+ try:
++    open('/tmp/boulder-has-started','wb').write('x')
+     os.wait()
+ 
+     # If we reach here, a child died early. Log what died:
+diff --git a/test/boulder-config.json b/test/boulder-config.json
+index d86f017..131daae 100644
+--- a/test/boulder-config.json
++++ b/test/boulder-config.json
+@@ -201,7 +201,7 @@
+     "issuerDomain": "happy-hacker-ca.invalid",
+     "debugAddr": "localhost:8004",
+     "portConfig": {
+-      "httpPort": 5002,
++      "httpPort": 80,
+       "httpsPort": 5001,
+       "tlsPort": 5001
+     },
+diff --git a/test/hostname-policy.json b/test/hostname-policy.json
 index a5782e2..15ad50c 100644
---- a/cmd/policy-loader/base-rules.json
-+++ b/cmd/policy-loader/base-rules.json
+--- a/test/hostname-policy.json
++++ b/test/hostname-policy.json
 @@ -1,13 +1,6 @@
  {
    "Blacklist": [
@@ -17,33 +42,8 @@ index a5782e2..15ad50c 100644
 +    "invalid"
    ]
  }
-diff --git a/start.py b/start.py
-index 347883e..448295f 100755
---- a/start.py
-+++ b/start.py
-@@ -18,6 +18,7 @@ import startservers
- if not startservers.start(race_detection=False):
-     sys.exit(1)
- try:
-+    open('/tmp/boulder-has-started','wb').write('x')
-     os.wait()
- 
-     # If we reach here, a child died early. Log what died:
-diff --git a/test/boulder-config.json b/test/boulder-config.json
-index 77a533a..4ccfb5a 100644
---- a/test/boulder-config.json
-+++ b/test/boulder-config.json
-@@ -200,7 +200,7 @@
-     "issuerDomain": "happy-hacker-ca.invalid",
-     "debugAddr": "localhost:8004",
-     "portConfig": {
--      "httpPort": 5002,
-+      "httpPort": 80,
-       "httpsPort": 5001,
-       "tlsPort": 5001
-     },
 diff --git a/test/rate-limit-policies.yml b/test/rate-limit-policies.yml
-index 83c5f61..fca0e72 100644
+index ac02d19..891cb4c 100644
 --- a/test/rate-limit-policies.yml
 +++ b/test/rate-limit-policies.yml
 @@ -4,7 +4,7 @@ totalCertificates:
@@ -55,14 +55,21 @@ index 83c5f61..fca0e72 100644
    overrides:
      ratelimit.me: 1
      # Hostnames used by the letsencrypt client integration test.
-@@ -24,7 +24,7 @@ registrationsPerIP:
+@@ -19,7 +19,7 @@ certificatesPerName:
+     101: 1000
+ registrationsPerIP:
+   window: 168h # 1 week
+-  threshold: 3
++  threshold: 3000
+   overrides:
      127.0.0.1: 1000000
  pendingAuthorizationsPerAccount:
-   window: 168h # 1 week, should match pending authorization lifetime.
--  threshold: 3
-+  threshold: 300
+@@ -27,7 +27,7 @@ pendingAuthorizationsPerAccount:
+   threshold: 3
  certificatesPerFQDNSet:
    window: 24h
 -  threshold: 5
-\ No newline at end of file
-+  threshold: 500
++  threshold: 5000
+   overrides:
+     le.wtf: 10000
+     le1.wtf: 10000
