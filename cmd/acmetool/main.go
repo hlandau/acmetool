@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
@@ -100,6 +101,8 @@ const reconcileHelp = `Reconcile ACME state, idempotently requesting and renewin
 This is the default command.`
 
 func main() {
+	syscall.Umask(0) // make sure webroot files can be world-readable
+
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
 	hooks.DefaultPath = *hooksFlag
