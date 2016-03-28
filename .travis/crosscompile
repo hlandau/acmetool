@@ -18,6 +18,7 @@ export BUILDNAME="by travis"
 BUILDINFO="$($GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $BINARIES)"
 
 # cgo crosscompile
+export GOARM=5
 gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}_cgo/bin/{{.Dir}}" $BINARIES
 RESULT1=$?
 GO386=387 gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}_cgo/bin/{{.Dir}}" $BINARIES

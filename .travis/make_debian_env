@@ -23,7 +23,7 @@ ORIGDIR="$(realpath "$ORIGDIR")"
 REVISION="1${DISTRO}1"
 
 DATE_R="$(date -R)"
-ARCHS="386_cgo amd64_cgo" #arm arm64
+ARCHS="386_cgo amd64_cgo arm arm64" #arm arm64
 
 mkdir -p "$ARCHIVEDIR"
 for ARCH in $ARCHS; do
@@ -235,7 +235,7 @@ set -e
 case "$DEB_BUILD_ARCH" in
   i386) echo 386_cgo;;
   amd64) echo amd64_cgo;;
-  armhf) echo arm;;
+  armhf|armel) echo arm;;
   *) echo "$DEB_BUILD_ARCH";;
 esac
 END
