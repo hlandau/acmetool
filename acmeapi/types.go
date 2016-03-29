@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	denet "github.com/hlandau/degoutils/net"
-	"github.com/square/go-jose"
+	"gopkg.in/square/go-jose.v1"
 	"time"
 )
 

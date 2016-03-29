@@ -7,7 +7,7 @@ import (
 	"github.com/hlandau/acme/acmeapi/acmeendpoints"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"github.com/hlandau/acme/storage"
-	"github.com/square/go-jose"
+	"gopkg.in/square/go-jose.v1"
 	"golang.org/x/net/context"
 	"io/ioutil"
 	"os"
