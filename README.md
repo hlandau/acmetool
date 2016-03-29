@@ -325,3 +325,7 @@ IRC: [#acmetool](irc://chat.freenode.net/#acmetool) on [Freenode](http://freenod
 
     © 2015—2016 Hugo Landau <hlandau@devever.net>    MIT License
 
+[Licenced under the licence with SHA256 hash
+`fd80a26fbb3f644af1fa994134446702932968519797227e07a1368dea80f0bc`, a copy of
+which can be found
+here.](https://raw.githubusercontent.com/hlandau/acme/master/_doc/COPYING.MIT)
