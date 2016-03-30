@@ -11,7 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/square/go-jose"
+	"gopkg.in/square/go-jose.v1"
 	"math/big"
 	"time"
 )

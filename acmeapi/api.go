@@ -29,7 +29,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"github.com/square/go-jose"
+	"gopkg.in/square/go-jose.v1"
 
 	denet "github.com/hlandau/degoutils/net"
 	"github.com/peterhellberg/link"
