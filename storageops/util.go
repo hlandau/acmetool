@@ -7,8 +7,9 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
-	"github.com/hlandau/acme/storage"
 	"time"
+
+	"github.com/hlandau/acme/storage"
 )
 
 type targetSorter []*storage.Target
@@ -49,6 +50,7 @@ const renewalMargin = 30 * 24 * time.Hour // close enough to 30 days
 
 func renewTime(notBefore, notAfter time.Time) time.Time {
 	validityPeriod := notAfter.Sub(notBefore)
+	// Renewal is done min(1/3 validity time ; 14 days) before expiry
 	renewSpan := validityPeriod / 3
 	if renewSpan > renewalMargin {
 		renewSpan = renewalMargin
@@ -81,7 +83,8 @@ func generateKey(trk *storage.TargetRequestKey) (pk crypto.PrivateKey, err error
 	return
 }
 
-// Error associated with a specific target, for clarity of error messages.
+// TargetSpecificError is an error associated with a specific target,
+// for clarity of error messages.
 type TargetSpecificError struct {
 	Target *storage.Target
 	Err    error

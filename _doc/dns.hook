@@ -11,7 +11,7 @@
 #   # not necessary.
 #   TKIP_KEY_NAME="hmac-sha256:tk1"
 #   TKIP_KEY="a base64-encoded TKIP key"
-# 
+#
 #   # DNS synchronization timeout in seconds. Default is 60.
 #   DNS_SYNC_TIMEOUT=60
 #
@@ -32,22 +32,29 @@ set -e
 
 get_apex() {
   local name="$1"
-  if [ -z "$name" ]; then
-    echo "$0: couldn't get apex for $name" >&2
+  if [[ -z "$name" ]]; then
+    echo "$0: couldn't get apex for empty name" >&2
     return 1
   fi
-  if [ "`dig +noall +answer SOA "${name}." |grep SOA|wc -l`" == "1" ]; then
+  # Look up SOA to get APEX and nameserver
+  APEX_NS=$(dig +noall +answer SOA "$name"|awk 'NR==1 && $4 == "SOA" {print $5}')
+  if [[ -n "$APEX_NS" ]]; then
     APEX="$name"
     return
   fi
-  local sname="$(echo $name | sed 's/^[^.]\+\.//')"
+  # If no SOA, check parent domain name (foo.example.com -> example.com)
+  local sname="$(echo $name | sed 's/^[^.]*\.//')"
+  if [[ "$sname" == "$name" ]]; then
+      echo "$0: could not get apex for $CH_HOSTNAME" >&2
+      return 1
+  fi
   get_apex "$sname"
 }
 
 waitns() {
   local ns="$1"
   for ctr in $(seq 1 "$DNS_SYNC_TIMEOUT"); do
-    [ "$(dig +short "@${ns}" TXT "_acme-challenge.${CH_HOSTNAME}." | grep "$CH_TXT_VALUE" | wc -l)" == "1" ] && return 0
+    [[ "$(dig +short "@${ns}" TXT "_acme-challenge.${CH_HOSTNAME}." | grep -c "$CH_TXT_VALUE")" -eq 1 ]] && return 0
     sleep 1
   done
 
@@ -63,9 +70,15 @@ updns() {
   (
     declare -f nsupdate_cmds >/dev/null && nsupdate_cmds
     [ -n "$TKIP_KEY" ] && echo key "$TKIP_KEY_NAME" "$TKIP_KEY"
-    echo $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
+    if [[ $op == "add" ]]; then
+        echo update add "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
+    elif [[ $op == "del" ]]; then
+        echo update delete "_acme-challenge.${CH_HOSTNAME}." IN TXT
+    else
+        return 1  # not implemented
+    fi
     echo send
-  ) | nsupdate $NSUPDATE_ARGS
+  ) | nsupdate -t 10 $NSUPDATE_ARGS
 }
 
 [ -e "/etc/default/acme-dns" ] && . /etc/default/acme-dns
