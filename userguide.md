@@ -653,6 +653,10 @@ wherever you want it), before running acmetool, do the following:
 This is a list of things people have made for working with acmetool. PRs to
 amend this list are welcome.
 
+### Tutorials
+
+- [Using acmetool to secure GitLab](https://tehscorpion.github.io/2016/04/06/using-acmetool-to-secure-gitlab/)
+
 ### DNS hook scripts
 
 Use of DNS challenges requires that you provision a hook script which can
