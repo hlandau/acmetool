@@ -45,7 +45,7 @@ configure() {
       exit 1
     fi
     if [ -z "OVH_CONSUMER_KEY" ] || [ -z "$OVH_APP_SECRET" ] || [ -z "$OVH_APP_KEY" ] ; then
-      echo "ovh-cli has been found, but one of configuration variables OVH_CONSUMER_KEY/OVH_APP_SECRET/OVH_APP_KEY" >&2
+      echo "ovh-cli has been found, but one of configuration variables OVH_CONSUMER_KEY/OVH_APP_SECRET/OVH_APP_KEY is empty" >&2
       exit 1
     fi
   fi
