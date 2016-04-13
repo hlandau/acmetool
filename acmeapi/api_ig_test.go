@@ -18,7 +18,7 @@ func testAPIWithKey(t *testing.T, pk crypto.PrivateKey) {
 	}
 	cl.AccountKey = pk
 	agreementURIs := map[string]struct{}{
-		"http://127.0.0.1:4001/terms/v1": {},
+		"http://boulder:4001/terms/v1": {},
 	}
 	reg := &Registration{
 		ContactURIs: []string{
