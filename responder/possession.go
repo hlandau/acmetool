@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
-	"github.com/square/go-jose"
+	"gopkg.in/square/go-jose.v1"
 )
 
 type proofOfPossessionResponder struct {
