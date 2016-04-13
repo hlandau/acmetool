@@ -55,15 +55,6 @@ index ac02d19..891cb4c 100644
    overrides:
      ratelimit.me: 1
      # Hostnames used by the letsencrypt client integration test.
-@@ -19,7 +19,7 @@ certificatesPerName:
-     101: 1000
- registrationsPerIP:
-   window: 168h # 1 week
--  threshold: 3
-+  threshold: 3000
-   overrides:
-     127.0.0.1: 1000000
- pendingAuthorizationsPerAccount:
 @@ -27,7 +27,7 @@ pendingAuthorizationsPerAccount:
    threshold: 3
  certificatesPerFQDNSet:
