@@ -106,6 +106,7 @@ waitns() {
 add_challenge() {
   [ -z "$CH_TXT_VALUE" ] && return 1
   $APEX_SCRIPT domain zone newrecord $APEX --field TXT --target "$CH_TXT_VALUE" --sub _acme-challenge --ttl 60 --json >&2
+  $APEX_SCRIPT domain zone reload $APEX
 }
 
 remove_challenge() {
@@ -114,6 +115,7 @@ remove_challenge() {
   for id in $recid ; do
     $APEX_SCRIPT domain zone delrecord $APEX $id >&2
   done
+  $APEX_SCRIPT domain zone reload $APEX
 }
 
 test() {
