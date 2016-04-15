@@ -6,6 +6,9 @@ addons:
   hosts:
     - dom1.acmetool-test.devever.net
     - dom2.acmetool-test.devever.net
+    - boulder
+    - boulder-mysql
+    - boulder-rabbitmq
   apt:
     packages:
       - lsb-release
