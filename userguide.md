@@ -665,5 +665,6 @@ available:
 
 - [dns.hook](https://github.com/hlandau/acme/blob/master/_doc/dns.hook) (official, maintained here) — a hook script using nsupdate (DNS UPDATE)
 - [Cloudflare hook](https://github.com/yinguanhao/acme-dns-hook-cloudflare) (unofficial, Python 3) — third party hook by yinguanhao
+- [OVH DNS hook](https://github.com/hlandau/acme/blob/master/_doc/ovh.hook) — third party hook contributed by asquelt
 
 You can [implement your own hook](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop).
