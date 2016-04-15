@@ -1,0 +1,188 @@
+#!/bin/bash
+#
+# This is a hook to complete DNS challenge using OVH API.
+#
+# For this script to work you need the following prereqs:
+#
+# 1) Install ovh-cli (https://github.com/toorop/ovh-cli)
+# 2) Install dig (Centos/RH: bind-utils; Ubuntu/Debian: dnsutils)
+# 3) Register OVH API (execute ovh-cli without parameters and set environment variables: OVH_CONSUMER_KEY/OVH_APP_SECRET/OVH_APP_KEY)
+# 4) Place this script to /usr/lib[exec]/acme/hooks/ovh
+#
+# FAQ:
+#
+# Q: I have my domains under several OVH accounts, how do I manage them all?
+# A: Setup wrapper scripts and pass them to OVH_API_SCRIPTS environment variable, ie.
+#
+#      echo -en "OVH_CONSUMER_KEY=key1 OVH_APP_SECRET=secret1 OVH_APP_KEY=app1 ovh-cli $*" >/usr/local/bin/ovh-ab1234
+#      echo -en "OVH_CONSUMER_KEY=key2 OVH_APP_SECRET=secret2 OVH_APP_KEY=app2 ovh-cli $*" >/usr/local/bin/ovh-ab1235
+#      chmod a+rx /usr/local/bin/ovh-ab1234 /usr/local/bin/ovh-ab1235
+#      export OVH_API_SCRIPTS="/usr/local/bin/ovh-ab1234 /usr/local/bin/ovh-ab1235"
+#
+# Q: Why it takes so long?
+# A: Dunno, ask OVH :)
+#    You can also increase timeout by setting environment variable DNS_SYNC_TIMEOUT.
+#
+# Q: Do I need to pass my environment variables all the times?
+# A: No, you can place them in /etc/default/acme-ovh or /etc/conf.d/acme-ovh
+#
+# Q: How to test this script?
+# A: Just call "test" action and pass it a domain name (./ovh.hook is hook name here, not ovh-cli):
+#
+#      ./ovh.hook test example.com
+#
+
+set -e
+
+configure() {
+  if [ -z "$OVH_API_SCRIPTS" ] ; then
+    if which ovh-cli >/dev/null 2>&1 ; then
+      OVH_API_SCRIPTS=ovh-cli
+    elif which ovh >/dev/null 2>&1 ; then
+      OVH_API_SCRIPTS=ovh
+    else
+      echo "OVH_API_SCRIPTS were not provided and ovh-cli has not been found" >&2
+      exit 1
+    fi
+    if [ -z "OVH_CONSUMER_KEY" ] || [ -z "$OVH_APP_SECRET" ] || [ -z "$OVH_APP_KEY" ] ; then
+      echo "ovh-cli has been found, but one of configuration variables OVH_CONSUMER_KEY/OVH_APP_SECRET/OVH_APP_KEY is empty" >&2
+      exit 1
+    fi
+  fi
+}
+
+get_apex() {
+  local name="$1"
+  if [ -z "$name" ]; then
+    echo "$0: couldn't get apex for $name" >&2
+    return 1
+  fi
+  if ! echo "$name"|grep -q "\." ; then
+    echo "$0: \"$name\" does not have a dot, which most likely mean that \"$CH_HOSTNAME\" is not delegated (expired?)" >&2
+    return 1
+  fi
+  if dig +noall +answer SOA "${name}." |grep -q SOA ; then
+    APEX="$name"
+    return
+  fi
+  local sname="$(echo $name | sed 's/^[^.]\+\.//')"
+  get_apex "$sname"
+}
+
+get_api_script() {
+  APEX_SCRIPT=$(for script in $OVH_API_SCRIPTS ; do
+    if $script domain list --json 2>&1 | grep -q "\"${APEX}\"" ; then
+      echo $script
+    fi
+  done)
+  if [ -z "$APEX_SCRIPT" ] ; then
+    echo "$0: it's not possible to manage $APEX with $OVH_API_SCRIPTS" >&2
+    for script in $OVH_API_SCRIPTS ; do
+      echo "$script domains list:" >&2
+      $script domain list 2>&1 | sed -e 's/^/  /' >&2
+      echo >&2
+    done
+    return 1
+  fi
+}
+
+waitns() {
+  local ns="$1"
+  local tick="$2"
+  for ctr in $(seq $DNS_SYNC_TIMEOUT); do
+    seq="$ctr/$DNS_SYNC_TIMEOUT"
+    dig +short "@${ns}" TXT "_acme-challenge.${CH_HOSTNAME}." | grep -q "$CH_TXT_VALUE" && return 0
+    [ ! -z "$tick" ] && echo -n "$tick" >&2
+    sleep 1
+  done
+
+  # Best effort cleanup.
+  echo $0: timed out waiting ${DNS_SYNC_TIMEOUT}s for nameserver $ns >&2
+  remove_challenge || echo $0: failed to clean up records after timing out >&2
+
+  return 1
+}
+
+add_challenge() {
+  [ -z "$CH_TXT_VALUE" ] && return 1
+  $APEX_SCRIPT domain zone newrecord $APEX --field TXT --target "$CH_TXT_VALUE" --sub _acme-challenge --ttl 60 --json >&2
+  $APEX_SCRIPT domain zone reload $APEX
+}
+
+remove_challenge() {
+  [ -z "$CH_TXT_VALUE" ] && return 1
+  recid=$($APEX_SCRIPT domain zone getrecords $APEX 2>&1 | while read id rec data ; do if [ "$rec" == "_acme-challenge.${APEX}" ] ; then echo $id ; fi ; done)
+  for id in $recid ; do
+    $APEX_SCRIPT domain zone delrecord $APEX $id >&2
+  done
+  $APEX_SCRIPT domain zone reload $APEX
+}
+
+test() {
+  echo "Managing \"$APEX\" with script: $APEX_SCRIPT" >&2
+  [ -z "$CH_TXT_VALUE" ] && CH_TXT_VALUE="foobarszcz"
+  echo -n "Trying to add record _acme-challenge.${APEX} record: " >&2
+  add_challenge # will return json, so we don't print anything here
+
+  echo -n "Checking DNSes: " >&2
+  for ns in $(dig +short NS "${APEX}."); do
+    echo -n "$ns" >&2
+    waitns "$ns" "."
+    echo -n " " >&2
+  done
+  echo "done." >&2
+
+  echo -n "Trying to remove _acme-challenge.${APEX} record: " >&2
+  remove_challenge && echo "done." >&2
+
+  echo -n "Testing if there is any garbage left: " >&2
+  if $APEX_SCRIPT domain zone getrecords $APEX --json 2>&1 | grep -q "\"_acme-challenge.${APEX}\"" ; then
+    echo "Oops, it seems there's _acme-challenge.${APEX} listed, please examine domain manually!" >&2
+    return 1
+  fi
+  echo "done." >&2
+
+  echo -en "All good!\n\nDomain contents:$($APEX_SCRIPT domain zone import $APEX 2>&1)\n" >&2
+}
+
+[ -e "/etc/default/acme-ovh" ] && . /etc/default/acme-ovh
+[ -e "/etc/conf.d/acme-ovh" ] && . /etc/conf.d/acme-ovh
+
+EVENT_NAME="$1"
+CH_HOSTNAME="$2"
+CH_TARGET_FILENAME="$3"
+CH_TXT_VALUE="$4"
+[ -z "$DNS_SYNC_TIMEOUT" ] && DNS_SYNC_TIMEOUT=180
+
+case "$EVENT_NAME" in
+  challenge-dns-start)
+    configure
+    get_apex "$CH_HOSTNAME"
+    get_api_script
+    remove_challenge
+    add_challenge
+
+    # Wait for all nameservers to update.
+    for ns in $(dig +short NS "${APEX}."); do
+      waitns "$ns"
+    done
+    ;;
+
+  challenge-dns-stop)
+    configure
+    get_apex "$CH_HOSTNAME"
+    get_api_script
+    remove_challenge
+    ;;
+
+  test)
+    configure
+    get_apex "$CH_HOSTNAME"
+    get_api_script
+    test
+    ;;
+
+  *)
+    exit 42
+    ;;
+esac
