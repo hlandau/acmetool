@@ -8,6 +8,7 @@ import (
 	"github.com/hlandau/acme/acmeapi/acmeutils"
 	deos "github.com/hlandau/degoutils/os"
 	"gopkg.in/tylerb/graceful.v1"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -124,7 +125,8 @@ func (s *httpResponder) selfTest() error {
 		return fmt.Errorf("non-200 status code when doing self-test")
 	}
 
-	b, err := ioutil.ReadAll(res.Body)
+	// Read response, limiting response to 1MiB.
+	b, err := ioutil.ReadAll(io.LimitReader(res.Body, 1*1024*1024))
 	if err != nil {
 		return err
 	}

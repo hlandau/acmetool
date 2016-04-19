@@ -1,6 +1,7 @@
 package redirector
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -63,7 +64,8 @@ func TestRedirector(t *testing.T) {
 	}
 
 	defer res.Body.Close()
-	b, err := ioutil.ReadAll(res.Body)
+	// Read response, limiting response to 1MiB.
+	b, err := ioutil.ReadAll(io.LimitReader(res.Body, 1*1024*1024))
 	if err != nil {
 		t.Fatal(err)
 	}

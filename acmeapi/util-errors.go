@@ -2,6 +2,7 @@ package acmeapi
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 )
@@ -40,7 +41,8 @@ func newHTTPError(res *http.Response) error {
 	}
 	if res.Header.Get("Content-Type") == "application/problem+json" {
 		defer res.Body.Close()
-		b, err := ioutil.ReadAll(res.Body)
+		// Read response, limiting response to 1MiB.
+		b, err := ioutil.ReadAll(io.LimitReader(res.Body, 1*1024*1024))
 		if err == nil {
 			he.ProblemBody = string(b)
 		}
