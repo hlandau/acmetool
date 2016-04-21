@@ -2,6 +2,7 @@ package acmeapi
 
 import (
 	"fmt"
+	denet "github.com/hlandau/degoutils/net"
 	"io/ioutil"
 	"net/http"
 )
@@ -40,7 +41,7 @@ func newHTTPError(res *http.Response) error {
 	}
 	if res.Header.Get("Content-Type") == "application/problem+json" {
 		defer res.Body.Close()
-		b, err := ioutil.ReadAll(res.Body)
+		b, err := ioutil.ReadAll(denet.LimitReader(res.Body, 1*1024*1024))
 		if err == nil {
 			he.ProblemBody = string(b)
 		}

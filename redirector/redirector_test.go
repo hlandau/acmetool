@@ -1,6 +1,7 @@
 package redirector
 
 import (
+	denet "github.com/hlandau/degoutils/net"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -63,7 +64,7 @@ func TestRedirector(t *testing.T) {
 	}
 
 	defer res.Body.Close()
-	b, err := ioutil.ReadAll(res.Body)
+	b, err := ioutil.ReadAll(denet.LimitReader(res.Body, 1*1024*1024))
 	if err != nil {
 		t.Fatal(err)
 	}

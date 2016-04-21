@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
+	denet "github.com/hlandau/degoutils/net"
 	deos "github.com/hlandau/degoutils/os"
 	"gopkg.in/tylerb/graceful.v1"
 	"io/ioutil"
@@ -124,7 +125,7 @@ func (s *httpResponder) selfTest() error {
 		return fmt.Errorf("non-200 status code when doing self-test")
 	}
 
-	b, err := ioutil.ReadAll(res.Body)
+	b, err := ioutil.ReadAll(denet.LimitReader(res.Body, 1*1024*1024))
 	if err != nil {
 		return err
 	}

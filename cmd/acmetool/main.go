@@ -19,10 +19,10 @@ import (
 	"github.com/hlandau/acme/storageops"
 	"github.com/hlandau/degoutils/xlogconfig"
 	"github.com/hlandau/xlog"
-	"gopkg.in/square/go-jose.v1"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
 	"gopkg.in/hlandau/service.v2"
+	"gopkg.in/square/go-jose.v1"
 	"gopkg.in/yaml.v2"
 )
 
