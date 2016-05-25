@@ -11,11 +11,11 @@ index 347883e..448295f 100755
  
      # If we reach here, a child died early. Log what died:
 diff --git a/test/boulder-config.json b/test/boulder-config.json
-index d86f017..131daae 100644
+index 4f96808..f5eefe4 100644
 --- a/test/boulder-config.json
 +++ b/test/boulder-config.json
-@@ -201,7 +201,7 @@
-     "issuerDomain": "happy-hacker-ca.invalid",
+@@ -200,7 +200,7 @@
+     "userAgent": "boulder",
      "debugAddr": "localhost:8004",
      "portConfig": {
 -      "httpPort": 5002,
@@ -24,15 +24,14 @@ index d86f017..131daae 100644
        "tlsPort": 5001
      },
 diff --git a/test/hostname-policy.json b/test/hostname-policy.json
-index a5782e2..15ad50c 100644
+index 6397ee9..15ad50c 100644
 --- a/test/hostname-policy.json
 +++ b/test/hostname-policy.json
-@@ -1,13 +1,6 @@
+@@ -1,12 +1,6 @@
  {
    "Blacklist": [
      "in-addr.arpa",
 -    "example",
--    "example.com",
 -    "example.net",
 -    "example.org",
 -    "invalid",
@@ -43,7 +42,7 @@ index a5782e2..15ad50c 100644
    ]
  }
 diff --git a/test/rate-limit-policies.yml b/test/rate-limit-policies.yml
-index ac02d19..891cb4c 100644
+index 7e68b47..33c12e2 100644
 --- a/test/rate-limit-policies.yml
 +++ b/test/rate-limit-policies.yml
 @@ -4,7 +4,7 @@ totalCertificates:
