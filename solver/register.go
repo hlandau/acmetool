@@ -87,6 +87,13 @@ func getEmail(interactor interaction.Interactor) (string, error) {
 
 		addr, err := mail.ParseAddress(res.Value)
 		if err != nil {
+			if res.Noninteractive {
+				// If the e. mail address specified was invalid but we received it from
+				// a noninteractive source, don't loop or we will loop forever. Instead
+				// just act like one wasn't specified.
+				return "", nil
+			}
+
 			continue
 		}
 
