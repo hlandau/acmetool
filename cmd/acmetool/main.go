@@ -105,6 +105,13 @@ func main() {
 
 	adaptflag.Adapt()
 	cmd := kingpin.Parse()
+
+	var err error
+	*stateFlag, err = filepath.Abs(*stateFlag)
+	log.Fatale(err, "state directory path")
+	*hooksFlag, err = filepath.Abs(*hooksFlag)
+	log.Fatale(err, "hooks directory path")
+
 	hooks.DefaultPath = *hooksFlag
 	acmeapi.UserAgent = "acmetool"
 	xlogconfig.Init()
