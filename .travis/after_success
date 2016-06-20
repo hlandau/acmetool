@@ -74,20 +74,34 @@ cd "$GOPATH/releasing/dbuilds"
 # RPM.
 cd "$ACME_DIR/.travis"
 mkdir -p "$HOME/rpmbuild/SPECS" "$HOME/rpmbuild/SOURCES"
-$GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_rpm_spec "$TRAVIS_TAG" > "$HOME/rpmbuild/SPECS/acmetool.spec"
+RPMS="acmetool acmetool-nocgo"
+for x in $RPMS; do
+  $GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_rpm_spec "$TRAVIS_TAG" "$x" > "$HOME/rpmbuild/SPECS/${x}.spec"
+done
 ln $GOPATH/releasing/dist/acmetool_*.orig.tar.gz $HOME/rpmbuild/SOURCES/
 echo travis_fold:start:build-srpm
-rpmbuild -bs "$HOME/rpmbuild/SPECS/acmetool.spec"
+for x in $RPMS; do
+  rpmbuild -bs "$HOME/rpmbuild/SPECS/${x}.spec"
+done
 echo travis_fold:end:build-srpm
 
-cat <<END > /tmp/rpm-metadata
+for srpm in $HOME/rpmbuild/SRPMS/acmetool-*.rpm; do
+  if [[ $srpm != *nocgo* ]]; then
+    cat <<END > /tmp/rpm-metadata
 {
   "project_id": $COPR_PROJECT_ID,
   "chroots": ["fedora-23-i386", "fedora-23-x86_64", "epel-7-x86_64", "fedora-24-i386", "fedora-24-x86_64"]
 }
 END
+  else
+    cat <<END > /tmp/rpm-metadata
+{
+  "project_id": $COPR_PROJECT_ID,
+  "chroots": ["epel-5-i386", "epel-5-x86_64", "epel-6-i386", "epel-6-x86_64", "fedora-22-i386", "fedora-22-x86_64"]
+}
+END
+  fi
 
-for srpm in $HOME/rpmbuild/SRPMS/acmetool-*.rpm; do
   echo Uploading $srpm
   curl -u "$COPR_LOGIN_TOKEN" \
     -F 'metadata=</tmp/rpm-metadata;type=application/json;filename=' \
