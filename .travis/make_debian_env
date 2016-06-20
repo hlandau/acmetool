@@ -23,7 +23,9 @@ ORIGDIR="$(realpath "$ORIGDIR")"
 REVISION="1${DISTRO}1"
 
 DATE_R="$(date -R)"
-ARCHS="386_cgo amd64_cgo arm arm64" #arm arm64
+# The non-cgo builds here are used by the RPM builds, which also reply on the
+# .orig.tar.gz file built here.
+ARCHS="386_cgo amd64_cgo 386 amd64 arm arm64"
 
 mkdir -p "$ARCHIVEDIR"
 for ARCH in $ARCHS; do

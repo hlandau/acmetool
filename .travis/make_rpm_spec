@@ -7,25 +7,37 @@ if [ -z "$VERSION" ]; then
 fi
 VERSION="$(echo "$VERSION" | sed s/^v//g)"
 
+CGO_SUFFIX="_cgo"
+NOCGO_SUFFIX=
+NOTNOCGO_SUFFIX="-nocgo"
+if [ "$2" == "acmetool-nocgo" ]; then
+  CGO_SUFFIX=
+  NOCGO_SUFFIX="-nocgo"
+  NOTNOCGO_SUFFIX=
+fi
+
 cat <<END
-Name: acmetool
+%define aname acmetool
+Name: %{aname}$NOCGO_SUFFIX
 Version: $VERSION
 Release: 1%{?dist}
 Summary: Automatic certificate acquisition tool
 License: MIT
 URL: https://github.com/hlandau/acme
+Group: Applications/System
 Requires: libcap
+Conflicts: %{aname}$NOTNOCGO_SUFFIX
 %ifarch i386 i686
-%define goarch 386_cgo
+%define goarch 386$CGO_SUFFIX
 %else
 %ifarch x86_64
-%define goarch amd64_cgo
+%define goarch amd64$CGO_SUFFIX
 %else
 %define goarch ERROR
 %endif
 %endif
-
-Source: %{name}_%{version}.orig.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
+Source: %{aname}_%{version}.orig.tar.gz
 
 %define debug_package %{nil}
 
@@ -33,7 +45,7 @@ Source: %{name}_%{version}.orig.tar.gz
 Automatic certificate acquisition tool for ACME servers such as Let's Encrypt.
 
 %prep
-%setup -n %{name}_%{version}/%{name}-v%{version}-linux_%{goarch}
+%setup -n %{aname}_%{version}/%{aname}-v%{version}-linux_%{goarch}
 
 %build
 
