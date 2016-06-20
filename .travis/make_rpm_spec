@@ -24,6 +24,7 @@ Release: 1%{?dist}
 Summary: Automatic certificate acquisition tool
 License: MIT
 URL: https://github.com/hlandau/acme
+Group: Applications/System
 Requires: libcap
 Conflicts: %{aname}$NOTNOCGO_SUFFIX
 %ifarch i386 i686
@@ -35,7 +36,7 @@ Conflicts: %{aname}$NOTNOCGO_SUFFIX
 %define goarch ERROR
 %endif
 %endif
-
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
 Source: %{aname}_%{version}.orig.tar.gz
 
 %define debug_package %{nil}
