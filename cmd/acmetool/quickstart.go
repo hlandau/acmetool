@@ -233,6 +233,7 @@ HAPROXY_UMASK="0077"
 }
 
 # Create coalesced files and a haproxy repository.
+umask 0022
 mkdir -p "$ACME_STATE_DIR/haproxy"
 umask $HAPROXY_UMASK
 while read name; do
