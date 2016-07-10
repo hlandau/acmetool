@@ -135,6 +135,10 @@ type TargetRequestChallenge struct {
 
 	// N. Ports to listen on when completing challenges.
 	HTTPPorts []string `yaml:"http-ports,omitempty"`
+
+	// N. Attempt Webroot authentication, even if we can't
+	// access the challenge file via http(s).
+	ForceWebroot bool `yaml:"force-webroot,omitempty"`
 }
 
 // Represents a stored target descriptor.
