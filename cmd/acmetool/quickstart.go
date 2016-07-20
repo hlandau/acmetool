@@ -248,7 +248,7 @@ while read name; do
     cat "$certdir/privkey" "$certdir/fullchain" > "$certdir/haproxy"
   fi
 
-  [ -h "$ACME_STATE_DIR/haproxy/$name" ] || ln -s "../live/$name/haproxy" "$ACME_STATE_DIR/haproxy/$name"
+  [ -h "$ACME_STATE_DIR/haproxy/$name" ] || ln -fs "../live/$name/haproxy" "$ACME_STATE_DIR/haproxy/$name"
 done`
 
 func installHook(name, value string) {
