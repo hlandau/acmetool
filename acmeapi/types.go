@@ -3,7 +3,7 @@ package acmeapi
 import (
 	"encoding/json"
 	"fmt"
-	denet "github.com/hlandau/degoutils/net"
+	denet "github.com/hlandau/goutils/net"
 	"gopkg.in/square/go-jose.v1"
 	"time"
 )

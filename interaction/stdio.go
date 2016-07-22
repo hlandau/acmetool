@@ -3,7 +3,7 @@ package interaction
 import (
 	"bufio"
 	"fmt"
-	"github.com/hlandau/degoutils/text"
+	"github.com/hlandau/goutils/text"
 	"github.com/mitchellh/go-wordwrap"
 	"gopkg.in/cheggaaa/pb.v1"
 	"os"

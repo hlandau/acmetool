@@ -4,7 +4,7 @@ package hooks
 
 import (
 	"fmt"
-	deos "github.com/hlandau/degoutils/os"
+	deos "github.com/hlandau/goutils/os"
 	"github.com/hlandau/xlog"
 	"os"
 	"os/exec"

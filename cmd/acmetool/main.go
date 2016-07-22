@@ -17,7 +17,7 @@ import (
 	"github.com/hlandau/acme/responder"
 	"github.com/hlandau/acme/storage"
 	"github.com/hlandau/acme/storageops"
-	"github.com/hlandau/degoutils/xlogconfig"
+	"github.com/hlandau/dexlogconfig"
 	"github.com/hlandau/xlog"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
@@ -114,7 +114,7 @@ func main() {
 
 	hooks.DefaultPath = *hooksFlag
 	acmeapi.UserAgent = "acmetool"
-	xlogconfig.Init()
+	dexlogconfig.Init()
 
 	if *batchFlag {
 		interaction.NonInteractive = true

@@ -2,7 +2,7 @@ PROJNAME=github.com/hlandau/acme
 BINARIES=$(PROJNAME)/cmd/acmetool
 
 ###############################################################################
-# v1.11  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
+# v1.12  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref
 # This is a standard Makefile for building Go code designed to be copied into
 # other projects. Code below this line is not intended to be modified.
 #
@@ -39,7 +39,7 @@ endif
 
 ## Buildinfo
 ifeq ($(USE_BUILDINFO),1)
-	BUILDINFO_FLAG=-ldflags "$$($$GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $(1))"
+	BUILDINFO_FLAG=-ldflags "$$($$GOPATH/src/github.com/hlandau/buildinfo/gen $(1))"
 endif
 
 ## Standard Rules

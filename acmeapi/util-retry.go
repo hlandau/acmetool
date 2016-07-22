@@ -1,7 +1,7 @@
 package acmeapi
 
 import (
-	"github.com/hlandau/degoutils/clock"
+	"github.com/hlandau/goutils/clock"
 	"golang.org/x/net/context"
 	"net/http"
 	"strconv"

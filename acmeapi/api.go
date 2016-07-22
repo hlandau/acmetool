@@ -31,7 +31,7 @@ import (
 	"crypto/rsa"
 	"gopkg.in/square/go-jose.v1"
 
-	denet "github.com/hlandau/degoutils/net"
+	denet "github.com/hlandau/goutils/net"
 	"github.com/peterhellberg/link"
 	"golang.org/x/net/context"
 	"golang.org/x/net/context/ctxhttp"

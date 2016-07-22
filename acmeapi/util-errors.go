@@ -2,7 +2,7 @@ package acmeapi
 
 import (
 	"fmt"
-	denet "github.com/hlandau/degoutils/net"
+	denet "github.com/hlandau/goutils/net"
 	"io/ioutil"
 	"net/http"
 )

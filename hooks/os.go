@@ -1,7 +1,7 @@
 package hooks
 
 import (
-	deos "github.com/hlandau/degoutils/os"
+	deos "github.com/hlandau/goutils/os"
 	"os"
 	"os/exec"
 )

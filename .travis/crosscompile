@@ -15,7 +15,7 @@ mkdir -p "$GOPATH/releasing/idist" "$GOPATH/releasing/dist"
 REPO=github.com/$TRAVIS_REPO_SLUG
 BINARIES=$REPO/cmd/acmetool
 export BUILDNAME="by travis"
-BUILDINFO="$($GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen $BINARIES)"
+BUILDINFO="$($GOPATH/src/github.com/hlandau/buildinfo/gen $BINARIES)"
 
 # cgo crosscompile
 export GOARM=5

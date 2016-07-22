@@ -18,6 +18,6 @@ $ go build -ldflags "
     -X github.com/hlandau/acme/storage.RecommendedPath=\"/var/lib/acme\"
     -X github.com/hlandau/acme/hooks.DefaultPath=\"/usr/lib/acme/hooks\"
     -X github.com/hlandau/acme/responder.StandardWebrootPath=\"/var/run/acme/acme-challenge\"
-    $($GOPATH/src/github.com/hlandau/degoutils/buildinfo/gen github.com/hlandau/acme/cmd/acmetool)
+    $($GOPATH/src/github.com/hlandau/buildinfo/gen github.com/hlandau/acme/cmd/acmetool)
   " github.com/hlandau/acme/cmd/acmetool
 ```

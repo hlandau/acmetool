@@ -4,7 +4,7 @@ package fdb
 
 import (
 	"fmt"
-	deos "github.com/hlandau/degoutils/os"
+	deos "github.com/hlandau/goutils/os"
 	"github.com/hlandau/xlog"
 	"gopkg.in/hlandau/svcutils.v1/passwd"
 	"io/ioutil"
