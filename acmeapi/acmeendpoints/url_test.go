@@ -7,7 +7,7 @@ import (
 	"crypto/x509"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
-	"github.com/hlandau/degoutils/test"
+	"github.com/hlandau/goutils/test"
 	"golang.org/x/net/context"
 	"math/big"
 	"net/http"

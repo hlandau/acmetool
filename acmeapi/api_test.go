@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/hlandau/degoutils/test"
+	"github.com/hlandau/goutils/test"
 	"github.com/hlandau/xlog"
 	"golang.org/x/net/context"
 	"net/http"

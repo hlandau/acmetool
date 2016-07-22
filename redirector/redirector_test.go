@@ -1,7 +1,7 @@
 package redirector
 
 import (
-	denet "github.com/hlandau/degoutils/net"
+	denet "github.com/hlandau/goutils/net"
 	"io/ioutil"
 	"net/http"
 	"os"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/hlandau/acme/acmeapi"
 	"github.com/hlandau/acme/responder"
-	denet "github.com/hlandau/degoutils/net"
+	denet "github.com/hlandau/goutils/net"
 	"github.com/hlandau/xlog"
 	"golang.org/x/net/context"
 	"time"
