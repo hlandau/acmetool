@@ -24,6 +24,18 @@ var RecommendedPath string
 // changed at runtime.
 var DefaultPath string
 
+// Provides contextual configuration information when executing a hook.
+type Context struct {
+	// The hook directory to use. May be "" for the default.
+	HooksDir string
+
+	// The state directory to report. Required.
+	StateDir string
+
+	// Arbitrary environment variables to set.
+	Env map[string]string
+}
+
 func init() {
 	// Allow overriding at build time.
 	p := DefaultPath
@@ -43,13 +55,13 @@ func init() {
 //
 // If hookDirectory is "", DefaultHookPath is used. stateDirectory and
 // hostnames are passed as information to the hooks.
-func NotifyLiveUpdated(hookDirectory, stateDirectory string, hostnames []string) error {
+func NotifyLiveUpdated(ctx *Context, hostnames []string) error {
 	if len(hostnames) == 0 {
 		return nil
 	}
 
 	hostnameList := strings.Join(hostnames, "\n") + "\n"
-	_, err := runParts(hookDirectory, stateDirectory, []byte(hostnameList), "live-updated")
+	_, err := runParts(ctx, []byte(hostnameList), "live-updated")
 	if err != nil {
 		return err
 	}
@@ -62,40 +74,67 @@ func NotifyLiveUpdated(hookDirectory, stateDirectory string, hostnames []string)
 // installed indicates whether at least one hook script indicated success. err
 // could still be returned in this case if an error occurs while executing some
 // other hook.
-func ChallengeHTTPStart(hookDirectory, stateDirectory, hostname, targetFileName, token, ka string) (installed bool, err error) {
-	return runParts(hookDirectory, stateDirectory, []byte(ka),
+func ChallengeHTTPStart(ctx *Context, hostname, targetFileName, token, ka string) (installed bool, err error) {
+	return runParts(ctx, []byte(ka),
 		"challenge-http-start", hostname, targetFileName, token)
 }
 
-func ChallengeHTTPStop(hookDirectory, stateDirectory, hostname, targetFileName, token, ka string) error {
-	_, err := runParts(hookDirectory, stateDirectory, []byte(ka),
+func ChallengeHTTPStop(ctx *Context, hostname, targetFileName, token, ka string) error {
+	_, err := runParts(ctx, []byte(ka),
 		"challenge-http-stop", hostname, targetFileName, token)
 	return err
 }
 
-func ChallengeTLSSNIStart(hookDirectory, stateDirectory, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
-	return runParts(hookDirectory, stateDirectory, []byte(pem),
+func ChallengeTLSSNIStart(ctx *Context, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
+	return runParts(ctx, []byte(pem),
 		"challenge-tls-sni-start", hostname, targetFileName, validationName1, validationName2)
 }
 
-func ChallengeTLSSNIStop(hookDirectory, stateDirectory, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
-	return runParts(hookDirectory, stateDirectory, []byte(pem),
+func ChallengeTLSSNIStop(ctx *Context, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
+	return runParts(ctx, []byte(pem),
 		"challenge-tls-sni-stop", hostname, targetFileName, validationName1, validationName2)
 }
 
-func ChallengeDNSStart(hookDirectory, stateDirectory, hostname, targetFileName, body string) (installed bool, err error) {
-	return runParts(hookDirectory, stateDirectory, nil,
+func ChallengeDNSStart(ctx *Context, hostname, targetFileName, body string) (installed bool, err error) {
+	return runParts(ctx, nil,
 		"challenge-dns-start", hostname, targetFileName, body)
 }
 
-func ChallengeDNSStop(hookDirectory, stateDirectory, hostname, targetFileName, body string) (uninstalled bool, err error) {
-	return runParts(hookDirectory, stateDirectory, nil,
+func ChallengeDNSStop(ctx *Context, hostname, targetFileName, body string) (uninstalled bool, err error) {
+	return runParts(ctx, nil,
 		"challenge-dns-stop", hostname, targetFileName, body)
+}
+
+func mergeEnvMap(m map[string]string, e []string) {
+	for _, x := range e {
+		parts := strings.SplitN(x, "=", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		m[parts[0]] = parts[1]
+	}
+}
+
+func flattenEnvMap(m map[string]string) []string {
+	var e []string
+	for k, v := range m {
+		e = append(e, k+"="+v)
+	}
+	return e
+}
+
+func mergeEnv(envs ...[]string) []string {
+	m := map[string]string{}
+	for _, env := range envs {
+		mergeEnvMap(m, env)
+	}
+	return flattenEnvMap(m)
 }
 
 // Implements functionality similar to the "run-parts" command on many distros.
 // Implementations vary, so it is reimplemented here.
-func runParts(directory, stateDirectory string, stdinData []byte, args ...string) (anySucceeded bool, err error) {
+func runParts(ctx *Context, stdinData []byte, args ...string) (anySucceeded bool, err error) {
+	directory := ctx.HooksDir
 	if directory == "" {
 		directory = DefaultPath
 	}
@@ -110,12 +149,7 @@ func runParts(directory, stateDirectory string, stdinData []byte, args ...string
 		return false, err
 	}
 
-	// Probably shouldn't propagate this to all child processes, but it's the
-	// easiest way to not replace the entire environment when calling.
-	err = os.Setenv("ACME_STATE_DIR", stateDirectory)
-	if err != nil {
-		return false, err
-	}
+	env := mergeEnv(os.Environ(), flattenEnvMap(ctx.Env), []string{"ACME_STATE_DIR=" + ctx.StateDir})
 
 	// Do not execute a world-writable directory.
 	if (fi.Mode() & 02) != 0 {
@@ -174,6 +208,7 @@ func runParts(directory, stateDirectory string, stdinData []byte, args ...string
 		}
 
 		cmd.Dir = "/"
+		cmd.Env = env
 
 		pipeR, pipeW, err := os.Pipe()
 		if err != nil {

@@ -118,7 +118,12 @@ func (r *reconcile) Relink() error {
 		}
 	}
 
-	err = hooks.NotifyLiveUpdated("", r.store.Path(), updatedHostnames) // ignore error
+	ctx := &hooks.Context{
+		HooksDir: "",
+		StateDir: r.store.Path(),
+	}
+
+	err = hooks.NotifyLiveUpdated(ctx, updatedHostnames) // ignore error
 	log.Errore(err, "failed to call notify hooks")
 
 	return nil
@@ -428,10 +433,22 @@ func generateHookPEM(info *responder.TLSSNIChallengeInfo) (string, error) {
 func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetFilename string, trc *storage.TargetRequestChallenge) error {
 	cl := r.getClientForAccount(a)
 
+	ctx := &hooks.Context{
+		HooksDir: "",
+		StateDir: r.store.Path(),
+		Env:      map[string]string{},
+	}
+	for k, v := range trc.InheritedEnv {
+		ctx.Env[k] = v
+	}
+	for k, v := range trc.Env {
+		ctx.Env[k] = v
+	}
+
 	startHookFunc := func(challengeInfo interface{}) error {
 		switch v := challengeInfo.(type) {
 		case *responder.HTTPChallengeInfo:
-			_, err := hooks.ChallengeHTTPStart("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+			_, err := hooks.ChallengeHTTPStart(ctx, name, targetFilename, v.Filename, v.Body)
 			return err
 		case *responder.TLSSNIChallengeInfo:
 			hookPEM, err := generateHookPEM(v)
@@ -439,10 +456,10 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 				return err
 			}
 
-			_, err = hooks.ChallengeTLSSNIStart("", r.store.Path(), name, targetFilename, v.Hostname1, v.Hostname2, hookPEM)
+			_, err = hooks.ChallengeTLSSNIStart(ctx, name, targetFilename, v.Hostname1, v.Hostname2, hookPEM)
 			return err
 		case *responder.DNSChallengeInfo:
-			installed, err := hooks.ChallengeDNSStart("", r.store.Path(), name, targetFilename, v.Body)
+			installed, err := hooks.ChallengeDNSStart(ctx, name, targetFilename, v.Body)
 			if err == nil && !installed {
 				return fmt.Errorf("could not install DNS challenge, no hooks succeeded")
 			}
@@ -455,17 +472,17 @@ func (r *reconcile) obtainAuthorization(name string, a *storage.Account, targetF
 	stopHookFunc := func(challengeInfo interface{}) error {
 		switch v := challengeInfo.(type) {
 		case *responder.HTTPChallengeInfo:
-			return hooks.ChallengeHTTPStop("", r.store.Path(), name, targetFilename, v.Filename, v.Body)
+			return hooks.ChallengeHTTPStop(ctx, name, targetFilename, v.Filename, v.Body)
 		case *responder.TLSSNIChallengeInfo:
 			hookPEM, err := generateHookPEM(v)
 			if err != nil {
 				return err
 			}
 
-			_, err = hooks.ChallengeTLSSNIStop("", r.store.Path(), name, targetFilename, v.Hostname1, v.Hostname2, hookPEM)
+			_, err = hooks.ChallengeTLSSNIStop(ctx, name, targetFilename, v.Hostname1, v.Hostname2, hookPEM)
 			return err
 		case *responder.DNSChallengeInfo:
-			uninstalled, err := hooks.ChallengeDNSStop("", r.store.Path(), name, targetFilename, v.Body)
+			uninstalled, err := hooks.ChallengeDNSStop(ctx, name, targetFilename, v.Body)
 			if err == nil && !uninstalled {
 				return fmt.Errorf("could not uninstall DNS challenge, no hooks succeeded")
 			}

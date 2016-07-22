@@ -139,6 +139,11 @@ type TargetRequestChallenge struct {
 	// N. Perform HTTP self-test? Defaults to true. Rarely needed. If disabled,
 	// HTTP challenges will be performed without self-testing.
 	HTTPSelfTest *bool `yaml:"http-self-test,omitempty"`
+
+	// N. Environment variables to pass to hooks.
+	Env map[string]string `yaml:"env,omitempty"`
+	// N. Inherited environment variables. Used internally.
+	InheritedEnv map[string]string `yaml:"-"`
 }
 
 // Represents a stored target descriptor.
@@ -202,6 +207,14 @@ func (t *Target) Copy() *Target {
 	// just copy the value. If Target is ever changed to reference any component
 	// of itself via pointer, this must be changed!
 	tt := *t
+	tt.Request.Challenge.InheritedEnv = map[string]string{}
+	for k, v := range t.Request.Challenge.InheritedEnv {
+		tt.Request.Challenge.InheritedEnv[k] = v
+	}
+	for k, v := range t.Request.Challenge.Env {
+		tt.Request.Challenge.InheritedEnv[k] = v
+	}
+	tt.Request.Challenge.Env = nil
 	return &tt
 }
 

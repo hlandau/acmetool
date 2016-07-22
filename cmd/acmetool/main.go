@@ -399,7 +399,11 @@ func determineWebroot() string {
 }
 
 func cmdRunTestNotify() {
-	err := hooks.NotifyLiveUpdated(*hooksFlag, *stateFlag, *testNotifyArg)
+	ctx := &hooks.Context{
+		HooksDir: *hooksFlag,
+		StateDir: *stateFlag,
+	}
+	err := hooks.NotifyLiveUpdated(ctx, *testNotifyArg)
 	log.Errore(err, "notify")
 }
 

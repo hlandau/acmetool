@@ -60,7 +60,11 @@ func TestNotify(t *testing.T) {
 
 		os.Remove(filepath.Join(dir, "log"))
 
-		err = NotifyLiveUpdated(notifyDir, dir, []string{"a.b", "c.d", "e.f.g"})
+		ctx := &Context{
+			HooksDir: notifyDir,
+			StateDir: dir,
+		}
+		err = NotifyLiveUpdated(ctx, []string{"a.b", "c.d", "e.f.g"})
 		if err != nil {
 			t.Fatal(err)
 		}
