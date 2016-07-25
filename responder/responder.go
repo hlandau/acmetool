@@ -73,6 +73,11 @@ type ChallengeConfig struct {
 	// Optional.
 	HTTPPorts []string
 
+	// "http-01": Attempt Webroot authentication, even if we can't
+	// access the challenge file via http(s).
+	// Optional.
+	ForceWebroot bool
+
 	// "proofOfPossession": Function which returns the private key for a given
 	// public key.  This may be called multiple times for a given challenge as
 	// multiple public keys may be permitted. If a private key for the given
