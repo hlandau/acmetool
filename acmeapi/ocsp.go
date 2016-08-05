@@ -11,18 +11,26 @@ import (
 	"net/http"
 )
 
+// This is equivalent to calling CheckOCSPRaw, but the raw response is not
+// returned. Preserved for compatibility; use CheckOCSPRaw instead.
+func (c *Client) CheckOCSP(crt, issuer *x509.Certificate, ctx context.Context) (*ocsp.Response, error) {
+	res, _, err := c.CheckOCSPRaw(crt, issuer, ctx)
+	return res, err
+}
+
 // Checks OCSP for a certificate. The immediate issuer must be specified. If
 // the certificate does not support OCSP, (nil, nil) is returned.  Uses HTTP
 // GET rather than POST. The response is verified. The caller must check the
-// response status.
-func (c *Client) CheckOCSP(crt, issuer *x509.Certificate, ctx context.Context) (*ocsp.Response, error) {
+// response status. The raw OCSP response is also returned, even if parsing
+// failed and err is non-nil.
+func (c *Client) CheckOCSPRaw(crt, issuer *x509.Certificate, ctx context.Context) (parsedResponse *ocsp.Response, rawResponse []byte, err error) {
 	if len(crt.OCSPServer) == 0 {
-		return nil, nil
+		return
 	}
 
 	b, err := ocsp.CreateRequest(crt, issuer, nil)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	b64 := base64.StdEncoding.EncodeToString(b)
@@ -30,31 +38,34 @@ func (c *Client) CheckOCSP(crt, issuer *x509.Certificate, ctx context.Context) (
 
 	req, err := http.NewRequest("GET", path, nil)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	req.Header.Set("Accept", "application/ocsp-response")
 
 	res, err := c.doReqActual(req, ctx)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("OCSP response has status %#v", res.Status)
+		err = fmt.Errorf("OCSP response has status %#v", res.Status)
+		return
 	}
 
 	if res.Header.Get("Content-Type") != "application/ocsp-response" {
-		return nil, fmt.Errorf("response to OCSP request had unexpected content type")
+		err = fmt.Errorf("response to OCSP request had unexpected content type")
+		return
 	}
 
 	// Read response, limiting response to 1MiB.
-	resb, err := ioutil.ReadAll(denet.LimitReader(res.Body, 1*1024*1024))
+	rawResponse, err = ioutil.ReadAll(denet.LimitReader(res.Body, 1*1024*1024))
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return ocsp.ParseResponse(resb, issuer)
+	parsedResponse, err = ocsp.ParseResponse(rawResponse, issuer)
+	return
 }
