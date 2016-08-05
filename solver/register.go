@@ -51,6 +51,7 @@ Do you agree to the terms of service set out in the above document?`, e.URI),
 						}
 					}
 
+					reg.AgreementURI = e.URI
 					agreementURIs[e.URI] = struct{}{}
 					if email != "" {
 						reg.ContactURIs = []string{"mailto:" + email}
