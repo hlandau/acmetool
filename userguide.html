@@ -51,6 +51,7 @@
 <li><a href="#annex-external-resources-and-third-party-extentions">Annex: External resources and third party extentions</a><ul>
 <li><a href="#tutorials">Tutorials</a></li>
 <li><a href="#dns-hook-scripts">DNS hook scripts</a></li>
+<li><a href="#certificate-transparency-hooks">Certificate Transparency hooks</a></li>
 </ul></li>
 </ul></nav>
 <h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
@@ -330,6 +331,8 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <li><a href="https://github.com/md2k/acmetool_multidns_hooks">acmetool_multidns_hooks</a> — advanced third party DNS hooks for CloudFlare and Amazon Route53</li>
 </ul>
 <p>You can <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop">implement your own hook</a>.</p>
+<h3 id="certificate-transparency-hooks">Certificate Transparency hooks</h3>
+<p>acmetool does not currently support retrieving Certificate Transparency Signed Certificate Timestamps (SCT) for the purposes of webserver SCT stapling (<a href="https://github.com/hlandau/acme/issues/3">bug #3</a>). However, it is possible to use third-party utilities to rig this into place. <a href="https://github.com/hlandau/acme/issues/3#issuecomment-234723530">One such user-contributed script can be found here.</a>.</p>
 </div>
 
 </body>

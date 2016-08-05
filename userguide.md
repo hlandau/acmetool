@@ -674,3 +674,12 @@ available:
 - [acmetool_multidns_hooks](https://github.com/md2k/acmetool_multidns_hooks) — advanced third party DNS hooks for CloudFlare and Amazon Route53
 
 You can [implement your own hook](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop).
+
+### Certificate Transparency hooks
+
+acmetool does not currently support retrieving Certificate Transparency Signed
+Certificate Timestamps (SCT) for the purposes of webserver SCT stapling ([bug
+#3](https://github.com/hlandau/acme/issues/3)). However, it is possible to use
+third-party utilities to rig this into place. [One such user-contributed script
+can be found
+here.](https://github.com/hlandau/acme/issues/3#issuecomment-234723530).
