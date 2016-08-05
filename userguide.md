@@ -425,10 +425,15 @@ request:
     http-ports:           # You can specify different ports for proxying.
       - 123
       - 456
+    http-self-test: false # Defaults to true. If false, will not perform self-test
+                          # but will assume challenge can be completed. Rarely needed.
   key:                    # What sort of key will be used for this certificate?
     type: rsa|ecdsa
     rsa-size: 2048
     ecdsa-curve: nistp256
+    id: krzh2akn...       # If specified, the key ID to use to generate new certificates.
+                          # If not specified, a new private key will always be generated.
+                          # Useful for key pinning.
 
 priority: 0
 ```
@@ -666,5 +671,6 @@ available:
 - [dns.hook](https://github.com/hlandau/acme/blob/master/_doc/dns.hook) (official, maintained here) — a hook script using nsupdate (DNS UPDATE)
 - [Cloudflare hook](https://github.com/yinguanhao/acme-dns-hook-cloudflare) (unofficial, Python 3) — third party hook by yinguanhao
 - [OVH DNS hook](https://github.com/hlandau/acme/blob/master/_doc/ovh.hook) — third party hook contributed by asquelt
+- [acmetool_multidns_hooks](https://github.com/md2k/acmetool_multidns_hooks) — advanced third party DNS hooks for CloudFlare and Amazon Route53
 
 You can [implement your own hook](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop).

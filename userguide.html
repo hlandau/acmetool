@@ -76,9 +76,9 @@
 <p><strong>Installing: using binary releases.</strong> <a href="https://github.com/hlandau/acme/releases">Binary releases are found here.</a> Unpack, copy the binary to <code>/usr/local/bin/acmetool</code> (or wherever you like), and you're done.</p>
 <p><code>_cgo</code> releases are preferred over non-<code>_cgo</code> releases where available, but non-<code>_cgo</code> releases may be more compatible with older OSes. (The main drawback of non-<code>_cgo</code> releases is that they exhibit reduced functionality in relation to privilege dropping and daemonization functionality for the redirector daemon.)</p>
 <p><strong>Installing: Ubuntu users.</strong> A binary release PPA, <code>ppa:hlandau/rhea</code> (package <code>acmetool</code>) is available.</p>
-<pre class="sh"><code>$ sudo add-apt-repository ppa:hlandau/rhea
-$ sudo apt-get update
-$ sudo apt-get install acmetool</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">sudo</span> add-apt-repository ppa:hlandau/rhea
+$ <span class="kw">sudo</span> apt-get update
+$ <span class="kw">sudo</span> apt-get install acmetool</code></pre></div>
 <p>You can also <a href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages">download .deb files manually.</a></p>
 <p>(Note: There is no difference between the .deb files for different Ubuntu release codenames; they are interchangeable and completely equivalent.)</p>
 <p><strong>Installing: Debian users.</strong> The Ubuntu binary release PPA also works with Debian:</p>
@@ -94,38 +94,38 @@ $ sudo apt-get install acmetool</code></pre>
 $ <span class="kw">sudo</span> dnf install acmetool</code></pre></div>
 <p>Otherwise use the <code>.repo</code> files on the <a href="https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/">repository page</a> and use <code>yum</code>, or download RPMs and use <code>rpm</code> directly.</p>
 <p><strong>Installing: Arch Linux users.</strong> <a href="https://aur.archlinux.org/packages/acmetool-git/">An AUR PKGBUILD for building from source is available.</a></p>
-<pre class="sh"><code>$ wget https://aur.archlinux.org/cgit/aur.git/snapshot/acmetool-git.tar.gz
-$ tar xvf acmetool-git.tar.gz
-$ cd acmetool-git
-$ makepkg -s
-$ sudo pacman -U ./acmetool*.pkg.tar.xz</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">wget</span> https://aur.archlinux.org/cgit/aur.git/snapshot/acmetool-git.tar.gz
+$ <span class="kw">tar</span> xvf acmetool-git.tar.gz
+$ <span class="kw">cd</span> acmetool-git
+$ <span class="kw">makepkg</span> -s
+$ <span class="kw">sudo</span> pacman -U ./acmetool*.pkg.tar.xz</code></pre></div>
 <p><strong>Installing: Alpine Linux users.</strong> <a href="https://github.com/hlandau/acme/blob/master/_doc/APKBUILD">An APKBUILD for building from source is available.</a></p>
 <p><strong>Installing: from source.</strong> Clone, make, make install. You will need Go 1.5.2 or later installed to build from source.</p>
 <p>If you are using Linux, you will need to make sure the development files for <code>libcap</code> are installed. This is probably a package for your distro called <code>libcap-dev</code> or <code>libcap-devel</code> or similar.</p>
-<pre class="sh"><code>$ git clone https://github.com/hlandau/acme
-$ cd acme
-$ make &amp;&amp; sudo make install</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">git</span> clone https://github.com/hlandau/acme
+$ <span class="kw">cd</span> acme
+$ <span class="kw">make</span> <span class="kw">&amp;&amp;</span> <span class="kw">sudo</span> make install</code></pre></div>
 <p><strong>Installing: from source (existing GOPATH).</strong> The Makefile is intended to make things easy for users unfamiliar with Go packaging conventions. If you know what a GOPATH is and have one set up, you can and should instead simply do:</p>
-<pre class="sh"><code>$ go get -u github.com/hlandau/acme/cmd/acmetool
-$ sudo cp $GOPATH/bin/acmetool /usr/local/bin/acmetool</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">go</span> get -u github.com/hlandau/acme/cmd/acmetool
+$ <span class="kw">sudo</span> cp <span class="ot">$GOPATH</span>/bin/acmetool /usr/local/bin/acmetool</code></pre></div>
 <p>(Note: Although use of cgo is recommended, building without cgo is supported.)</p>
 <h2 id="after-installation">After installation</h2>
 <p><strong>Initial configuration.</strong> Having installed acmetool, run the quickstart wizard for a guided setup. You may wish to ensure you have <code>dialog</code> in your PATH, but acmetool will fallback to basic stdio prompts if it's not available.</p>
-<pre class="sh"><code>$ sudo acmetool quickstart</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">sudo</span> acmetool quickstart</code></pre></div>
 <p>If you don't want to run acmetool as root, see the <a href="#annex-root-configured-non-root-operation">non-root setup guide</a>.</p>
 <p>Pass <code>--expert</code> to quickstart if you want to choose what key parameters to use (RSA or ECDSA, RSA key size, ECDSA curve). By default 2048-bit RSA is used.</p>
 <p>If you want to automate the quickstart process, see the section on response files below.</p>
 <p>It is safe to rerun quickstart at any time.</p>
 <p><strong>Configuring your web server.</strong> Once you've completed the quickstart, you should configure your web server as necessary to enable validation. See the <em>Web server configuration</em> section below.</p>
 <p><strong>Obtaining certificates.</strong> Once everything's ready, simply run:</p>
-<pre class="sh"><code>$ sudo acmetool want example.com www.example.com</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">sudo</span> acmetool want example.com www.example.com</code></pre></div>
 <p>This adds a target desiring a certificate for hostnames <code>example.com</code> and <code>www.example.com</code>. You can specify as many hostnames (SANs) as you like. Whenever you run acmetool in the future, it'll make sure that a certificate for these hostnames is available and not soon to expire.</p>
 <p>acmetool lumps hostnames together in the same certificate. If you want <code>example.com</code> and <code>www.example.com</code> to be separate certificates, use separate <code>want</code> commands to configure them as separate targets:</p>
-<pre class="sh"><code>$ sudo acmetool want example.com
-$ sudo acmetool want www.example.com</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">sudo</span> acmetool want example.com
+$ <span class="kw">sudo</span> acmetool want www.example.com</code></pre></div>
 <p>If all went well, your certificate should be available at <code>/var/lib/acme/live/example.com</code>. This is a directory containing PEM files <code>cert</code>, <code>chain</code>, <code>fullchain</code> and <code>privkey</code>. The use of these files varies by application; typically you will use only a subset of these files.</p>
 <p><strong>Troubleshooting.</strong> If all didn't go well, you might find it helpful to run with debug logging:</p>
-<pre class="sh"><code>$ sudo acmetool --xlog.severity=debug</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">sudo</span> acmetool --xlog.severity=debug</code></pre></div>
 <p>(There's no need to run “want” again; the targets are recorded even if reconciliation is not successful.)</p>
 <p><strong>Auto-renewal.</strong> acmetool offers to install a cronjob during the quickstart process. This simply runs <code>acmetool --batch</code>, which will idempotently ensure that all configured targets are satisfied by certificates not soon to expire. (<code>--batch</code> here ensures that acmetool doesn't try to ask any questions.)</p>
 <p><strong>Auto-renewal: reloading your webserver.</strong> When acmetool refreshes a certificate, it changes the symlink in <code>live</code> and executes hook scripts to reload your web server or do whatever you want. Specifically, it executes any executable files in <code>/usr/lib/acme/hooks</code> (or <code>/usr/libexec/acme/hooks</code> if on a distro that uses libexec). You can drop your own executable files here, and acmetool will invoke them when it changes certificates. (For information on the calling convention, see <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#notification-hooks">SCHEMA.md</a>.)</p>
@@ -135,9 +135,9 @@ $ sudo acmetool want www.example.com</code></pre>
 <p>A default list of services is provided which includes the most common webserver service names. This list can be customised using the <code>reload</code> hook configuration file.</p>
 <p>The <code>reload</code> hook configuration file is located at <code>/etc/conf.d/acme-reload</code> or <code>/etc/default/acme-reload</code>; the correct path depends on the conventions of your distro. It is a sourced shell file which can modify the default configuration variables of the <code>reload</code> script. Currently, the only variable is the <code>SERVICES</code> variable, a space-separated list of service names.</p>
 <p>You can overwrite the services list outright, or append to it like so:</p>
-<pre class="sh"><code># Example reload hook configuration file adding a service to the list of
-# services to be restarted.
-SERVICES=&quot;$SERVICES cherokee&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="co"># Example reload hook configuration file adding a service to the list of</span>
+<span class="co"># services to be restarted.</span>
+<span class="ot">SERVICES=</span><span class="st">&quot;</span><span class="ot">$SERVICES</span><span class="st"> cherokee&quot;</span></code></pre></div>
 <p><strong>Default hook scripts: the <code>haproxy</code> hook.</strong> The haproxy hook is a default hook which <code>acmetool quickstart</code> can optionally install. It only offers to install this hook if HAProxy is detected as being installed on the system.</p>
 <p>HAProxy is rather bizarre in its TLS configuration requirements; it requires certificates and private key to be appended together in the same file. <code>acmetool</code> does not support this natively and is unlikely ever to as a default configuration for security reasons. Instead, the <code>haproxy</code> hook creates the necessary files for HAProxy from the certificate and private key files whenever they are updated. Thus, additional copies of the private key are only made when necessary to support HAProxy.</p>
 <p><strong>Inside the state directory.</strong> acmetool aims to minimise the use of state and be transparent about the state it does keep. When you run <code>acmetool want</code>, acmetool does these things:</p>
@@ -146,8 +146,8 @@ SERVICES=&quot;$SERVICES cherokee&quot;</code></pre>
 <li><p>It runs the default command, <code>reconcile</code>, to ensure that all targets are met.</p></li>
 </ul>
 <p>To demonstrate, you can replicate the function of <code>acmetool want</code>:</p>
-<pre class="sh"><code>$ sudo touch /var/lib/acme/desired/example.com
-$ sudo acmetool</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="kw">sudo</span> touch /var/lib/acme/desired/example.com
+$ <span class="kw">sudo</span> acmetool</code></pre></div>
 <p>Target files live in the <code>desired</code> directory. An empty target file defaults to its filename as the target hostname.</p>
 <p><a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md">More information on the format of the acmetool state directory and target files.</a></p>
 <h2 id="web-server-configuration-challenges">Web server configuration: challenges</h2>
@@ -238,10 +238,15 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
     <span class="fu">http-ports:</span>           <span class="co"># You can specify different ports for proxying.</span>
       <span class="kw">-</span> 123
       <span class="kw">-</span> 456
+    <span class="fu">http-self-test:</span> false <span class="co"># Defaults to true. If false, will not perform self-test</span>
+                          <span class="co"># but will assume challenge can be completed. Rarely needed.</span>
   <span class="fu">key:</span>                    <span class="co"># What sort of key will be used for this certificate?</span>
     <span class="fu">type:</span> rsa|ecdsa
     <span class="fu">rsa-size:</span> 2048
     <span class="fu">ecdsa-curve:</span> nistp256
+    <span class="fu">id:</span> krzh2akn...       <span class="co"># If specified, the key ID to use to generate new certificates.</span>
+                          <span class="co"># If not specified, a new private key will always be generated.</span>
+                          <span class="co"># Useful for key pinning.</span>
 
 <span class="fu">priority:</span> 0</code></pre></div>
 <p><strong>HAProxy support:</strong> If you have chosen to install the HAProxy hook script, each certificate directory will also have a coalesced <code>haproxy</code> file containing certificate chain and private key. There will also be a <code>haproxy</code> directory mapping from hostnames directly to these files.</p>
@@ -290,10 +295,10 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <pre><code>$ sudo -u acme acmetool quickstart</code></pre>
 <p>A crontab will be installed automatically as the <code>acme</code> user; you may wish to examine it.</p></li>
 <li><p>As root, make the <code>hooks</code> directory root-owned/not group writable once more. Ensure that the scripts are root-owned:</p>
-<pre class="sh"><code># chown -R root:root /usr/lib*/acme/hooks
-# chmod 755 /usr/lib*/acme/hooks</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="co"># chown -R root:root /usr/lib*/acme/hooks</span>
+<span class="co"># chmod 755 /usr/lib*/acme/hooks</span></code></pre></div>
 <p>Inspect the hook scripts if you wish. Mark the hook scripts setuid:</p>
-<pre class="sh"><code># chmod u+s /usr/lib*/acme/hooks/*</code></pre>
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="co"># chmod u+s /usr/lib*/acme/hooks/*</span></code></pre></div>
 <p>UNIX systems don't support setuid shell scripts, so this bit is ignored. Rather, acmetool takes it as a flag to tell it to run these scripts via <code>sudo</code>. This is necessary so that web servers, etc. can be reloaded.</p>
 <p>The conditions for running using <code>sudo</code> are that the files have the setuid bit set, that they be owned by root, that they be scripts and not binaries, and that acmetool is not being run as root.</p></li>
 <li><p>Setup sudo. You will need to edit the sudoers file so that the hook scripts (which you have inspected and trust) can be executed by acmetool. It is essential that these have the <code>NOPASSWD</code> flag as the scripts must be executable noninteractively.</p>
@@ -322,6 +327,7 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <li><a href="https://github.com/hlandau/acme/blob/master/_doc/dns.hook">dns.hook</a> (official, maintained here) — a hook script using nsupdate (DNS UPDATE)</li>
 <li><a href="https://github.com/yinguanhao/acme-dns-hook-cloudflare">Cloudflare hook</a> (unofficial, Python 3) — third party hook by yinguanhao</li>
 <li><a href="https://github.com/hlandau/acme/blob/master/_doc/ovh.hook">OVH DNS hook</a> — third party hook contributed by asquelt</li>
+<li><a href="https://github.com/md2k/acmetool_multidns_hooks">acmetool_multidns_hooks</a> — advanced third party DNS hooks for CloudFlare and Amazon Route53</li>
 </ul>
 <p>You can <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop">implement your own hook</a>.</p>
 </div>
