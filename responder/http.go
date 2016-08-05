@@ -90,12 +90,14 @@ func (s *httpResponder) Start() error {
 		return err
 	}
 
-	log.Debug("http-01 self test")
-	err = s.selfTest()
-	if err != nil {
-		log.Infoe(err, "http-01 self test failed")
-		s.Stop()
-		return err
+	if !s.rcfg.ChallengeConfig.HTTPNoSelfTest {
+		log.Debug("http-01 self test")
+		err = s.selfTest()
+		if err != nil {
+			log.Infoe(err, "http-01 self test failed")
+			s.Stop()
+			return err
+		}
 	}
 
 	log.Debug("http-01 started")

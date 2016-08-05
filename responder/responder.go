@@ -73,6 +73,9 @@ type ChallengeConfig struct {
 	// Optional.
 	HTTPPorts []string
 
+	// Do not perform self test, but assume challenge is completable.
+	HTTPNoSelfTest bool
+
 	// "proofOfPossession": Function which returns the private key for a given
 	// public key.  This may be called multiple times for a given challenge as
 	// multiple public keys may be permitted. If a private key for the given

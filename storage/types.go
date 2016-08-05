@@ -135,6 +135,10 @@ type TargetRequestChallenge struct {
 
 	// N. Ports to listen on when completing challenges.
 	HTTPPorts []string `yaml:"http-ports,omitempty"`
+
+	// N. Perform HTTP self-test? Defaults to true. Rarely needed. If disabled,
+	// HTTP challenges will be performed without self-testing.
+	HTTPSelfTest *bool `yaml:"http-self-test,omitempty"`
 }
 
 // Represents a stored target descriptor.
