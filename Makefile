@@ -10,7 +10,7 @@ BINARIES=$(PROJNAME)/cmd/acmetool
 # of the "go" command who have a GOPATH setup can use go get/go install.
 
 # XXX: prebuild-checks needs bash, fix this at some point
-SHELL := /bin/bash
+SHELL := $(shell which bash)
 
 -include Makefile.extra
 -include Makefile.assets
