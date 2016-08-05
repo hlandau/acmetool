@@ -723,7 +723,7 @@ func (r *reconcile) createCSR(t *storage.Target) ([]byte, error) {
 	}
 
 	if t.Request.OCSPMustStaple {
-		csr.Extensions = append(csr.Extensions, pkix.Extension{
+		csr.ExtraExtensions = append(csr.ExtraExtensions, pkix.Extension{
 			Id:    oidTLSFeature,
 			Value: mustStapleFeatureValue,
 		})
