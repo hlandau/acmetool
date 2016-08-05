@@ -47,7 +47,7 @@ get_apex() {
 waitns() {
   local ns="$1"
   for ctr in $(seq 1 "$DNS_SYNC_TIMEOUT"); do
-    [ "$(dig +short "@${ns}" TXT "_acme-challenge.${CH_HOSTNAME}." | grep "$CH_TXT_VALUE" | wc -l)" == "1" ] && return 0
+    [ "$(dig +short "@${ns}" TXT "_acme-challenge.${CH_HOSTNAME}." | grep -- "$CH_TXT_VALUE" | wc -l)" == "1" ] && return 0
     sleep 1
   done
 
