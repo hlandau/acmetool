@@ -111,6 +111,12 @@ Otherwise use the `.repo` files on the [repository
 page](https://copr.fedorainfracloud.org/coprs/hlandau/acmetool/) and use `yum`,
 or download RPMs and use `rpm` directly.
 
+**Void Linux users:** `acmetool` is in the repositories:
+
+```bash
+$ sudo xbps-install acmetool
+```
+
 **Arch Linux users:** [An AUR PKGBUILD for building from source is available.](https://aur.archlinux.org/packages/acmetool-git/)
 
 ```bash
