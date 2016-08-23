@@ -56,7 +56,7 @@ certificates are available to meet those names. Certificates which will expire
 soon are renewed. acmetool is thus idempotent and minimises the use of state.
 
 acmetool can optionally be used [without running it as
-root.](https://github.com/hlandau/acme/blob/master/_doc/NOROOT.md) If you have
+root.](https://hlandau.github.io/acme/userguide#annex-root-configured-non-root-operation) If you have
 existing certificates issued using the official client, acmetool can import
 those certificates, keys and account keys (`acmetool import-le`).
 
