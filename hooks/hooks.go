@@ -80,7 +80,7 @@ func ChallengeTLSSNIStart(hookDirectory, stateDirectory, hostname, targetFileNam
 
 func ChallengeTLSSNIStop(hookDirectory, stateDirectory, hostname, targetFileName, validationName1, validationName2 string, pem string) (installed bool, err error) {
 	return runParts(hookDirectory, stateDirectory, []byte(pem),
-		"challenge-tls-sni-start", hostname, targetFileName, validationName1, validationName2)
+		"challenge-tls-sni-stop", hostname, targetFileName, validationName1, validationName2)
 }
 
 func ChallengeDNSStart(hookDirectory, stateDirectory, hostname, targetFileName, body string) (installed bool, err error) {
