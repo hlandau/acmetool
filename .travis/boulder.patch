@@ -31,18 +31,22 @@ index c237d7f..1336bb5 100644
 \ No newline at end of file
 +}
 diff --git a/test/config/ca.json b/test/config/ca.json
-index f35d961..18601f0 100644
+index a4d71c8..9057f6f 100644
 --- a/test/config/ca.json
 +++ b/test/config/ca.json
-@@ -5,7 +5,7 @@
+@@ -5,10 +5,10 @@
      "ecdsaProfile": "ecdsaEE",
      "debugAddr": "localhost:8001",
-     "Key": {
--      "ConfigFile": "test/test-ca.key-pkcs11.json"
-+      "file": "test/test-ca.key"
-     },
+     "Issuers": [{
+-      "ConfigFile": "test/test-ca.key-pkcs11.json",
++      "File": "test/test-ca.key",
+       "CertFile": "test/test-ca2.pem"
+     }, {
+-      "ConfigFile": "test/test-ca.key-pkcs11.json",
++      "File": "test/test-ca.key",
+       "CertFile": "test/test-ca.pem"
+     }],
      "expiry": "2160h",
-     "lifespanOCSP": "96h",
 diff --git a/test/config/va.json b/test/config/va.json
 index 75ff959..371edf3 100644
 --- a/test/config/va.json
