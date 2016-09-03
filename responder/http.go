@@ -3,6 +3,7 @@ package responder
 import (
 	"bytes"
 	"crypto"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/acme/acmeapi/acmeutils"
@@ -104,6 +105,10 @@ func (s *httpResponder) Start() error {
 	return nil
 }
 
+// This is currently the validation timeout used by Let's Encrypt, so let's
+// use the same value here.
+var selfTestTimeout = 5 * time.Second
+
 // Test that the challenge is reachable at the given hostname. If a hostname
 // was not provided, this test is skipped.
 func (s *httpResponder) selfTest() error {
@@ -117,7 +122,17 @@ func (s *httpResponder) selfTest() error {
 		Path:   "/.well-known/acme-challenge/" + s.rcfg.Token,
 	}
 
-	res, err := http.Get(u.String())
+	trans := &http.Transport{
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
+	}
+
+	client := &http.Client{
+		Transport: trans,
+		Timeout:   selfTestTimeout,
+	}
+
+	res, err := client.Get(u.String())
 	if err != nil {
 		return err
 	}
