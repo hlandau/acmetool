@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base32"
 	"fmt"
-	"golang.org/x/net/idna"
+	"github.com/hlandau/acme/acmeapi/acmeutils"
 	"io"
 	"math/big"
 	"net/url"
@@ -228,12 +228,6 @@ func IsWellFormattedCertificateOrKeyID(certificateID string) bool {
 	return re_certID.MatchString(certificateID)
 }
 
-var re_hostname = regexp.MustCompilePOSIX(`^([a-z0-9_-]+\.)*[a-z0-9_-]+$`)
-
-func validHostname(name string) bool {
-	return re_hostname.MatchString(name)
-}
-
 func targetGt(a *Target, b *Target) bool {
 	if a == nil && b == nil {
 		return false // equal
@@ -263,15 +257,9 @@ func containsName(names []string, name string) bool {
 
 func normalizeNames(names []string) error {
 	for i := range names {
-		n := strings.TrimSuffix(strings.ToLower(names[i]), ".")
-
-		n, err := idna.ToASCII(n)
+		n, err := acmeutils.NormalizeHostname(names[i])
 		if err != nil {
-			return fmt.Errorf("IDN error: %v", err)
-		}
-
-		if !validHostname(n) {
-			return fmt.Errorf("invalid hostname: %q", n)
+			return err
 		}
 
 		names[i] = n

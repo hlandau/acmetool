@@ -305,6 +305,20 @@ func cmdAccountThumbprint() {
 }
 
 func cmdWant() {
+	hostnames := *wantArg
+
+	// Ensure all hostnames provided are valid.
+	for idx := range hostnames {
+		norm, err := acmeutils.NormalizeHostname(hostnames[idx])
+		if err != nil {
+			log.Fatalf("invalid hostname: %#v: %v", hostnames[idx], err)
+			return
+		}
+		hostnames[idx] = norm
+	}
+
+	// Determine whether there already exists a target satisfying all given
+	// hostnames or a superset thereof.
 	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
@@ -315,7 +329,7 @@ func cmdWant() {
 			nm[n] = struct{}{}
 		}
 
-		for _, w := range *wantArg {
+		for _, w := range hostnames {
 			if _, ok := nm[w]; !ok {
 				return nil
 			}
@@ -329,9 +343,10 @@ func cmdWant() {
 		return
 	}
 
+	// Add the target.
 	tgt := storage.Target{
 		Satisfy: storage.TargetSatisfy{
-			Names: *wantArg,
+			Names: hostnames,
 		},
 	}
 
