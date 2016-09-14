@@ -48,11 +48,7 @@
 <li><a href="#annex-root-configured-non-root-operation">Annex: Root-configured non-root operation</a><ul>
 <li><a href="#rootless-setup-as-root">Rootless setup as root</a></li>
 </ul></li>
-<li><a href="#annex-external-resources-and-third-party-extentions">Annex: External resources and third party extentions</a><ul>
-<li><a href="#tutorials">Tutorials</a></li>
-<li><a href="#dns-hook-scripts">DNS hook scripts</a></li>
-<li><a href="#certificate-transparency-hooks">Certificate Transparency hooks</a></li>
-</ul></li>
+<li><a href="#annex-external-resources-and-third-party-extentions">Annex: External resources and third party extentions</a></li>
 </ul></nav>
 <h2 id="introduction-design-philosophy">Introduction &amp; Design Philosophy</h2>
 <p>acmetool is an easy-to-use command line tool for automatically acquiring TLS certificates from ACME servers such as Let's Encrypt, designed to flexibly integrate into your webserver setup to enable automatic verification.</p>
@@ -317,22 +313,10 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
 <p><strong>Hook:</strong> See <a href="#challenge-hooks">Challenge Hooks</a>.</p></li>
 </ul>
 <h2 id="annex-external-resources-and-third-party-extentions">Annex: External resources and third party extentions</h2>
-<p>This is a list of things people have made for working with acmetool. PRs to amend this list are welcome.</p>
-<h3 id="tutorials">Tutorials</h3>
+<p>The list of various tutorials, hook scripts and other integrations people have made for acmetool is now maintained <a href="https://github.com/hlandau/acme/wiki/ThirdPartyResources">in the wiki</a>.</p>
 <ul>
-<li><a href="https://tehscorpion.github.io/2016/04/06/using-acmetool-to-secure-gitlab/">Using acmetool to secure GitLab</a></li>
+<li><strong><a href="https://github.com/hlandau/acme/wiki/ThirdPartyResources">List of third party resources</a></strong></li>
 </ul>
-<h3 id="dns-hook-scripts">DNS hook scripts</h3>
-<p>Use of DNS challenges requires that you provision a hook script which can install and remove DNS challenge values. The following hook scripts are available:</p>
-<ul>
-<li><a href="https://github.com/hlandau/acme/blob/master/_doc/dns.hook">dns.hook</a> (official, maintained here) — a hook script using nsupdate (DNS UPDATE)</li>
-<li><a href="https://github.com/yinguanhao/acme-dns-hook-cloudflare">Cloudflare hook</a> (unofficial, Python 3) — third party hook by yinguanhao</li>
-<li><a href="https://github.com/hlandau/acme/blob/master/_doc/ovh.hook">OVH DNS hook</a> — third party hook contributed by asquelt</li>
-<li><a href="https://github.com/md2k/acmetool_multidns_hooks">acmetool_multidns_hooks</a> — advanced third party DNS hooks for CloudFlare and Amazon Route53</li>
-</ul>
-<p>You can <a href="https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop">implement your own hook</a>.</p>
-<h3 id="certificate-transparency-hooks">Certificate Transparency hooks</h3>
-<p>acmetool does not currently support retrieving Certificate Transparency Signed Certificate Timestamps (SCT) for the purposes of webserver SCT stapling (<a href="https://github.com/hlandau/acme/issues/3">bug #3</a>). However, it is possible to use third-party utilities to rig this into place. <a href="https://github.com/hlandau/acme/issues/3#issuecomment-234723530">One such user-contributed script can be found here.</a>.</p>
 </div>
 
 </body>

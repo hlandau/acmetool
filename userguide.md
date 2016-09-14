@@ -655,31 +655,9 @@ wherever you want it), before running acmetool, do the following:
 
 ## Annex: External resources and third party extentions
 
-This is a list of things people have made for working with acmetool. PRs to
-amend this list are welcome.
+The list of various tutorials, hook scripts and other integrations people have
+made for acmetool is now maintained [in the
+wiki](https://github.com/hlandau/acme/wiki/ThirdPartyResources).
 
-### Tutorials
+  * **[List of third party resources](https://github.com/hlandau/acme/wiki/ThirdPartyResources)**
 
-- [Using acmetool to secure GitLab](https://tehscorpion.github.io/2016/04/06/using-acmetool-to-secure-gitlab/)
-
-### DNS hook scripts
-
-Use of DNS challenges requires that you provision a hook script which can
-install and remove DNS challenge values. The following hook scripts are
-available:
-
-- [dns.hook](https://github.com/hlandau/acme/blob/master/_doc/dns.hook) (official, maintained here) — a hook script using nsupdate (DNS UPDATE)
-- [Cloudflare hook](https://github.com/yinguanhao/acme-dns-hook-cloudflare) (unofficial, Python 3) — third party hook by yinguanhao
-- [OVH DNS hook](https://github.com/hlandau/acme/blob/master/_doc/ovh.hook) — third party hook contributed by asquelt
-- [acmetool_multidns_hooks](https://github.com/md2k/acmetool_multidns_hooks) — advanced third party DNS hooks for CloudFlare and Amazon Route53
-
-You can [implement your own hook](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md#challenge-dns-start-challenge-dns-stop).
-
-### Certificate Transparency hooks
-
-acmetool does not currently support retrieving Certificate Transparency Signed
-Certificate Timestamps (SCT) for the purposes of webserver SCT stapling ([bug
-#3](https://github.com/hlandau/acme/issues/3)). However, it is possible to use
-third-party utilities to rig this into place. [One such user-contributed script
-can be found
-here.](https://github.com/hlandau/acme/issues/3#issuecomment-234723530).
