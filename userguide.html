@@ -237,6 +237,8 @@ ProxyPass<span class="st"> &quot;/.well-known/acme-challenge&quot; &quot;http://
       <span class="kw">-</span> 456
     <span class="fu">http-self-test:</span> false <span class="co"># Defaults to true. If false, will not perform self-test</span>
                           <span class="co"># but will assume challenge can be completed. Rarely needed.</span>
+    <span class="fu">env:</span>                  <span class="co"># Optionally set environment variables to be passed to hooks.</span>
+      <span class="fu">FOO:</span> BAR
   <span class="fu">key:</span>                    <span class="co"># What sort of key will be used for this certificate?</span>
     <span class="fu">type:</span> rsa|ecdsa
     <span class="fu">rsa-size:</span> 2048

@@ -427,6 +427,8 @@ request:
       - 456
     http-self-test: false # Defaults to true. If false, will not perform self-test
                           # but will assume challenge can be completed. Rarely needed.
+    env:                  # Optionally set environment variables to be passed to hooks.
+      FOO: BAR
   key:                    # What sort of key will be used for this certificate?
     type: rsa|ecdsa
     rsa-size: 2048
