@@ -36,7 +36,8 @@ get_apex() {
     echo "$0: couldn't get apex for $name" >&2
     return 1
   fi
-  if [ "`dig +noall +answer SOA "${name}." |grep SOA|wc -l`" == "1" ]; then
+  local ans="`dig +noall +answer SOA "${name}."`"
+  if [ "`echo "$ans" | grep SOA | wc -l`" == "1" -a "`echo "$ans" | grep CNAME | wc -l`" == "0" ]; then
     APEX="$name"
     return
   fi
@@ -61,7 +62,7 @@ waitns() {
 updns() {
   local op="$1"
   (
-    declare -f nsupdate_cmds >/dev/null && nsupdate_cmds
+    declare -f nsupdate_cmds >/dev/null && nsupdate_cmds "$APEX"
     [ -n "$TKIP_KEY" ] && echo key "$TKIP_KEY_NAME" "$TKIP_KEY"
     echo $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
     echo send
