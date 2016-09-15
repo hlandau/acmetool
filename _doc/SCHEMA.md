@@ -271,6 +271,14 @@ specification and documentation. acmetool supports the following extensions:
           - 402
           - 4402
 
+        # Defaults to true. If false, will not perform self-test but will assume
+        # challenge can be completed. Rarely needed.
+        http-self-test: true
+
+        # Optionally set environment variables to be passed to hooks.
+        env:
+          FOO: BAR
+
 ### accounts
 
 An ACME State Directory MUST contain a subdirectory "accounts" which contains
