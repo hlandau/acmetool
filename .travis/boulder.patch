@@ -23,13 +23,6 @@ index c237d7f..1336bb5 100644
        "httpsPort": 5001,
        "tlsPort": 5001
      },
-@@ -56,4 +56,4 @@
-     "dnsTimeout": "10s",
-     "dnsAllowLoopbackAddresses": true
-   }
--}
-\ No newline at end of file
-+}
 diff --git a/test/config/ca.json b/test/config/ca.json
 index a4d71c8..9057f6f 100644
 --- a/test/config/ca.json
@@ -60,13 +53,6 @@ index 75ff959..371edf3 100644
        "httpsPort": 5001,
        "tlsPort": 5001
      },
-@@ -37,4 +37,4 @@
-     "dnsTimeout": "10s",
-     "dnsAllowLoopbackAddresses": true
-   }
--}
-\ No newline at end of file
-+}
 diff --git a/test/hostname-policy.json b/test/hostname-policy.json
 index 6397ee9..15ad50c 100644
 --- a/test/hostname-policy.json
