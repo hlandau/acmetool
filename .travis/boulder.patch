@@ -11,7 +11,7 @@ index 347883e..448295f 100755
  
      # If we reach here, a child died early. Log what died:
 diff --git a/test/config-next/va.json b/test/config-next/va.json
-index c237d7f..1336bb5 100644
+index 374ff68..4e701da 100644
 --- a/test/config-next/va.json
 +++ b/test/config-next/va.json
 @@ -4,7 +4,7 @@
@@ -23,15 +23,8 @@ index c237d7f..1336bb5 100644
        "httpsPort": 5001,
        "tlsPort": 5001
      },
-@@ -56,4 +56,4 @@
-     "dnsTimeout": "10s",
-     "dnsAllowLoopbackAddresses": true
-   }
--}
-\ No newline at end of file
-+}
 diff --git a/test/config/ca.json b/test/config/ca.json
-index a4d71c8..9057f6f 100644
+index f0155fe..ddc1ffe 100644
 --- a/test/config/ca.json
 +++ b/test/config/ca.json
 @@ -5,10 +5,10 @@
@@ -47,11 +40,24 @@ index a4d71c8..9057f6f 100644
        "CertFile": "test/test-ca.pem"
      }],
      "expiry": "2160h",
+diff --git a/test/config/ra.json b/test/config/ra.json
+index a5cbe39..95e03b3 100644
+--- a/test/config/ra.json
++++ b/test/config/ra.json
+@@ -21,7 +21,7 @@
+       },
+       "SA": {
+         "server": "SA.server",
+-        "rpcTimeout": "15s"
++        "rpcTimeout": "60s"
+       },
+       "CA": {
+         "server": "CA.server",
 diff --git a/test/config/va.json b/test/config/va.json
-index 75ff959..371edf3 100644
+index 8d0fcef..4da51fc 100644
 --- a/test/config/va.json
 +++ b/test/config/va.json
-@@ -3,7 +3,7 @@
+@@ -4,7 +4,7 @@
      "userAgent": "boulder",
      "debugAddr": "localhost:8004",
      "portConfig": {
@@ -60,13 +66,6 @@ index 75ff959..371edf3 100644
        "httpsPort": 5001,
        "tlsPort": 5001
      },
-@@ -37,4 +37,4 @@
-     "dnsTimeout": "10s",
-     "dnsAllowLoopbackAddresses": true
-   }
--}
-\ No newline at end of file
-+}
 diff --git a/test/hostname-policy.json b/test/hostname-policy.json
 index 6397ee9..15ad50c 100644
 --- a/test/hostname-policy.json

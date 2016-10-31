@@ -90,7 +90,7 @@ for srpm in $HOME/rpmbuild/SRPMS/acmetool-*.rpm; do
     cat <<END > /tmp/rpm-metadata
 {
   "project_id": $COPR_PROJECT_ID,
-  "chroots": ["fedora-23-i386", "fedora-23-x86_64", "epel-7-x86_64", "fedora-24-i386", "fedora-24-x86_64"]
+  "chroots": ["fedora-23-i386", "fedora-23-x86_64", "epel-7-x86_64", "fedora-24-i386", "fedora-24-x86_64", "fedora-25-i386", "fedora-25-x86_64"]
 }
 END
   else

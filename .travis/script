@@ -33,7 +33,7 @@ echo travis_fold:end:setup-boulder
 
 # Start boulder.
 export OBJDIR="$GOPATH/src/github.com/letsencrypt/boulder/bin"
-./start.py &> boulder.log &
+{ ./start.py &> boulder.log || cat boulder.log ; } &
 START_PID=$$
 
 # Wait for boulder to come up.
