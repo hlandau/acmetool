@@ -92,9 +92,10 @@ type Client struct {
 	// Uses http.DefaultClient if nil.
 	HTTPClient *http.Client
 
-	dir         *directoryInfo
-	nonceSource nonceSource
-	initOnce    sync.Once
+	dir            *directoryInfo
+	nonceSource    nonceSource
+	nonceReentrant int
+	initOnce       sync.Once
 }
 
 // You should set this to a string identifying the code invoking this library.
@@ -126,6 +127,17 @@ func algorithmFromKey(key crypto.PrivateKey) (jose.SignatureAlgorithm, error) {
 	}
 }
 
+func (c *Client) obtainNewNonce(ctx context.Context) error {
+	if c.nonceReentrant > 0 {
+		panic("nonce reentrancy - this should never happen")
+	}
+	c.nonceReentrant++
+	defer func() { c.nonceReentrant-- }()
+
+	_, err := c.forceGetDirectory(ctx)
+	return err
+}
+
 func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interface{}, ctx context.Context) (*http.Response, error) {
 	if !ValidURL(url) {
 		return nil, fmt.Errorf("invalid URL: %#v", url)
@@ -134,6 +146,8 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 	if key == nil {
 		key = c.AccountKey
 	}
+
+	c.nonceSource.GetNonceFunc = c.obtainNewNonce
 
 	var rdr io.Reader
 	if v != nil {
@@ -156,7 +170,7 @@ func (c *Client) doReqEx(method, url string, key crypto.PrivateKey, v, r interfa
 			return nil, err
 		}
 
-		signer.SetNonceSource(&c.nonceSource)
+		signer.SetNonceSource(c.nonceSource.WithContext(ctx))
 
 		sig, err := signer.Sign(b)
 		if err != nil {
@@ -217,11 +231,7 @@ func (c *Client) doReqActual(req *http.Request, ctx context.Context) (*http.Resp
 	return ctxhttp.Do(ctx, c.HTTPClient, req)
 }
 
-func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
-	if c.dir != nil {
-		return c.dir, nil
-	}
-
+func (c *Client) forceGetDirectory(ctx context.Context) (*directoryInfo, error) {
 	if c.DirectoryURL == "" {
 		return nil, fmt.Errorf("must specify a directory URL")
 	}
@@ -237,6 +247,14 @@ func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
 	}
 
 	return c.dir, nil
+}
+
+func (c *Client) getDirectory(ctx context.Context) (*directoryInfo, error) {
+	if c.dir != nil {
+		return c.dir, nil
+	}
+
+	return c.forceGetDirectory(ctx)
 }
 
 // API Methods

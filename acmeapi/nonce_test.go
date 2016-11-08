@@ -1,11 +1,15 @@
 package acmeapi
 
-import "testing"
+import (
+	"golang.org/x/net/context"
+	"testing"
+)
 
 func TestNonce(t *testing.T) {
 	ns := nonceSource{}
 	ns.AddNonce("my-nonce")
-	n, err := ns.Nonce()
+	nsc := ns.WithContext(context.TODO())
+	n, err := nsc.Nonce()
 	if err != nil {
 		t.Fatal()
 	}
@@ -13,16 +17,17 @@ func TestNonce(t *testing.T) {
 		t.Fatal()
 	}
 
-	n, err = ns.Nonce()
+	n, err = nsc.Nonce()
 	if err == nil {
 		t.Fatal()
 	}
 
-	ns.GetNonceFunc = func() (string, error) {
-		return "nonce2", nil
+	ns.GetNonceFunc = func(ctx context.Context) error {
+		ns.AddNonce("nonce2")
+		return nil
 	}
 
-	n, err = ns.Nonce()
+	n, err = nsc.Nonce()
 	if err != nil {
 		t.Fatal()
 	}

@@ -1,10 +1,13 @@
 package acmeapi
 
-import "errors"
+import (
+	"errors"
+	"golang.org/x/net/context"
+)
 
 type nonceSource struct {
 	pool         map[string]struct{}
-	GetNonceFunc func() (string, error)
+	GetNonceFunc func(ctx context.Context) error
 }
 
 func (ns *nonceSource) init() {
@@ -15,7 +18,7 @@ func (ns *nonceSource) init() {
 	ns.pool = map[string]struct{}{}
 }
 
-func (ns *nonceSource) Nonce() (string, error) {
+func (ns *nonceSource) Nonce(ctx context.Context) (string, error) {
 	ns.init()
 
 	var k string
@@ -23,22 +26,44 @@ func (ns *nonceSource) Nonce() (string, error) {
 		break
 	}
 	if k == "" {
-		return ns.obtainNonce()
+		err := ns.obtainNonce(ctx)
+		if err != nil {
+			return "", err
+		}
+		for k = range ns.pool {
+			break
+		}
+		if k == "" {
+			return "", errors.New("failed to retrieve additional nonce")
+		}
 	}
 
 	delete(ns.pool, k)
 	return k, nil
 }
 
-func (ns *nonceSource) obtainNonce() (string, error) {
+func (ns *nonceSource) obtainNonce(ctx context.Context) error {
 	if ns.GetNonceFunc == nil {
-		return "", errors.New("out of nonces - this should never happen")
+		return errors.New("out of nonces - this should never happen")
 	}
 
-	return ns.GetNonceFunc()
+	return ns.GetNonceFunc(ctx)
 }
 
 func (ns *nonceSource) AddNonce(nonce string) {
 	ns.init()
 	ns.pool[nonce] = struct{}{}
+}
+
+func (ns *nonceSource) WithContext(ctx context.Context) *nonceSourceWithCtx {
+	return &nonceSourceWithCtx{ns, ctx}
+}
+
+type nonceSourceWithCtx struct {
+	nonceSource *nonceSource
+	ctx         context.Context
+}
+
+func (nc *nonceSourceWithCtx) Nonce() (string, error) {
+	return nc.nonceSource.Nonce(nc.ctx)
 }

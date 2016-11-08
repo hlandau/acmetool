@@ -4,11 +4,14 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/hlandau/goutils/test"
 	"github.com/hlandau/xlog"
+	"github.com/square/go-jose"
 	"golang.org/x/net/context"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"testing"
@@ -24,6 +27,49 @@ func TestAPI(t *testing.T) {
 		HTTPClient: &http.Client{
 			Transport: &mt,
 		},
+	}
+
+	issuedNonces := map[string]struct{}{}
+	issueNonce := func() string {
+		var b [8]byte
+		_, err := rand.Read(b[:])
+		if err != nil {
+			panic(err)
+		}
+
+		s := fmt.Sprintf("nonce-%s", hex.EncodeToString(b[:]))
+		issuedNonces[s] = struct{}{}
+		return s
+	}
+
+	checkNonce := func(rw http.ResponseWriter, req *http.Request) bool {
+		b, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			log.Fatalf("cannot read body: %v", err)
+		}
+
+		jws, err := jose.ParseSigned(string(b))
+		if err != nil {
+			log.Fatalf("malformed request body: %v", err)
+		}
+
+		if len(jws.Signatures) != 1 {
+			log.Fatalf("wrong number of signatures: %v", err)
+		}
+
+		n := jws.Signatures[0].Header.Nonce
+
+		_, ok := issuedNonces[n]
+		if !ok {
+			rw.Header().Set("Content-Type", "application/json")
+			rw.WriteHeader(400)
+			rw.Write([]byte(`{"type":"bad-nonce","message":"Bad nonce."}`))
+			t.Logf("invalid nonce: %#v", n)
+			t.Fail()
+			return false
+		}
+		delete(issuedNonces, n)
+		return true
 	}
 
 	// Load Certificate
@@ -48,7 +94,7 @@ func TestAPI(t *testing.T) {
 		StatusCode: 200,
 		Header: http.Header{
 			"Content-Type": []string{"application/pkix-cert"},
-			"Replay-Nonce": []string{"some-nonce-root"},
+			//"Replay-Nonce": []string{"some-nonce-root"},
 		},
 	}, []byte("root-cert-data"))
 
@@ -143,18 +189,17 @@ func TestAPI(t *testing.T) {
 
 	// Request Certificate
 
-	mt.Add("boulder.test/directory", &http.Response{
-		StatusCode: 200,
-		Header: http.Header{
-			"Content-Type": []string{"application/json"},
-			"Replay-Nonce": []string{"foo-nonce"},
-		},
-	}, []byte(`{
-    "new-reg": "https://boulder.test/acme/new-reg",
-    "new-cert": "https://boulder.test/acme/new-cert",
-    "new-authz": "https://boulder.test/acme/new-authz",
-    "revoke-cert": "https://boulder.test/acme/revoke-cert"
-  }`))
+	mt.AddHandlerFunc("boulder.test/directory", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.Header().Set("Replay-Nonce", issueNonce())
+		rw.WriteHeader(200)
+		rw.Write([]byte(`{
+      "new-reg": "https://boulder.test/acme/new-reg",
+      "new-cert": "https://boulder.test/acme/new-cert",
+      "new-authz": "https://boulder.test/acme/new-authz",
+      "revoke-cert": "https://boulder.test/acme/revoke-cert"
+    }`))
+	})
 
 	mt.AddHandlerFunc("boulder.test/acme/new-cert", func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Location", "https://boulder.test/acme/cert/some-certificate")
@@ -186,15 +231,16 @@ func TestAPI(t *testing.T) {
 
 	// Upsert Registration
 
-	i := 0
 	mt.AddHandlerFunc("boulder.test/acme/new-reg", func(rw http.ResponseWriter, req *http.Request) {
 		if req.Method != "POST" {
 			t.Fatal()
 		}
+		if !checkNonce(rw, req) {
+			return
+		}
 
 		rw.Header().Set("Location", "https://boulder.test/acme/reg/1")
-		rw.Header().Set("Replay-Nonce", fmt.Sprintf("nonce%d", i))
-		i++
+		rw.Header().Set("Replay-Nonce", issueNonce())
 		rw.WriteHeader(409)
 	})
 
@@ -202,9 +248,11 @@ func TestAPI(t *testing.T) {
 		if req.Method != "POST" {
 			t.Fatal()
 		}
+		if !checkNonce(rw, req) {
+			return
+		}
 
-		rw.Header().Set("Replay-Nonce", fmt.Sprintf("nonce%d", i))
-		i++
+		rw.Header().Set("Replay-Nonce", issueNonce())
 		rw.Header().Set("Content-Type", "application/json")
 		rw.Header().Set("Link", "<urn:some:boulder:terms/of/service>; rel=\"terms-of-service\"")
 		rw.WriteHeader(200)
@@ -227,16 +275,28 @@ func TestAPI(t *testing.T) {
 	}
 
 	// New Authorization
+	e503Count := 0
+	total503 := 3
 
 	mt.AddHandlerFunc("boulder.test/acme/new-authz", func(rw http.ResponseWriter, req *http.Request) {
 		if req.Method != "POST" {
 			t.Fatal()
 		}
+		if !checkNonce(rw, req) {
+			return
+		}
+
+		rw.Header().Set("Content-Type", "application/json")
+
+		if e503Count < total503 {
+			rw.WriteHeader(503)
+			rw.Write([]byte(`{"type":"urn:acme:error:serverInternal","detail":"Down"}`))
+			e503Count++
+			return
+		}
 
 		rw.Header().Set("Location", "https://boulder.test/acme/authz/1")
-		rw.Header().Set("Replay-Nonce", fmt.Sprintf("nonce%d", i))
-		rw.Header().Set("Content-Type", "application/json")
-		i++
+		rw.Header().Set("Replay-Nonce", issueNonce())
 		rw.WriteHeader(201)
 		rw.Write([]byte(`{
   "challenges": [
@@ -256,12 +316,18 @@ func TestAPI(t *testing.T) {
 	})
 
 	mt.AddHandlerFunc("boulder.test/acme/challenge/some-challenge2", func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Set("Replay-Nonce", fmt.Sprintf("nonce%d", i))
-		i++
+		rw.Header().Set("Replay-Nonce", issueNonce())
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
 		rw.Write([]byte(`{}`))
 	})
+
+	for i := 0; i < total503; i++ {
+		az, err = cl.NewAuthorization("example.com", context.TODO())
+		if err == nil {
+			t.Fatalf("no error when expected")
+		}
+	}
 
 	az, err = cl.NewAuthorization("example.com", context.TODO())
 	if err != nil {
@@ -277,8 +343,11 @@ func TestAPI(t *testing.T) {
 		if req.Method != "POST" {
 			t.Fatal()
 		}
-		rw.Header().Set("Replay-Nonce", fmt.Sprintf("nonce%d", i))
-		i++
+		if !checkNonce(rw, req) {
+			return
+		}
+
+		rw.Header().Set("Replay-Nonce", issueNonce())
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
 		rw.Write([]byte(`{}`))
