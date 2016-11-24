@@ -1,0 +1,220 @@
+#!/bin/sh
+set -e
+# This is a DNS hook that updated the tinydns (djbdns/dbndns) database. For a
+# small period (default 90 secs), waits for dns propagation. On fail, reverts.
+# Uses dig for resolution.
+#
+# Tries to figure out your tinydns root directory (overwrite if necessary).
+# When the root directory contains a Makefile, invokes make(1), else
+# tinydns-data(8). That way, you can notify downstream DNS server, eg with
+# http://tindyns.org/dnsnotify
+#
+# Copy, move, or link this script to $ACME_HOOKS_DIR/tinydns
+#
+# You can test this script with
+#    ./tinydns.hook  challenge-dns-start example.com "" "deadbeef"
+#    ./tinydns.hook  challenge-dns-stop example.com "" "deadbeef"
+#
+# This script reads /etc/default/acme-tinydns and /etc/conf.d/acme-tinydns
+# You can override the following variables there:
+#
+# DNS_SYNC_MAX          Maximum time in seconds to wait for DNS propagation
+#                       (default 90)
+# SERVICE_ROOT          Directory that contains daemontools(8) services
+#                       (default one of /service /etc/service /etc/sv)
+# SERVICE               Directory with the tinydns(8) service for
+#                       daemontools(8) (default ${SERVICE_ROOT}/tinydns)
+# SERVICE_ENV           Directory with the envdir(8) environment for the
+#                       tinydns(8) service, if used. (default ${SERVICE}/en)
+# ROOT                  Directory containing tinydns(8)'s data, especially
+#                       the `data` file. (default: when ${SERVICE_ENV}/ROOT
+#                       is a file, its contents, otherwise ${SERVICE}/root)
+#
+EXIT_UNKNOWN_EVENT="42"
+DATA_MARKER_START='# -- ACMETOOL TINYDNS HOOK START --'
+DATA_MARKER_STOP='# -- ACMETOOL TINYDNS HOOK STOP --'
+
+# return 1 or 0 whether the given command exists
+have_command() { command -v "${1}" 2>&1 >/dev/null; }
+
+# strips everything before second-level-domain. TDLs not supported.
+get_domain() {
+  echo "${1}" | sed -e 's/^\([^.]\{1,\}\.\)\{0,\}\([^.]\{1,\}\.[^.]\{1,\}\.\{0,1\}\)$/\2/'
+}
+
+# get primary dns server, prefer the one we are provisioning
+get_ns() {
+  if [ -e "${SERVICE_ENV}/IP" ]; then
+    cat "${SERVICE_ENV}/IP"
+  else
+    DOMAIN="$(get_domain "${1}")"
+    dig +short SOA "${DOMAIN}" | cut -d' ' -f1
+  fi
+}
+
+get_all_ns() {
+  DOMAIN="$(get_domain "${1}")"
+  dig +short NS "${DOMAIN}"
+}
+
+# parse dnsq/dnsqr/tinydns-get output (we care for 1st field of data)
+#answer: example.com ttl RECORD data
+parse_dnsq() { grep '^answer: ' | cut -d' ' -f5; }
+
+# parse DNS TXT record that still contains length prepended (as dnsq)
+parse_dnstxt() { sed -e 's/^\(\\[[:digit:]]\{3\}\)\|.//'; }
+
+# parse DNS TXT record still with quotes (as dig)
+parse_digtxt() { TXT="${1#\"}"; echo "${TXT%\"}"; }
+
+# Get content of given TXT record via DNS (opt from SERVER)
+get_txt() {
+  TXT_HOST="${1}"
+  SERVER="${2}"
+  if [ -z "${SERVER}" ]; then
+      parse_digtxt "$(dig +short TXT "${TXT_HOST}")"
+  else
+    parse_digtxt "$(dig +short "@${SERVER}" TXT "${TXT_HOST}")"
+  fi
+}
+
+controls_domain() (
+  cd "${ROOT}"
+  tinydns-get soa "${1}" | grep -q '^answer:'
+  # if no answer, then no control
+)
+
+# set all variable we need and such
+prepare() {
+  # set reliable path
+  PATH="$(command -p getconf PATH):${PATH}"
+  # add /command if available
+  [ -d /command ] && PATH="/command:${PATH}"
+
+  # make sure we all commands we need
+  for cmd in tinydns-get dig sleep sed grep cut mv wait echo; do
+    have_command "${cmd}"
+  done
+
+  # find tinydns root
+  for CANDIDATE in "${SERVICE_ROOT}" /service /etc/service /etc/sv; do
+    if [ -d "${CANDIDATE}" ]; then
+        SERVICE_ROOT="${CANDIDATE}"; break
+    fi
+  done
+  SERVICE="${SERVICE:-${SERVICE_ROOT}/tinydns}"
+  SERVICE_ENV="${SERVICE_ENV:-${SERVICE}/env}"
+  if [ -z "${ROOT}" ]; then
+    if [ -f "${SERVICE_ENV}/ROOT" ]; then
+      ROOT="$(cat "${SERVICE_ENV}/ROOT")"
+    else
+      ROOT="${SERVICE}/root"
+    fi
+  fi
+  # no tinydns root, no operation
+  [ -d "${ROOT}" ] || exit 1
+}
+
+# Get content of given TXT record via database
+get_txt_record() (
+  cd "${ROOT}"
+  tinydns-get txt "${1}" | parse_dnsq | parse_dnstxt
+)
+
+# write txt record to database
+set_txt_record() (
+  cd "${ROOT}"
+  if grep -q "${DATA_MARKER_START}" data; then :; else
+    echo "${DATA_MARKER_START}" >> data
+    echo "${DATA_MARKER_STOP}" >> data
+  fi
+  sed -e "/${DATA_MARKER_STOP}/i\'${1}:${2}:300" data > data.acmetmp \
+      && mv data.acmetmp data
+)
+
+# remove txt record from database
+del_txt_record() (
+  cd "${ROOT}"
+  sed -e "/^'${1}:${2}/d" data > data.acmetmp \
+      && mv data.acmetmp data
+)
+
+# update tinydns database (aka commit)
+update() (
+  cd "${ROOT}"
+  if have_command make && [ -f Makefile ]; then
+    make
+  else
+    tinydns-data
+  fi
+)
+
+# reload database and check this worked via DNS
+reload() (
+  TXT_HOST="${1}"
+  CHALLENGE="${2}"
+  update
+
+  index="${DNS_SYNC_MAX:-90}"
+  export NS_STATUS=1
+  get_all_ns "${TXT_HOST}" | while read NAMESERVER; do
+    while [ "${index}" -gt 0 ]; do
+      sleep 5 &
+      if [ -z "${CHALLENGE}" ]; then
+          if [ -z "$(get_txt "${TXT_HOST}" "${NAMESERVER}")" ]; then export NS_STATUS=0; break; fi
+      else
+        if [ "$(get_txt "${TXT_HOST}" "${NAMESERVER}")" = "${CHALLENGE}" ]; then NS_STATUS=0; break; fi
+      fi
+      index="$((${index} - 5))"
+      wait
+    done
+    [ "${NS_STATUS}" -eq 0 ] || return 1 # reached here because of timeout
+  done
+  return 0
+)
+
+# CALLBACK: insert acme challange
+start() {
+  HOST="${1}"; DOMAIN="${2}"; CHALLENGE="${3}"
+  TXT_HOST="_acme-challenge.${HOST}"
+  TXT_RECORD="$(get_txt_record "${TXT_HOST}" )"
+  [ "${TXT_RECORD}" = "${CHALLENGE}" ] && return 0 # challenge already there
+  [ -z "${TXT_RECORD}" ] # challenge not empty, doesn't match ours
+  set_txt_record "${TXT_HOST}" "${CHALLENGE}"
+  reload "${TXT_HOST}" "${CHALLENGE}" \
+      || (del_txt_record "${TXT_HOST}"; update; return 1)
+}
+
+# CALLBACK: remove acme challange
+stop() {
+  HOST="${1}"; DOMAIN="${2}"; CHALLENGE="${3}"
+  TXT_HOST="_acme-challenge.${HOST}"
+  [ "$(get_txt_record "${TXT_HOST}" )" = "${CHALLENGE}" ]
+  del_txt_record "${TXT_HOST}"
+  reload "${TXT_HOST}" "" \
+      || (set_txt_record "${TXT_HOST}" "${CHALLENGE}" ; update; return 1)
+}
+
+# include configuration from known locations
+[ -e "/etc/default/acme-tinydns" ] && . /etc/default/acme-tinydns
+[ -e "/etc/conf.d/acme-tinydns" ] && . /etc/conf.d/acme-tinydns
+
+# Contract is:
+# ACME_STATE_DIR=/var/lib/acme /usr/lib/acme/hooks/tinydns \
+#  challenge-dns-start hostname.example.com target_file challenge
+EVENT="${1}"
+HOST="${2}"
+TARGET_FILE="${3}"
+CHALLENGE="${4}"
+
+case "${EVENT}" in
+  challenge-dns-*)
+    prepare
+    DOMAIN="$(get_domain ${HOST})"
+    controls_domain "${DOMAIN}"
+    "${EVENT##challenge-dns-}" "${HOST}" "${DOMAIN}" "${CHALLENGE}"
+    ;;
+  *)
+    exit "${EXIT_UNKNOWN_EVENT}"
+    ;;
+esac
