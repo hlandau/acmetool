@@ -22,9 +22,11 @@ var log, Log = xlog.New("acme.redirector")
 
 // Configuration for redirector.
 type Config struct {
-	Bind          string `default:":80" usage:"Bind address"`
-	ChallengePath string `default:"" usage:"Path containing HTTP challenge files"`
-	ChallengeGID  string `default:"" usage:"GID to chgrp the challenge path to (optional)"`
+	Bind          string        `default:":80" usage:"Bind address"`
+	ChallengePath string        `default:"" usage:"Path containing HTTP challenge files"`
+	ChallengeGID  string        `default:"" usage:"GID to chgrp the challenge path to (optional)"`
+	ReadTimeout   time.Duration `default:"" usage:"Maximum duration before timing out read of the request"`
+	WriteTimeout  time.Duration `default:"" usage:"Maximum duration before timing out write of the response"`
 }
 
 // Simple HTTP to HTTPS redirector.
@@ -43,7 +45,9 @@ func New(cfg Config) (*Redirector, error) {
 			Timeout:          100 * time.Millisecond,
 			NoSignalHandling: true,
 			Server: &http.Server{
-				Addr: cfg.Bind,
+				Addr:         cfg.Bind,
+				ReadTimeout:  cfg.ReadTimeout,
+				WriteTimeout: cfg.WriteTimeout,
 			},
 		},
 	}
