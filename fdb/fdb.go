@@ -235,6 +235,9 @@ func (db *DB) conformPermissions() error {
 		if err != nil {
 			return err
 		}
+		if (rpath[0] == '.' && len(rpath) > 1) {
+			return nil
+		}
 
 		mode := info.Mode()
 		switch mode & os.ModeType {
