@@ -23,23 +23,6 @@ index 374ff68..4e701da 100644
        "httpsPort": 5001,
        "tlsPort": 5001
      },
-diff --git a/test/config/ca.json b/test/config/ca.json
-index f0155fe..ddc1ffe 100644
---- a/test/config/ca.json
-+++ b/test/config/ca.json
-@@ -5,10 +5,10 @@
-     "ecdsaProfile": "ecdsaEE",
-     "debugAddr": "localhost:8001",
-     "Issuers": [{
--      "ConfigFile": "test/test-ca.key-pkcs11.json",
-+      "File": "test/test-ca.key",
-       "CertFile": "test/test-ca2.pem"
-     }, {
--      "ConfigFile": "test/test-ca.key-pkcs11.json",
-+      "File": "test/test-ca.key",
-       "CertFile": "test/test-ca.pem"
-     }],
-     "expiry": "2160h",
 diff --git a/test/config/ra.json b/test/config/ra.json
 index a5cbe39..95e03b3 100644
 --- a/test/config/ra.json
