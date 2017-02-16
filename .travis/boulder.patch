@@ -29,15 +29,17 @@ index f0155fe..ddc1ffe 100644
 +++ b/test/config/ca.json
 @@ -5,10 +5,10 @@
      "ecdsaProfile": "ecdsaEE",
-     "debugAddr": "localhost:8001",
+     "debugAddr": ":8001",
      "Issuers": [{
 -      "ConfigFile": "test/test-ca.key-pkcs11.json",
 +      "File": "test/test-ca.key",
-       "CertFile": "test/test-ca2.pem"
+       "CertFile": "test/test-ca2.pem",
+       "NumSessions": 2
      }, {
 -      "ConfigFile": "test/test-ca.key-pkcs11.json",
 +      "File": "test/test-ca.key",
-       "CertFile": "test/test-ca.pem"
+       "CertFile": "test/test-ca.pem",
+       "NumSessions": 2
      }],
      "expiry": "2160h",
 diff --git a/test/config/ra.json b/test/config/ra.json
