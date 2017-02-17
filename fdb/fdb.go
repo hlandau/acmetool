@@ -224,6 +224,10 @@ func resolveUIDGID(p *Permission) (uid, gid int, err error) {
 	return
 }
 
+func isHiddenRelPath(rp string) bool {
+	return strings.HasPrefix(rp, ".") || strings.Index(rp, "/.") >= 0
+}
+
 // Change all directory permissions to be correct.
 func (db *DB) conformPermissions() error {
 	err := filepath.Walk(db.path, func(path string, info os.FileInfo, err error) error {
@@ -234,6 +238,18 @@ func (db *DB) conformPermissions() error {
 		rpath, err := filepath.Rel(db.path, path)
 		if err != nil {
 			return err
+		}
+
+		// Some people want to store hidden files/directories inside the ACME state
+		// directory without permissions enforcement. Since it's reasonable to
+		// assume I'll never want to amend the ACME-SSS specification to specify
+		// top-level directories inside a state directory, this shouldn't have any
+		// security implications. Symlinks inside the state directory (whose state
+		// directory paths themselves don't contain "/." and are thus ignored)
+		// cannot reference ignored paths, as their permissions are not managed and
+		// this is not safe. This is enforced elsewhere.
+		if isHiddenRelPath(rpath) {
+			return nil
 		}
 
 		mode := info.Mode()
@@ -263,6 +279,14 @@ func (db *DB) conformPermissions() error {
 			}
 			if !ok {
 				return fmt.Errorf("database symlinks must point to within the database directory: %v: %v", path, ll)
+			}
+
+			rll, err := filepath.Rel(db.path, ll)
+			if err != nil {
+				return err
+			}
+			if isHiddenRelPath(rll) {
+				return fmt.Errorf("database symlinks cannot target hidden files within the database directory: %v: %v", path, ll)
 			}
 
 			_, err = os.Stat(ll)
