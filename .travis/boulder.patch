@@ -24,22 +24,23 @@ index 374ff68..4e701da 100644
        "tlsPort": 5001
      },
 diff --git a/test/config/ca.json b/test/config/ca.json
-index f0155fe..ddc1ffe 100644
+index eb6a2c1..7c6c0e3 100644
 --- a/test/config/ca.json
 +++ b/test/config/ca.json
-@@ -5,10 +5,10 @@
+@@ -5,11 +5,11 @@
      "ecdsaProfile": "ecdsaEE",
-     "debugAddr": "localhost:8001",
+     "debugAddr": ":8001",
      "Issuers": [{
 -      "ConfigFile": "test/test-ca.key-pkcs11.json",
 +      "File": "test/test-ca.key",
-       "CertFile": "test/test-ca2.pem"
+       "CertFile": "test/test-ca2.pem",
+       "NumSessions": 2
      }, {
 -      "ConfigFile": "test/test-ca.key-pkcs11.json",
 +      "File": "test/test-ca.key",
-       "CertFile": "test/test-ca.pem"
+       "CertFile": "test/test-ca.pem",
+       "NumSessions": 2
      }],
-     "expiry": "2160h",
 diff --git a/test/config/ra.json b/test/config/ra.json
 index a5cbe39..95e03b3 100644
 --- a/test/config/ra.json
