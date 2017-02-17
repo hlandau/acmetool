@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+TRAVIS_FILE="$(dirname "$0")/../.travis.yml"
+[ -e "$TRAVIS_FILE" ] || exit 1
+
+EXPIRY="$(grep 'COPR_LOGIN_TOKEN expires=' "$TRAVIS_FILE" | sed 's/^.*COPR_LOGIN_TOKEN expires=\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)/\1/g')"
+
+EXPIRY_S="$(date -d "$EXPIRY" +%s)"
+NOW_S="$(date +%s)"
+
+if [ "$NOW_S" -ge "$EXPIRY_S" ]; then
+  echo >&2 "Outdated copr token. Renew it and update expiry date in .travis.yml."
+  exit 1
+fi
