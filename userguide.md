@@ -279,6 +279,10 @@ ProxyPass "/.well-known/acme-challenge" "http://127.0.0.1:402/.well-known/acme-c
 
 Ensure you load the modules `mod_proxy` and `mod_proxy_http`.
 
+**Proxy mode: Changing port.** If you need to change the ports on which acmetool listens, see the
+`request: challenge: http-ports` directive. See [State storage schema](#the-state-storage-schema).
+
+
 **Webroot mode.** If you don't have a particular webroot path in mind, consider using `/var/run/acme/acme-challenge` as a recommended standard. `acmetool` defaults to this as a webroot path if you don't explicitly configure one. (See “Challenge Completion Philosophy” below.)
 
 **Webroot mode: nginx/tengine.**
@@ -423,8 +427,9 @@ request:
     webroot-paths:        # You can specify custom webroot paths.
       - /var/www
     http-ports:           # You can specify different ports for proxying.
-      - 123
+      - 123               # Defaults to listening on localhost.
       - 456
+      - 0.0.0.0:789       # Global listen.
     http-self-test: false # Defaults to true. If false, will not perform self-test
                           # but will assume challenge can be completed. Rarely needed.
     env:                  # Optionally set environment variables to be passed to hooks.
