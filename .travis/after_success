@@ -50,7 +50,7 @@ cat <<'END' > "$HOME/.devscripts"
 DEBSIGN_KEYID="Hugo Landau (2017 PPA Signing) <hlandau@devever.net>"
 END
 
-UBUNTU_RELEASES="xenial precise trusty vivid wily"
+UBUNTU_RELEASES="precise trusty xenial yakkety zesty vivid"
 for distro_name in $UBUNTU_RELEASES; do
   echo Creating Debian source environment for ${distro_name}...
   $GOPATH/src/github.com/$TRAVIS_REPO_SLUG/.travis/make_debian_env "$GOPATH/releasing/dbuilds/$distro_name" "$GOPATH/releasing/dist/" "$TRAVIS_TAG" "$distro_name"
