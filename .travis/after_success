@@ -32,17 +32,22 @@ travis_retry ghr $GHR_OPTIONS -u "$TRAVIS_REPO_OWNER" "$TRAVIS_TAG" "$GOPATH/rel
 
 # Prepare Ubuntu PPA signing key.
 echo Preparing Ubuntu PPA signing key...
-cd "$ACME_DIR/.travis"
-wget -c "https://www.devever.net/~hl/f/gnupg-ppa-data.tar.gz.enc"
-openssl enc -d -aes-128-cbc -md sha256 -salt -pass env:PPA_ENCRYPTION_PASS -in "gnupg-ppa-data.tar.gz.enc" -out "gnupg-ppa-data.tar.gz"
-tar xvf gnupg-ppa-data.tar.gz
-shred -u gnupg-ppa-data.tar.*
-cd "$ACME_DIR"
+wget -qO ppa-private.asc.enc "https://www.devever.net/~hl/f/ppa-private-${PPA_ENCRYPTION_ID}.asc.enc"
+export PPA_ENCRYPTION_ID=
+openssl enc -d -aes-128-cbc -md sha256 -salt -pass env:PPA_ENCRYPTION_PASS -in "ppa-private.asc.enc" -out "ppa-private.asc"
+export PPA_ENCRYPTION_PASS=
+shred -u ppa-private.asc.enc
 export GNUPGHOME="$ACME_DIR/.travis/.gnupg"
+mkdir -p "$GNUPGHOME"
+gpg --batch --import < ppa-private.asc
+shred -u ppa-private.asc
+cat <<END | gpg --batch --import-ownertrust
+046B4FF0F9FD04C1F4662DE951107171B1D4C4C5:6:
+END
 
 # Upload Ubuntu PPA package.
 cat <<'END' > "$HOME/.devscripts"
-DEBSIGN_KEYID="Hugo Landau (2016 PPA Signing) <hlandau@devever.net>"
+DEBSIGN_KEYID="Hugo Landau (2017 PPA Signing) <hlandau@devever.net>"
 END
 
 UBUNTU_RELEASES="xenial precise trusty vivid wily"
