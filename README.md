@@ -136,11 +136,16 @@ If you are on Linux, you will need to make sure the development files for
 `libcap-dev` or `libcap-devel` or similar.
 
 ```bash
+# This is necessary to work around a change in Git's default configuration
+# which hasn't yet been accounted for in some places.
+$ git config --global http.followRedirects true
+
 $ git clone https://github.com/hlandau/acme
 $ cd acme
 $ make && sudo make install
 
   # (People familiar with Go with a GOPATH setup can alternatively use go get/go install:)
+  $ git config --global http.followRedirects true
   $ go get github.com/hlandau/acme/cmd/acmetool
 ```
 
