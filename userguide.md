@@ -97,6 +97,10 @@ $ sudo pacman -U ./acmetool*.pkg.tar.xz
 If you are using Linux, you will need to make sure the development files for `libcap` are installed. This is probably a package for your distro called `libcap-dev` or `libcap-devel` or similar.
 
 ```sh
+# This is necesary to work around a change in Git's default configuration
+# which hasn't yet been accounted for in some places.
+$ git config --global http.followRedirects true
+
 $ git clone https://github.com/hlandau/acme
 $ cd acme
 $ make && sudo make install
@@ -105,6 +109,7 @@ $ make && sudo make install
 **Installing: from source (existing GOPATH).** The Makefile is intended to make things easy for users unfamiliar with Go packaging conventions. If you know what a GOPATH is and have one set up, you can and should instead simply do:
 
 ```sh
+$ git config --global http.followRedirects true
 $ go get -u github.com/hlandau/acme/cmd/acmetool
 $ sudo cp $GOPATH/bin/acmetool /usr/local/bin/acmetool
 ```

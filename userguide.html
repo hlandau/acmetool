@@ -99,11 +99,16 @@ $ <span class="fu">sudo</span> pacman -U ./acmetool*.pkg.tar.xz</code></pre></di
 <p><strong>Installing: Alpine Linux users.</strong> <a href="https://github.com/hlandau/acme/blob/master/_doc/APKBUILD">An APKBUILD for building from source is available.</a></p>
 <p><strong>Installing: from source.</strong> Clone, make, make install. You will need Go 1.5.2 or later installed to build from source.</p>
 <p>If you are using Linux, you will need to make sure the development files for <code>libcap</code> are installed. This is probably a package for your distro called <code>libcap-dev</code> or <code>libcap-devel</code> or similar.</p>
-<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="fu">git</span> clone https://github.com/hlandau/acme
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash"><span class="co"># This is necesary to work around a change in Git&#39;s default configuration</span>
+<span class="co"># which hasn&#39;t yet been accounted for in some places.</span>
+$ <span class="fu">git</span> config --global http.followRedirects true
+
+$ <span class="fu">git</span> clone https://github.com/hlandau/acme
 $ <span class="bu">cd</span> acme
 $ <span class="fu">make</span> <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> make install</code></pre></div>
 <p><strong>Installing: from source (existing GOPATH).</strong> The Makefile is intended to make things easy for users unfamiliar with Go packaging conventions. If you know what a GOPATH is and have one set up, you can and should instead simply do:</p>
-<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="ex">go</span> get -u github.com/hlandau/acme/cmd/acmetool
+<div class="sourceCode"><pre class="sourceCode sh"><code class="sourceCode bash">$ <span class="fu">git</span> config --global http.followRedirects true
+$ <span class="ex">go</span> get -u github.com/hlandau/acme/cmd/acmetool
 $ <span class="fu">sudo</span> cp <span class="va">$GOPATH</span>/bin/acmetool /usr/local/bin/acmetool</code></pre></div>
 <p>(Note: Although use of cgo is recommended, building without cgo is supported.)</p>
 <h2 id="after-installation">After installation</h2>
