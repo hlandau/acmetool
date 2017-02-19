@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/hlandau/goutils/test"
 	"github.com/hlandau/xlog"
-	"github.com/square/go-jose"
+	"gopkg.in/square/go-jose.v1"
 	"golang.org/x/net/context"
 	"io/ioutil"
 	"net/http"
