@@ -28,7 +28,7 @@ type Config struct {
 	ChallengeGID  string        `default:"" usage:"GID to chgrp the challenge path to (optional)"`
 	ReadTimeout   time.Duration `default:"" usage:"Maximum duration before timing out read of the request"`
 	WriteTimeout  time.Duration `default:"" usage:"Maximum duration before timing out write of the response"`
-	StatusCode    int           `default:"308" usage:"HTTP redirect status code"`
+	StatusCode    string        `default:"308" usage:"HTTP redirect status code"`
 }
 
 // Simple HTTP to HTTPS redirector.
@@ -36,6 +36,7 @@ type Redirector struct {
 	cfg          Config
 	httpServer   graceful.Server
 	httpListener net.Listener
+	statusCode   int
 	stopping     uint32
 }
 
