@@ -42,6 +42,7 @@ type Redirector struct {
 
 // Instantiate an HTTP to HTTPS redirector.
 func New(cfg Config) (*Redirector, error) {
+	sc, _ = strconv.Atoi(cfg.StatusCode)
 	r := &Redirector{
 		cfg: cfg,
 		httpServer: graceful.Server{
@@ -53,7 +54,7 @@ func New(cfg Config) (*Redirector, error) {
 				WriteTimeout: cfg.WriteTimeout,
 			},
 		},
-		statusCode: strconv.Atoi(cfg.StatusCode),
+		statusCode: sc,
 	}
 
 	// Try and make the challenge path if it doesn't exist.
