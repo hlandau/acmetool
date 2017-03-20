@@ -70,6 +70,7 @@ var (
 	redirectorGIDFlag      = redirectorCmd.Flag("challenge-gid", "GID to chgrp the challenge path to (optional)").String()
 	redirectorReadTimeout  = redirectorCmd.Flag("read-timeout", "Maximum duration before timing out read of the request (default: '10s')").Default("10s").Duration()
 	redirectorWriteTimeout = redirectorCmd.Flag("write-timeout", "Maximum duration before timing out write of the request (default: '20s')").Default("20s").Duration()
+	redirectorStatusCode   = redirectorCmd.Flag("status-code", "HTTP status code to use when redirecting (default: '308')").String()
 
 	testNotifyCmd = kingpin.Command("test-notify", "Test-execute notification hooks as though given hostnames were updated")
 	testNotifyArg = testNotifyCmd.Arg("hostname", "hostnames which have been updated").Strings()
@@ -385,6 +386,7 @@ func cmdRunRedirector() {
 				ChallengeGID:  *redirectorGIDFlag,
 				ReadTimeout:   *redirectorReadTimeout,
 				WriteTimeout:  *redirectorWriteTimeout,
+				StatusCode:    "308",
 			})
 		},
 	})
