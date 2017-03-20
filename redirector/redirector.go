@@ -53,7 +53,7 @@ func New(cfg Config) (*Redirector, error) {
 				WriteTimeout: cfg.WriteTimeout,
 			},
 		},
-		statusCode: strconv.Atoi(r.cfg.StatusCode),
+		statusCode: strconv.Atoi(cfg.StatusCode),
 	}
 
 	// Try and make the challenge path if it doesn't exist.
