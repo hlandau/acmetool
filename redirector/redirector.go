@@ -16,6 +16,7 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
+	"strconv"
 )
 
 var log, Log = xlog.New("acme.redirector")
@@ -27,6 +28,7 @@ type Config struct {
 	ChallengeGID  string        `default:"" usage:"GID to chgrp the challenge path to (optional)"`
 	ReadTimeout   time.Duration `default:"" usage:"Maximum duration before timing out read of the request"`
 	WriteTimeout  time.Duration `default:"" usage:"Maximum duration before timing out write of the response"`
+	StatusCode    string        `default:"308" usage:"HTTP redirect status code"`
 }
 
 // Simple HTTP to HTTPS redirector.
@@ -34,11 +36,13 @@ type Redirector struct {
 	cfg          Config
 	httpServer   graceful.Server
 	httpListener net.Listener
+	statusCode   int
 	stopping     uint32
 }
 
 // Instantiate an HTTP to HTTPS redirector.
 func New(cfg Config) (*Redirector, error) {
+	sc, _ := strconv.Atoi(cfg.StatusCode)
 	r := &Redirector{
 		cfg: cfg,
 		httpServer: graceful.Server{
@@ -50,6 +54,7 @@ func New(cfg Config) (*Redirector, error) {
 				WriteTimeout: cfg.WriteTimeout,
 			},
 		},
+		statusCode: sc,
 	}
 
 	// Try and make the challenge path if it doesn't exist.
@@ -198,10 +203,11 @@ func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
 
-	// This is a permanent redirect and the request method should be preserved.
-	// It's unfortunate if the client has transmitted information in cleartext
-	// via POST, etc., but there's nothing we can do about it at this stage.
-	rw.WriteHeader(308)
+	// This is a permanent redirect and the request method is preserved (308) by
+	// default. It's unfortunate if the client has transmitted information in
+	// cleartext via POST, etc., but there's nothing we can do about it at this
+	// stage.
+	rw.WriteHeader(r.statusCode)
 
 	if req.Method == "GET" {
 		// Redirects issued in response to GET SHOULD have a body pointing to the
