@@ -9,6 +9,7 @@ addons:
     - boulder
     - boulder-mysql
     - boulder-rabbitmq
+    - publisher.boulder
   apt:
     packages:
       - lsb-release
