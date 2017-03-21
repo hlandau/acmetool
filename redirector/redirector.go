@@ -27,6 +27,7 @@ type Config struct {
 	ChallengeGID  string        `default:"" usage:"GID to chgrp the challenge path to (optional)"`
 	ReadTimeout   time.Duration `default:"" usage:"Maximum duration before timing out read of the request"`
 	WriteTimeout  time.Duration `default:"" usage:"Maximum duration before timing out write of the response"`
+	StatusCode    int           `default:"308" usage:"HTTP redirect status code"`
 }
 
 // Simple HTTP to HTTPS redirector.
@@ -201,7 +202,7 @@ func (r *Redirector) handleRedirect(rw http.ResponseWriter, req *http.Request) {
 	// This is a permanent redirect and the request method should be preserved.
 	// It's unfortunate if the client has transmitted information in cleartext
 	// via POST, etc., but there's nothing we can do about it at this stage.
-	rw.WriteHeader(308)
+	rw.WriteHeader(r.cfg.StatusCode)
 
 	if req.Method == "GET" {
 		// Redirects issued in response to GET SHOULD have a body pointing to the
