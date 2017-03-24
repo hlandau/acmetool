@@ -138,7 +138,7 @@ fi
 
 if [ -e "/etc/init.d" ]; then
   for x in $SERVICES; do
-    /etc/init.d/$x >/dev/null 2>/dev/null || true
+    /etc/init.d/$x reload >/dev/null 2>/dev/null || true
   done
   exit 0
 fi`
