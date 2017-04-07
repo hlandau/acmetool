@@ -10,6 +10,10 @@ addons:
     - boulder-mysql
     - boulder-rabbitmq
     - publisher.boulder
+    - ra.boulder
+    - ca.boulder
+    - va.boulder
+    - sa.boulder
   apt:
     packages:
       - lsb-release
@@ -71,4 +75,8 @@ cache:
 
 notifications:
   webhooks:
-    - https://www.devever.net/.travis-notify
+    urls:
+      - "https://scalar.vector.im/api/neb/services/hooks/dHJhdmlzLWNpLyU0MDE0ODgzMyUzQW1hdHJpeC5vcmcvJTIxSWhNWURnRHl4aXVjUlpMSW1yJTNBbWF0cml4Lm9yZw"
+    on_success: change
+    on_failure: always
+    on_start: never

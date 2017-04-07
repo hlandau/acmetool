@@ -25,7 +25,7 @@ echo travis_fold:start:setup-boulder
 time ./test/create_db.sh || exit 2
 
 # Setup AMQP.
-time go run cmd/rabbitmq-setup/main.go -server amqp://localhost || exit 4
+#time go run cmd/rabbitmq-setup/main.go -server amqp://localhost || exit 4
 
 # Patch config, startup detection.
 patch -t -p1 < "$ACME_DIR/.travis/boulder.patch" || exit 3

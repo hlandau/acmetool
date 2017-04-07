@@ -41,19 +41,6 @@ index eb6a2c1..7c6c0e3 100644
        "CertFile": "test/test-ca.pem",
        "NumSessions": 2
      }],
-diff --git a/test/config/ra.json b/test/config/ra.json
-index a5cbe39..95e03b3 100644
---- a/test/config/ra.json
-+++ b/test/config/ra.json
-@@ -21,7 +21,7 @@
-       },
-       "SA": {
-         "server": "SA.server",
--        "rpcTimeout": "15s"
-+        "rpcTimeout": "60s"
-       },
-       "CA": {
-         "server": "CA.server",
 diff --git a/test/config/va.json b/test/config/va.json
 index 8d0fcef..4da51fc 100644
 --- a/test/config/va.json
