@@ -10,6 +10,10 @@ addons:
     - boulder-mysql
     - boulder-rabbitmq
     - publisher.boulder
+    - ra.boulder
+    - ca.boulder
+    - va.boulder
+    - sa.boulder
   apt:
     packages:
       - lsb-release
