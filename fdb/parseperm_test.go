@@ -20,20 +20,20 @@ func TestParsePerm(t *testing.T) {
      # this is a comment
      foo/bar 0644 0755
      foo/*/baz  0640  0750  
-     alpha  0644 0755  root root
+     alpha  0644 0755  root daemon
      beta  0644 0755  42 42
      gamma  0644 0755  $r $r
      delta   inherit
      x 0644 0755 root -
-     y 0644 0755 - root
+     y 0644 0755 - daemon
      `, []Permission{
 			{Path: "foo/bar", FileMode: 0644, DirMode: 0755},
 			{Path: "foo/*/baz", FileMode: 0640, DirMode: 0750},
-			{Path: "alpha", FileMode: 0644, DirMode: 0755, UID: "root", GID: "root"},
+			{Path: "alpha", FileMode: 0644, DirMode: 0755, UID: "root", GID: "daemon"},
 			{Path: "beta", FileMode: 0644, DirMode: 0755, UID: "42", GID: "42"},
 			{Path: "gamma", FileMode: 0644, DirMode: 0755, UID: "$r", GID: "$r"},
 			{Path: "x", FileMode: 0644, DirMode: 0755, UID: "root", GID: ""},
-			{Path: "y", FileMode: 0644, DirMode: 0755, UID: "", GID: "root"},
+			{Path: "y", FileMode: 0644, DirMode: 0755, UID: "", GID: "daemon"},
 		}, map[string]struct{}{"delta": struct{}{}}},
 	}
 
