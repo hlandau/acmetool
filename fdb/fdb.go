@@ -239,6 +239,9 @@ func (db *DB) conformPermissions() error {
 		if err != nil {
 			return err
 		}
+		if (rpath[0] == '.' && len(rpath) > 1) {
+			return nil
+		}
 
 		// Some people want to store hidden files/directories inside the ACME state
 		// directory without permissions enforcement. Since it's reasonable to
