@@ -246,9 +246,8 @@ The [client library which these utilities use](https://github.com/hlandau/acme/t
 
 ## Comparison with...
 
-**Let's Encrypt Official Client:** A heavyweight Python implementation which is
-a bit too “magic” for my tastes. Tries to mutate your webserver configuration
-automatically.
+**certbot:** A heavyweight Python implementation which is a bit too “magic” for
+my tastes. Tries to mutate your webserver configuration automatically.
 
 acmetool is a single-file binary which only depends on basic system libraries
 (on Linux, these are libc, libpthread, libcap, libattr). It doesn't do anything
@@ -277,7 +276,7 @@ short lifetime of certificates issued by Let's Encrypt.
 ### Comparison, list of client implementations
 
 <table>
-<tr><td></td><th>acmetool</th><th><a href="https://github.com/letsencrypt/letsencrypt">letsencrypt</a></th><th><a href="https://github.com/xenolf/lego">lego</a></th><th><a href="https://github.com/diafygi/gethttpsforfree">gethttpsforfree</a></th></tr>
+<tr><td></td><th>acmetool</th><th><a href="https://github.com/certbot/certbot">certbot</a></th><th><a href="https://github.com/xenolf/lego">lego</a></th><th><a href="https://github.com/diafygi/gethttpsforfree">gethttpsforfree</a></th></tr>
 <tr><td>Automatic renewal</td><td>Yes</td><td>Not yet</td><td>No</td><td>No</td></tr>
 <tr><td>SAN support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>ECC support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
