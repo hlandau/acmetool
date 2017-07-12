@@ -11,7 +11,7 @@
 #   # not necessary.
 #   TKIP_KEY_NAME="hmac-sha256:tk1"
 #   TKIP_KEY="a base64-encoded TKIP key"
-# 
+#
 #   # DNS synchronization timeout in seconds. Default is 60.
 #   DNS_SYNC_TIMEOUT=60
 #
@@ -54,7 +54,7 @@ waitns() {
 
   # Best effort cleanup.
   echo $0: timed out waiting ${DNS_SYNC_TIMEOUT}s for nameserver $ns >&2
-  updns del || echo $0: failed to clean up records after timing out >&2
+  updns delete || echo $0: failed to clean up records after timing out >&2
 
   return 1
 }
@@ -64,7 +64,7 @@ updns() {
   (
     declare -f nsupdate_cmds >/dev/null && nsupdate_cmds "$APEX"
     [ -n "$TKIP_KEY" ] && echo key "$TKIP_KEY_NAME" "$TKIP_KEY"
-    echo $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
+    echo update $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
     echo send
   ) | nsupdate $NSUPDATE_ARGS
 }
@@ -94,7 +94,7 @@ case "$EVENT_NAME" in
 
   challenge-dns-stop)
     get_apex "$CH_HOSTNAME"
-    updns del
+    updns delete
     ;;
 
   *)
