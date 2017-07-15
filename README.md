@@ -129,6 +129,17 @@ $ sudo pacman -U ./acmetool*.pkg.tar.xz
 
 **Alpine Linux users:** [An APKBUILD for building from source is available.](_doc/APKBUILD)
 
+**Gentoo Linux users:** [An EBuild for building from source 
+is available.](https://github.com/csmk/frabjous/tree/master/app-crypt/acmetool)
+
+Alternatively, if you have `app-portage/layman`,
+`app-crypt/acmetool` is provided by Frabjous Overlay:
+```bash
+$ sudo layman -a frabjous
+$ sudo sh -c 'echo "app-crypt/acmetool" >>/etc/portage/package.accept_keywords'
+$ sudo emerge acmetool
+```
+
 **FreeBSD users:** [FreeBSD port is available.](http://www.freshports.org/security/acmetool/)
 
 **Building from source:** You will need Go installed to build from source.
