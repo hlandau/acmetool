@@ -382,9 +382,12 @@ succeeds, only that it succeeded.
 (For HTTP-based challenges, acmetool self-tests its ability to complete the
 challenge by issuing a request for the same URL which will be requested by the
 ACME server, and does not proceed if this does not validate. Thus, HTTP-based
-challenges will never work if you are running some sort of weird split-horizon
-configuration where challenge files are retrievable only from the internet but
-not the local machine.)
+challenges will always fail the self-test if you are running some sort of
+weird split-horizon configuration where challenge files are retrievable only
+from the internet but not the local machine. You can tell acmetool to proceed
+anyway by setting `request:`, `challenge:`, `http-self-test: false` in the
+[default target file](#the-state-storage-schema), or in the specific targets
+where this is needed.)
 
 ## The state storage schema
 
