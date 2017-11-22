@@ -49,7 +49,7 @@ func (autoInteractor) prompt(c *Challenge) (*Response, error) {
 	log.Infoe(err, "interaction auto-responder couldn't give a canned response")
 
 	if NonInteractive {
-		return nil, fmt.Errorf("cannot prompt the user: currently non-interactive")
+		return nil, fmt.Errorf("cannot prompt the user: currently non-interactive; try running without --batch flag")
 	}
 
 	if Interceptor != nil {
