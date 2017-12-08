@@ -3,9 +3,11 @@ package acmeapi
 import (
 	"encoding/json"
 	"fmt"
-	denet "github.com/hlandau/goutils/net"
-	"gopkg.in/square/go-jose.v1"
+	"net"
 	"time"
+
+	denet "github.com/hlandau/goutils/net"
+	jose "gopkg.in/square/go-jose.v1"
 )
 
 // Represents an account registration.
@@ -28,6 +30,25 @@ type Registration struct {
 	LatestAgreementURI string `json:"-"`
 }
 
+// Represents an error that may have happened.
+// https://tools.ietf.org/html/draft-ietf-appsawg-http-problem-00
+type ProblemDetails struct {
+	Type       string `json:"type,omitempty"`
+	Detail     string `json:"detail,omitempty"`
+	HTTPStatus int    `json:"status,omitempty"`
+}
+
+// Represents a single validation attempt.
+type ValidationRecord struct {
+	Authorities       []string `json:",omitempty"`
+	URL               string   `json:"url,omitempty"`
+	Hostname          string   `json:"hostname"`
+	Port              string   `json:"port"`
+	AddressesResolved []net.IP `json:"addressesResolved"`
+	AddressUsed       net.IP   `json:"addressUsed"`
+	AddressesTried    []net.IP `json:"addressesTried"`
+}
+
 // Represents a Challenge which is part of an Authorization.
 type Challenge struct {
 	URI      string `json:"uri"`      // The URI of the challenge.
@@ -40,6 +61,10 @@ type Challenge struct {
 
 	// proofOfPossession
 	Certs []denet.Base64up `json:"certs,omitempty"`
+
+	Error                    *ProblemDetails    `json:"error,omitempty"`
+	ProvidedKeyAuthorization string             `json:"keyAuthorization,omitempty"`
+	ValidationRecord         []ValidationRecord `json:"validationRecord,omitempty"`
 
 	retryAt time.Time
 }
