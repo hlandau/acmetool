@@ -194,7 +194,7 @@ func (tgt *Target) ensureFilename() {
 		nprefix = tgt.Satisfy.Names[0] + "-"
 	}
 
-	b := uuid.NewV4().Bytes()
+	b := uuid.Must(uuid.NewV4()).Bytes()
 	str := strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 
 	tgt.Filename = nprefix + str
