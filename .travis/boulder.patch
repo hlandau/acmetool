@@ -1,8 +1,41 @@
+diff --git a/cmd/shell.go b/cmd/shell.go
+index 353d5e1f..8c2a432b 100644
+--- a/cmd/shell.go
++++ b/cmd/shell.go
+@@ -24,7 +24,6 @@ import (
+ 	"fmt"
+ 	"io/ioutil"
+ 	"log"
+-	"log/syslog"
+ 	"net/http"
+ 	"net/http/pprof"
+ 	"os"
+@@ -130,19 +129,7 @@ func StatsAndLogging(logConf SyslogConfig, addr string) (metrics.Scope, blog.Log
+ }
+ 
+ func NewLogger(logConf SyslogConfig) blog.Logger {
+-	tag := path.Base(os.Args[0])
+-	syslogger, err := syslog.Dial(
+-		"",
+-		"",
+-		syslog.LOG_INFO, // default, not actually used
+-		tag)
+-	FailOnError(err, "Could not connect to Syslog")
+-	syslogLevel := int(syslog.LOG_INFO)
+-	if logConf.SyslogLevel != 0 {
+-		syslogLevel = logConf.SyslogLevel
+-	}
+-	logger, err := blog.New(syslogger, logConf.StdoutLevel, syslogLevel)
+-	FailOnError(err, "Could not connect to Syslog")
++	logger := blog.NewMock()
+ 
+ 	_ = blog.Set(logger)
+ 	cfsslLog.SetLogger(cfsslLogger{logger})
 diff --git a/start.py b/start.py
-index 347883e..448295f 100755
+index 1c1a90bb..b5a0955c 100755
 --- a/start.py
 +++ b/start.py
-@@ -18,6 +18,7 @@ import startservers
+@@ -19,6 +19,7 @@ import startservers
  if not startservers.start(race_detection=False):
      sys.exit(1)
  try:
@@ -11,12 +44,12 @@ index 347883e..448295f 100755
  
      # If we reach here, a child died early. Log what died:
 diff --git a/test/config-next/va.json b/test/config-next/va.json
-index 374ff68..4e701da 100644
+index f90e1856..8721b69f 100644
 --- a/test/config-next/va.json
 +++ b/test/config-next/va.json
-@@ -4,7 +4,7 @@
+@@ -3,7 +3,7 @@
      "userAgent": "boulder",
-     "debugAddr": "localhost:8004",
+     "debugAddr": ":8004",
      "portConfig": {
 -      "httpPort": 5002,
 +      "httpPort": 80,
@@ -24,12 +57,12 @@ index 374ff68..4e701da 100644
        "tlsPort": 5001
      },
 diff --git a/test/config/ca.json b/test/config/ca.json
-index eb6a2c1..7c6c0e3 100644
+index d5f78c2c..66cfa251 100644
 --- a/test/config/ca.json
 +++ b/test/config/ca.json
-@@ -5,11 +5,11 @@
-     "ecdsaProfile": "ecdsaEE",
-     "debugAddr": ":8001",
+@@ -27,11 +27,11 @@
+       ]
+     },
      "Issuers": [{
 -      "ConfigFile": "test/test-ca.key-pkcs11.json",
 +      "File": "test/test-ca.key",
@@ -42,12 +75,12 @@ index eb6a2c1..7c6c0e3 100644
        "NumSessions": 2
      }],
 diff --git a/test/config/va.json b/test/config/va.json
-index 8d0fcef..4da51fc 100644
+index 91a6727c..2921c453 100644
 --- a/test/config/va.json
 +++ b/test/config/va.json
-@@ -4,7 +4,7 @@
+@@ -3,7 +3,7 @@
      "userAgent": "boulder",
-     "debugAddr": "localhost:8004",
+     "debugAddr": ":8004",
      "portConfig": {
 -      "httpPort": 5002,
 +      "httpPort": 80,
@@ -55,11 +88,11 @@ index 8d0fcef..4da51fc 100644
        "tlsPort": 5001
      },
 diff --git a/test/hostname-policy.json b/test/hostname-policy.json
-index 6397ee9..15ad50c 100644
+index 5eaad17e..503badc1 100644
 --- a/test/hostname-policy.json
 +++ b/test/hostname-policy.json
-@@ -1,12 +1,6 @@
- {
+@@ -5,12 +5,6 @@
+   ],
    "Blacklist": [
      "in-addr.arpa",
 -    "example",
@@ -73,7 +106,7 @@ index 6397ee9..15ad50c 100644
    ]
  }
 diff --git a/test/rate-limit-policies.yml b/test/rate-limit-policies.yml
-index 41aadd3..66c2662 100644
+index 157d9d2b..6e8070b6 100644
 --- a/test/rate-limit-policies.yml
 +++ b/test/rate-limit-policies.yml
 @@ -4,7 +4,7 @@ totalCertificates:
@@ -85,7 +118,7 @@ index 41aadd3..66c2662 100644
    overrides:
      ratelimit.me: 1
      lim.it: 0
-@@ -30,7 +30,7 @@ pendingAuthorizationsPerAccount:
+@@ -41,7 +41,7 @@ pendingOrdersPerAccount:
    threshold: 3
  certificatesPerFQDNSet:
    window: 24h
