@@ -25,7 +25,7 @@ REVISION="1${DISTRO}1"
 DATE_R="$(date -R)"
 # The non-cgo builds here are used by the RPM builds, which also reply on the
 # .orig.tar.gz file built here.
-ARCHS="386_cgo amd64_cgo 386 amd64 arm arm64"
+ARCHS="386_cgo amd64_cgo 386 amd64 arm arm64 ppc64 ppc64le"
 
 mkdir -p "$ARCHIVEDIR"
 for ARCH in $ARCHS; do
@@ -72,7 +72,7 @@ Standards-Version: 3.9.6
 Build-Depends: debhelper (>= 9), wget, ca-certificates, curl, libcap-dev
 
 Package: acmetool
-Architecture: amd64 i386 armhf arm64
+Architecture: amd64 i386 armhf arm64 ppc64el
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: command line tool for automatically acquiring certificates
  acmetool is an easy-to-use command line tool for automatically acquiring
@@ -238,6 +238,7 @@ case "$DEB_BUILD_ARCH" in
   i386) echo 386_cgo;;
   amd64) echo amd64_cgo;;
   armhf|armel) echo arm;;
+  ppc64el) echo ppc64le;;
   *) echo "$DEB_BUILD_ARCH";;
 esac
 END

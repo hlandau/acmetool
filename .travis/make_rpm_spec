@@ -33,7 +33,11 @@ Conflicts: %{aname}$NOTNOCGO_SUFFIX
 %ifarch x86_64
 %define goarch amd64$CGO_SUFFIX
 %else
+%ifarch ppc64le
+%define goarch ppc64le$CGO_SUFFIX
+%else
 %define goarch ERROR
+%endif
 %endif
 %endif
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
