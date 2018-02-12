@@ -14,6 +14,8 @@ else
   NEEDED_LIBS="github.com/jsha/listenbuddy github.com/tcnksm/ghr github.com/hlandau/gox bitbucket.org/liamstask/goose/cmd/goose"
 fi
 
+export CGO_LDFLAGS_ALLOW=-Wl,--no-as-needed
+
 time travis_retry go get -v \
   github.com/letsencrypt/boulder/... \
   $NEEDED_LIBS
