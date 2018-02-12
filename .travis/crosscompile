@@ -25,7 +25,7 @@ GO386=387 gox -ldflags "$BUILDINFO" -cgo -osarch 'linux/386' -output "$GOPATH/re
 RESULT2=$?
 
 # non-cgo crosscompile
-gox -ldflags "$BUILDINFO" -osarch 'darwin/amd64 linux/amd64 linux/arm linux/arm64 freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 solaris/amd64' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
+gox -ldflags "$BUILDINFO" -osarch 'darwin/amd64 linux/amd64 linux/arm linux/arm64 freebsd/amd64 freebsd/arm openbsd/amd64 netbsd/amd64 netbsd/arm dragonfly/amd64 linux/ppc64 linux/ppc64le' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT3=$?
 GO386=387 gox -ldflags "$BUILDINFO" -osarch 'linux/386 darwin/386 freebsd/386 openbsd/386 netbsd/386' -output "$GOPATH/releasing/idist/acmetool-$TRAVIS_TAG-{{.OS}}_{{.Arch}}/bin/{{.Dir}}" $BINARIES
 RESULT4=$?
