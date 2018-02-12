@@ -94,15 +94,13 @@ for srpm in $HOME/rpmbuild/SRPMS/acmetool-*.rpm; do
   if [[ $srpm != *nocgo* ]]; then
     cat <<END > /tmp/rpm-metadata
 {
-  "project_id": $COPR_PROJECT_ID,
-  "chroots": ["fedora-23-i386", "fedora-23-x86_64", "epel-7-x86_64", "fedora-24-i386", "fedora-24-x86_64", "fedora-25-i386", "fedora-25-x86_64", "fedora-26-i386", "fedora-26-x86_64"]
+  "project_id": $COPR_PROJECT_ID
 }
 END
   else
     cat <<END > /tmp/rpm-metadata
 {
-  "project_id": $COPR_PROJECT_ID,
-  "chroots": ["epel-5-i386", "epel-5-x86_64", "epel-6-i386", "epel-6-x86_64", "fedora-22-i386", "fedora-22-x86_64"]
+  "project_id": $COPR_PROJECT_ID
 }
 END
   fi
