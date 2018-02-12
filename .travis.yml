@@ -34,6 +34,8 @@ addons:
       - lintian
       - ncftp
       - rpm
+      - fakeroot
+      - jq
   mariadb: "10.1"
 
 sudo: false

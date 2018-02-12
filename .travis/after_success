@@ -90,17 +90,21 @@ for x in $RPMS; do
 done
 echo travis_fold:end:build-srpm
 
+COPR_CHROOTS="$(curl "https://copr.fedorainfracloud.org/api_2/projects/$COPR_PROJECT_ID/chroots" | jq '.chroots|map(.chroot.name)')"
+
 for srpm in $HOME/rpmbuild/SRPMS/acmetool-*.rpm; do
   if [[ $srpm != *nocgo* ]]; then
     cat <<END > /tmp/rpm-metadata
 {
-  "project_id": $COPR_PROJECT_ID
+  "project_id": $COPR_PROJECT_ID,
+  "chroots": $COPR_CHROOTS
 }
 END
   else
     cat <<END > /tmp/rpm-metadata
 {
-  "project_id": $COPR_PROJECT_ID
+  "project_id": $COPR_PROJECT_ID,
+  "chroots": $COPR_CHROOTS
 }
 END
   fi
