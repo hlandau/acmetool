@@ -24,6 +24,7 @@ import (
 )
 
 type HTTPChallengeInfo struct {
+	Hostname string
 	Filename string
 	Body     string
 }
@@ -48,6 +49,10 @@ func newHTTP(rcfg Config) (Responder, error) {
 		serveMux:            http.NewServeMux(),
 		requestDetectedChan: make(chan struct{}, 1),
 		notifySupported:     true,
+	}
+
+	if rcfg.Hostname == "" {
+		return nil, fmt.Errorf("must provide a hostname")
 	}
 
 	// Configure the HTTP server
@@ -334,6 +339,7 @@ func (s *httpResponder) startActual() error {
 	// Try hooks.
 	if startFunc := s.rcfg.ChallengeConfig.StartHookFunc; startFunc != nil {
 		err := startFunc(&HTTPChallengeInfo{
+			Hostname: s.rcfg.Hostname,
 			Filename: s.rcfg.Token,
 			Body:     string(s.ka),
 		})
@@ -396,6 +402,7 @@ func (s *httpResponder) Stop() error {
 	// Try and stop hooks.
 	if stopFunc := s.rcfg.ChallengeConfig.StopHookFunc; stopFunc != nil {
 		err := stopFunc(&HTTPChallengeInfo{
+			Hostname: s.rcfg.Hostname,
 			Filename: s.rcfg.Token,
 			Body:     string(s.ka),
 		})

@@ -8,7 +8,8 @@ import (
 )
 
 type DNSChallengeInfo struct {
-	Body string
+	Hostname string
+	Body     string
 }
 
 type dnsResponder struct {
@@ -20,6 +21,10 @@ type dnsResponder struct {
 func newDNSResponder(rcfg Config) (Responder, error) {
 	s := &dnsResponder{
 		rcfg: rcfg,
+	}
+
+	if rcfg.Hostname == "" {
+		return nil, fmt.Errorf("must provide a hostname")
 	}
 
 	var err error
@@ -41,7 +46,8 @@ func (s *dnsResponder) Start() error {
 	// Try hooks.
 	if startFunc := s.rcfg.ChallengeConfig.StartHookFunc; startFunc != nil {
 		err := startFunc(&DNSChallengeInfo{
-			Body: s.dnsString,
+			Hostname: s.rcfg.Hostname,
+			Body:     s.dnsString,
 		})
 		return err
 	}
@@ -54,7 +60,8 @@ func (s *dnsResponder) Stop() error {
 	// Try hooks.
 	if stopFunc := s.rcfg.ChallengeConfig.StopHookFunc; stopFunc != nil {
 		err := stopFunc(&DNSChallengeInfo{
-			Body: s.dnsString,
+			Hostname: s.rcfg.Hostname,
+			Body:     s.dnsString,
 		})
 		log.Warne(err, "failed to uninstall DNS challenge via hook (ignoring)")
 		return nil
