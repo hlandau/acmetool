@@ -1,12 +1,12 @@
 // +build linux
 
-package main
+package cli
 
 import (
 	"fmt"
 	sddbus "github.com/coreos/go-systemd/dbus"
 	sdunit "github.com/coreos/go-systemd/unit"
-	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/acmetool/interaction"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
 	"gopkg.in/hlandau/svcutils.v1/systemd" // coreos/go-systemd/util requires cgo
 	"io"

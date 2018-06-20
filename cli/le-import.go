@@ -1,12 +1,12 @@
-package main
+package cli
 
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/acmeapi/acmeendpoints"
-	"github.com/hlandau/acme/acmeapi/acmeutils"
-	"github.com/hlandau/acme/storage"
+	"github.com/hlandau/acmeapi"
+	"github.com/hlandau/acmeapi/acmeendpoints"
+	"github.com/hlandau/acmeapi/acmeutils"
+	"github.com/hlandau/acmetool/storage"
 	"golang.org/x/net/context"
 	"gopkg.in/square/go-jose.v1"
 	"io/ioutil"
@@ -149,7 +149,7 @@ func determineLECertificateURL(certFilename string) (string, error) {
 	}
 
 	// Don't need directory URL, direct certificate URL load only.
-	cl := acmeapi.Client{}
+	cl := acmeapi.RealmClient{}
 
 	_, certURL, err := acmeendpoints.CertificateToEndpointURL(&cl, c, context.TODO())
 	if err != nil {
