@@ -39,21 +39,10 @@ func (a *Account) String() string {
 	return fmt.Sprintf("Account(%v)", a.ID())
 }
 
-// Represents an authorization.
-type Authorization struct {
-	// N. The authorized hostname.
-	Name string
-
-	// N. The authorization URL.
-	URL string
-
-	// D. Can be derived from the URL. The authorization expiry time.
-	Expires time.Time
-}
-
-// Returns true iff the authorization is unexpired.
-func (a *Authorization) IsValid(clock clock.Clock) bool {
-	return clock.Now().Before(a.Expires)
+func (a *Account) ToAPI() *acmeapi.Account {
+	return &acmeapi.Account{
+		PrivateKey: a.PrivateKey,
+	}
 }
 
 // Represents the "satisfy" section of a target file.
@@ -230,7 +219,8 @@ func (t *Target) genericise() {
 
 // Represents stored certificate information.
 type Certificate struct {
-	// N. URL from which the certificate can be retrieved.
+	// N. URL to the order used to obtain the certificate. Not a direct URL to
+	// the certificate blob.
 	URL string
 
 	// N. Whether this certificate should be revoked.
