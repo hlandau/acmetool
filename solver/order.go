@@ -248,7 +248,7 @@ func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 		// If any challenge is valid, WTF? Return FATAL.
 		for i := range authz.Challenges {
 			if authz.Challenges[i].Status == acmeapi.ChallengeValid {
-				err = fmt.Errorf("authorization %q has non-final status but contains a valid challenge: %q", authz.URL)
+				err = fmt.Errorf("authorization %q has non-final status but contains a valid challenge: %q", authz.URL, authz.Status)
 				isFatal = true
 				return
 			}

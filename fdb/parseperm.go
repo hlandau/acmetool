@@ -43,7 +43,7 @@ func parsePermissions(r io.Reader) (ps []Permission, erasePaths map[string]struc
 
 		path := filepath.Clean(m[1])
 		if path == ".." || strings.HasPrefix(path, "../") || filepath.IsAbs(path) {
-			return nil, nil, fmt.Errorf("line %d: path must remain within the DB root", Lnum, L)
+			return nil, nil, fmt.Errorf("line %d: path must remain within the DB root: %q", Lnum, L)
 		}
 
 		if _, seen := seenPaths[path]; seen {
