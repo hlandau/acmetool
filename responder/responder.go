@@ -50,14 +50,9 @@ type Config struct {
 	AccountKey crypto.PrivateKey // The account private key.
 	Token      string            // The challenge token.
 
-	// "http-01", "proofOfPossession": The hostname being verified. May be used
-	// for pre-initiation self-testing. Optional. Required for
-	// proofOfPossession.
+	// "http-01", "dns-01": The hostname being verified. May be used for
+	// pre-initiation self-testing. Required.
 	Hostname string
-
-	// "proofOfPossession": The certificates which are acceptable. Each entry is
-	// a DER X.509 certificate.
-	AcceptableCertificates [][]byte
 
 	ChallengeConfig ChallengeConfig
 }
@@ -75,15 +70,6 @@ type ChallengeConfig struct {
 
 	// Do not perform self test, but assume challenge is completable.
 	HTTPNoSelfTest bool
-
-	// "proofOfPossession": Function which returns the private key for a given
-	// public key.  This may be called multiple times for a given challenge as
-	// multiple public keys may be permitted. If a private key for the given
-	// public key cannot be found, return nil and do not return an error.
-	// Returning an error short circuits.
-	//
-	// If not specified, proofOfPossession challenges always fail.
-	PriorKeyFunc PriorKeyFunc
 
 	StartHookFunc HookFunc
 	StopHookFunc  HookFunc
