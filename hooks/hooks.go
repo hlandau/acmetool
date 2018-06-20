@@ -95,14 +95,21 @@ func ChallengeTLSSNIStop(ctx *Context, hostname, targetFileName, validationName1
 		"challenge-tls-sni-stop", hostname, targetFileName, validationName1, validationName2)
 }
 
+func challengeDNS(ctx *Context, op, hostname, targetFileName, body string) (installed bool, err error) {
+	wildcardFlag := ""
+	if strings.HasPrefix(hostname, "*.") {
+		hostname = hostname[2:]
+		wildcardFlag = "wildcard"
+	}
+	return runParts(ctx, nil, op, hostname, targetFileName, body, wildcardFlag)
+}
+
 func ChallengeDNSStart(ctx *Context, hostname, targetFileName, body string) (installed bool, err error) {
-	return runParts(ctx, nil,
-		"challenge-dns-start", hostname, targetFileName, body)
+	return challengeDNS(ctx, "challenge-dns-start", hostname, targetFileName, body)
 }
 
 func ChallengeDNSStop(ctx *Context, hostname, targetFileName, body string) (uninstalled bool, err error) {
-	return runParts(ctx, nil,
-		"challenge-dns-stop", hostname, targetFileName, body)
+	return challengeDNS(ctx, "challenge-dns-stop", hostname, targetFileName, body)
 }
 
 func mergeEnvMap(m map[string]string, e []string) {
