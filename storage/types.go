@@ -17,9 +17,6 @@ type Account struct {
 	// N. Server directory URL.
 	DirectoryURL string
 
-	// Disposable. Authorizations.
-	Authorizations map[string]*Authorization
-
 	// ID: determined from DirectoryURL and PrivateKey.
 	// Path: formed from ID.
 	// Registration URL: can be recovered automatically.

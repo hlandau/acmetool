@@ -16,7 +16,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 )
 
 var log, Log = xlog.New("acme.storage")
@@ -337,9 +336,8 @@ func (s *fdbStore) validateAccount(serverName, accountName string, c *fdb.Collec
 	}
 
 	account := &Account{
-		PrivateKey:     pk,
-		DirectoryURL:   directoryURL,
-		Authorizations: map[string]*Authorization{},
+		PrivateKey:   pk,
+		DirectoryURL: directoryURL,
 	}
 
 	accountID := account.ID()
@@ -350,54 +348,6 @@ func (s *fdbStore) validateAccount(serverName, accountName string, c *fdb.Collec
 
 	s.accounts[accountID] = account
 
-	err = s.validateAuthorizations(account, c)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *fdbStore) validateAuthorizations(account *Account, c *fdb.Collection) error {
-	ac := c.Collection("authorizations")
-
-	auths, err := ac.List()
-	if err != nil {
-		return err
-	}
-
-	for _, auth := range auths {
-		auc := ac.Collection(auth)
-		err := s.validateAuthorization(account, auth, auc)
-		log.Errore(err, "failed to load authorization, ignoring: ", auth)
-	}
-
-	return nil
-}
-
-func (s *fdbStore) validateAuthorization(account *Account, authName string, c *fdb.Collection) error {
-	ss, err := fdb.String(c.Open("expiry"))
-	if err != nil {
-		return err
-	}
-
-	expiry, err := time.Parse(time.RFC3339, strings.TrimSpace(ss))
-	if err != nil {
-		return err
-	}
-
-	azURL, _ := fdb.String(c.Open("url"))
-	if !acmeapi.ValidURL(azURL) {
-		azURL = ""
-	}
-
-	az := &Authorization{
-		Name:    authName,
-		URL:     strings.TrimSpace(azURL),
-		Expires: expiry,
-	}
-
-	account.Authorizations[authName] = az
 	return nil
 }
 
@@ -495,7 +445,7 @@ func (s *fdbStore) validateCert(certID string, c *fdb.Collection) error {
 
 	ss = strings.TrimSpace(ss)
 	if !acmeapi.ValidURL(ss) {
-		return fmt.Errorf("certificate has invalid URI")
+		return fmt.Errorf("certificate order has invalid URI")
 	}
 
 	actualCertID := determineCertificateID(ss)
@@ -753,20 +703,6 @@ func (s *fdbStore) SaveAccount(a *Account) error {
 
 	w.Close()
 
-	for _, auth := range a.Authorizations {
-		c := coll.Collection("authorizations/" + auth.Name)
-
-		err := fdb.WriteBytes(c, "expiry", []byte(auth.Expires.Format(time.RFC3339)))
-		if err != nil {
-			return err
-		}
-
-		err = fdb.WriteBytes(c, "url", []byte(auth.URL))
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -833,7 +769,7 @@ func (s *fdbStore) ImportKey(privateKey crypto.PrivateKey) (*Key, error) {
 }
 
 // Given a certificate URL, imports the certificate into the store. The
-// certificate will be retrirved on the next reconcile. If a certificate with
+// certificate will be retrieved on the next reconcile. If a certificate with
 // that URL already exists, this is a no-op and returns nil.
 func (s *fdbStore) ImportCertificate(url string) (*Certificate, error) {
 	certID := determineCertificateID(url)
@@ -940,7 +876,7 @@ func (s *fdbStore) revokeByKeyID(keyID string) error {
 		return fmt.Errorf("cannot find certificate or key with given ID: %q", keyID)
 	}
 
-	var merr MultiError
+	var merr util.MultiError
 	for _, c := range s.certs {
 		if c.Key != k {
 			continue
