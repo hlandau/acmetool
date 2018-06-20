@@ -4,11 +4,9 @@ import (
 	"crypto"
 	"encoding/base32"
 	"fmt"
-	"github.com/hlandau/acme/acmeapi"
-	"github.com/jmhodges/clock"
+	"github.com/hlandau/acmeapi"
 	"github.com/satori/go.uuid"
 	"strings"
-	"time"
 )
 
 // Represents stored account data.

@@ -1,7 +1,7 @@
 package solver
 
 import (
-	"github.com/hlandau/acme/acmeapi"
+	"github.com/hlandau/acmeapi"
 	"sort"
 )
 

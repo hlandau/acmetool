@@ -2,8 +2,8 @@ package solver
 
 import (
 	"fmt"
-	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/interaction"
+	"github.com/hlandau/acmeapi"
+	"github.com/hlandau/acmetool/interaction"
 	"golang.org/x/net/context"
 	"net/mail"
 )

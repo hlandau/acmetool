@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/hlandau/acme/acmeapi/acmeutils"
+	"github.com/hlandau/acmeapi/acmeutils"
 	denet "github.com/hlandau/goutils/net"
 	deos "github.com/hlandau/goutils/os"
 	"gopkg.in/tylerb/graceful.v1"

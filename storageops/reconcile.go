@@ -2,28 +2,28 @@
 package storageops
 
 import (
-	"bytes"
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"fmt"
-	"github.com/hlandau/acme/acmeapi"
-	"github.com/hlandau/acme/acmeapi/acmeendpoints"
-	"github.com/hlandau/acme/acmeapi/acmeutils"
-	"github.com/hlandau/acme/hooks"
-	"github.com/hlandau/acme/responder"
-	"github.com/hlandau/acme/solver"
-	"github.com/hlandau/acme/storage"
+	"github.com/hlandau/acmeapi"
+	"github.com/hlandau/acmeapi/acmeendpoints"
+	"github.com/hlandau/acmetool/hooks"
+	"github.com/hlandau/acmetool/responder"
+	"github.com/hlandau/acmetool/solver"
+	"github.com/hlandau/acmetool/storage"
+	"github.com/hlandau/acmetool/util"
 	"github.com/hlandau/xlog"
 	"github.com/jmhodges/clock"
-	"golang.org/x/net/context"
 	"sort"
 	"strings"
+	"time"
 )
 
-var log, Log = xlog.New("acme.storageops")
+var log, Log = xlog.New("acmetool.storageops")
 
 // Internal use only. Used for testing purposes. Do not change.
 var InternalClock = clock.Default()
