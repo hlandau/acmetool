@@ -172,9 +172,6 @@ func Main() {
 		cmdImportJWKAccount()
 	case "import-pem-account":
 		cmdImportPEMAccount()
-	case "import-le":
-		cmdImportLE()
-		cmdReconcile()
 	case "revoke":
 		cmdRevoke()
 	}
@@ -249,6 +246,21 @@ func cmdStatus() {
 	log.Fatale(err, "status")
 
 	fmt.Print(info)
+}
+
+func importKey(s storage.Store, filename string) error {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	pk, err := acmeutils.LoadPrivateKey(b)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.ImportKey(pk)
+	return err
 }
 
 func StatusString(s storage.Store) string {
