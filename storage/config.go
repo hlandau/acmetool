@@ -2,7 +2,7 @@ package storage
 
 import (
 	"crypto/elliptic"
-	"github.com/hlandau/acme/fdb"
+	"github.com/hlandau/acmetool/fdb"
 	"strings"
 )
 

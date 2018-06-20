@@ -2,7 +2,8 @@ package storageops
 
 import (
 	"fmt"
-	"github.com/hlandau/acme/storage"
+	"github.com/hlandau/acmetool/storage"
+	"github.com/hlandau/acmetool/util"
 )
 
 func RevokeByCertificateOrKeyID(s storage.Store, id string) error {
@@ -26,7 +27,7 @@ func revokeByKeyID(s storage.Store, keyID string) error {
 		return fmt.Errorf("cannot find certificate or key with given ID: %q", keyID)
 	}
 
-	var merr storage.MultiError
+	var merr util.MultiError
 	s.VisitCertificates(func(c *storage.Certificate) error {
 		if c.Key != k {
 			return nil // continue
