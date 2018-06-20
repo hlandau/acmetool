@@ -116,7 +116,7 @@ set -e
 EVENT_NAME="$1"
 [ "$EVENT_NAME" = "live-updated" ] || exit 42
 
-SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch quassel quasselcore"
+SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch quassel quasselcore freeswitch"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 [ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
@@ -215,7 +215,7 @@ EVENT_NAME="$1"
 
 # List of services. If any of these are in PATH (or HAPROXY_ALWAYS_GENERATE is
 # set), assume we need to generate combined files.
-HAPROXY_DAEMONS="haproxy hitch quasselcore quassel lighttpd"
+HAPROXY_DAEMONS="haproxy hitch quasselcore quassel lighttpd freeswitch"
 HAPROXY_UMASK="0077"
 
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
@@ -454,7 +454,7 @@ These files will also be accessible in a directory of their own, "%s/haproxy/HOS
 If you place a PEM-encoded DH parameter file at "%s/conf/dhparams", those will also be included in each
 "haproxy" file. This is optional.
 
-Examples of daemons requiring combined files include HAProxy, Hitch and Quassel. The hook script will not generate the files unless one of these daemons is detected, or you configure it to always generate combined files. (See the hook script for configuration documentation.) Therefore, installing the script is a no-op on systems without these daemons installed, and it is always safe to say yes here.
+Examples of daemons requiring combined files include HAProxy, Hitch, Quassel, Freeswitch. The hook script will not generate the files unless one of these daemons is detected, or you configure it to always generate combined files. (See the hook script for configuration documentation.) Therefore, installing the script is a no-op on systems without these daemons installed, and it is always safe to say yes here.
 
 Do you want to install the combined file generation hook? If in doubt, say yes.`,
 			*stateFlag, *stateFlag, *stateFlag),
