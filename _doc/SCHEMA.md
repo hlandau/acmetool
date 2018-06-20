@@ -33,12 +33,12 @@ that shown below is used.
         www.example.com     ;
 
       certs/
-        (certificate ID)/
+        (certificate/order ID)/
           cert              ; Contains the certificate
           chain             ; Contains the necessary chaining certificates
           fullchain         ; Contains the certificate and the necessary chaining certificates
           privkey           ; Symlink to a key privkey file
-          url               ; URL of the certificate
+          url               ; URL of the finalised order resource
           revoke            ; Empty file indicating certificate should be revoked
           revoked           ; Empty file indicating certificate has been revoked
 
@@ -49,10 +49,6 @@ that shown below is used.
       accounts/
         (account ID)/
           privkey           ; PEM-encoded account private key
-          authorizations/
-            (domain)/
-              expiry        ; File containing RFC 3336 expiry timestamp
-              url           ; URL of the authorization (optional)
 
       conf/                 ; Configuration data
         target              ; This has the same format as a target expression file
@@ -173,9 +169,9 @@ Keep both the full set of hostnames to be satisfied and the reduced set of
 hostnames to be satisfied in memory for each target. The on-disk target files
 are not modified.
 
-Wildcard certificates, if ACME ever supports them, may be indicated just as
-they would be in a certificate. For example, an empty file named
-`*.example.com` could be created in the desired directory.
+Wildcard certificates may be requested just as the wildcard name would be
+encoded in a certificate. For example, an empty file named `*.example.com`
+could be created in the "desired" directory.
 
 **Disjunction example.** This section is non-normative. Suppose that the
 following targets were created:
@@ -294,23 +290,6 @@ expressed by a target or used as a default) which finds that no account
 corresponding to that provider URL exists should generate a new account key and
 store it for that provider URL.
 
-#### authorizations
-
-An ACME client MAY keep track of unexpired ACME authorizations it has obtained
-from a provider in order to avoid unnecessarily rerequesting authorizations. It
-does this by maintaining a directory "authorizations" underneath a given
-account directory. Each directory in this directory represents a hostname. Each
-such directory MAY contain the following files:
-
-  - "expiry", a file containing an RFC 3336 timestamp representing the expiry
-    time of the authorization.
-
-  - "url", a file containing the URL of the authorization.
-
-An authorization is deemed valid and useable for the purposes of requesting a
-certificate only if it has an "expiry" file expressing a point in time in the
-future.
-
 ### keys
 
 An ACME State Directory MUST contain a subdirectory "keys" which contains
@@ -332,8 +311,15 @@ subdirectories, each of which relates to a specific certificate. Each
 subdirectory MUST be named after the Certificate ID.
 
 Each certificate subdirectory MUST contain a file "url" which contains the URL
-for the certificate encoded in UTF-8. Clients MUST NOT include trailing
+for the finalised order encoded in UTF-8. Clients MUST NOT include trailing
 newlines or whitespace but SHOULD accept such whitespace and strip it.
+
+NOTE: In previous versions of this specification (which targeted the draft ACME
+protocol prior to the addition of orders), the URL contained in the "url" file
+was the URL to the certificate. Such certificates may still exist in a state
+directory; it is recommended that implementations be able to detect whether an
+URL leads to a certificate or order via the Content-Type of the response
+yielded when dereferencing the URL.
 
 A client SHOULD automatically delete any certificate directory if the
 certificate it contains is expired AND is not referenced by the "live"
@@ -351,6 +337,12 @@ the certificate:
   - If retrieval of the certificate fails with a temporary error (e.g. 202), the
     client tries again later. If provided, the Retry-After HTTP header should be
     consulted.
+
+  - If retrieval of the certificate yields an `application/json` resource suggesting
+    an order (rather than the certificate itself), it is parsed as an order to
+    find the certificate URL. If the order is still in status "processing",
+    handle it like a temporary error as above; if the order has somehow
+    transitioned to "invalid", handle it like a permanent error as above.
 
   - If retrieval of the certificate succeeds, but the private key required to use
     it cannot be found, the certificate directory SHOULD be deleted.
@@ -645,8 +637,8 @@ The reconcile operation is the actual act of “building” the State Directory.
   - Begin by performing the Conform operation.
 
   - If there are any uncached certificates (certificate directories containing
-    only an "url" file), cache them, waiting for them to become available if
-    necessary.
+    only an "url" file), cache them, waiting for them to become available
+    (orders to finish processing, etc.) if necessary.
 
   - If there are any certificates marked for revocation (meaning that a
     "revoke" file exists in the certificate directory), but which are not
@@ -671,14 +663,18 @@ The reconcile operation is the actual act of “building” the State Directory.
 
     To request a certificate:
 
-    - Obtain any necessary authorizations, using the authorization information
-      stored for the account to be used in the State Directory to determine
-      which authorizations definitely do not need to be acquired.
+    - Create an order with the necessary identifiers and satisfy the
+      authorizations specified within the newly created order. If the order
+      becomes invalid due to a failed authorization, create another order and
+      start again, until an order's authorization requirements are successfully
+      fulfilled or it is determined that no further forward progress can be
+      made regarding one or more authorizations.
 
-    - Having successfully acquired all necessary authorizations, form an
-      appropriate CSR containing the SANs specified in the "request" section of
-      the applicable target and request a certificate. Write the certificate
-      URL to the State Directory.
+    - Having obtained an order with status "ready", form an appropriate CSR
+      containing the SANs specified in the "request" section of the applicable
+      target and finalise the order. Write the order URL to the State
+      Directory; there is no need to wait for it to exit the "processing"
+      state.
 
 - Update the "live" directory as follows:
 
@@ -781,10 +777,11 @@ to test using HTTP. Where an HTTP URL is specified, it is prefixed with `http:`.
   `http:example.com%2fdirectory/irq7564p5siu3zngnc2caqygp3v53dfmh6idwtpyfkxojssqglta`
 
 **Certificate ID:** A certificate ID must be assignable before a certificate
-has been issued, when only the public key and certificate URL are known.
+has been issued, when only the public key and order URL are known.
 
 Thus, the Certificate ID shall be the lowercase base32 encoding with padding
-stripped of the SHA256 hash of the certificate URL.
+stripped of the SHA256 hash of the order URL (or, for legacy certificates, the
+certificate URL).
 
 A certificate directory is invalid if the "url" file does not match the
 Certificate ID. Such a directory should be deleted.
