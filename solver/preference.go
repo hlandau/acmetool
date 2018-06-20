@@ -8,50 +8,50 @@ import (
 // Any challenge having a preference at or below this value will never be used.
 const NonviableThreshold int32 = -1000000
 
-// Sorter.
 type sorter struct {
 	authz       *acmeapi.Authorization
+	order       []int
 	preferencer Preferencer
 }
 
 func (s *sorter) Len() int {
-	return len(s.authz.Combinations)
+	return len(s.order)
 }
 
 func (s *sorter) Swap(i, j int) {
-	s.authz.Combinations[i], s.authz.Combinations[j] = s.authz.Combinations[j], s.authz.Combinations[i]
+	s.order[i], s.order[j] = s.order[j], s.order[i]
 }
 
 func (s *sorter) Less(i, j int) bool {
-	pi := s.preference(s.authz.Combinations[i]...)
-	pj := s.preference(s.authz.Combinations[j]...)
+	pi := s.preference(&s.authz.Challenges[i])
+	pj := s.preference(&s.authz.Challenges[j])
 	return pi < pj
 }
 
-func (s *sorter) preference(idx ...int) int32 {
-	p := int32(0)
-	for _, i := range idx {
-		if i >= len(s.authz.Challenges) || p <= NonviableThreshold {
-			return NonviableThreshold
-		}
-
-		v := s.preferencer.Preference(s.authz.Challenges[i])
-		p = satAdd(p, v)
-	}
-	return p
-}
-
-func satAdd(x, y int32) int32 {
-	v := int64(x) + int64(y)
-	if v > int64(-NonviableThreshold) {
-		return -NonviableThreshold
-	}
-
-	if v < int64(NonviableThreshold) {
+func (s *sorter) preference(ch *acmeapi.Challenge) int32 {
+	v := s.preferencer.Preference(ch)
+	if v <= NonviableThreshold {
 		return NonviableThreshold
 	}
 
-	return int32(v)
+	return v
+}
+
+// Returns a list of indices to authz.Challenges, sorted by preference, most
+// preferred first.
+func SortChallenges(authz *acmeapi.Authorization, preferencer Preferencer) (preferenceOrder []int) {
+	preferenceOrder = make([]int, len(authz.Challenges))
+	for i := 0; i < len(authz.Challenges); i++ {
+		preferenceOrder[i] = i
+	}
+
+	s := sorter{
+		authz:       authz,
+		order:       preferenceOrder,
+		preferencer: preferencer,
+	}
+	sort.Stable(sort.Reverse(&s))
+	return
 }
 
 // TypePreferencer returns a preference according to the type of the challenge.
@@ -94,22 +94,4 @@ var PreferFast = TypePreferencer{
 type Preferencer interface {
 	// Get the preference for the given challenge.
 	Preference(ch *acmeapi.Challenge) int32
-}
-
-// Sort authorization combinations by preference. Crops Combinations to viable
-// combinations.
-func SortCombinations(authz *acmeapi.Authorization, preferencer Preferencer) {
-	s := sorter{
-		authz:       authz,
-		preferencer: preferencer,
-	}
-	sort.Stable(sort.Reverse(&s))
-
-	for i := range authz.Combinations {
-		pi := s.preference(authz.Combinations[i]...)
-		if pi <= NonviableThreshold {
-			authz.Combinations = authz.Combinations[0:i]
-			return
-		}
-	}
 }
