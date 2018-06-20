@@ -208,13 +208,17 @@ func NewFDB(path string) (Store, error) {
 		path = RecommendedPath
 	}
 
-	db, err := fdb.Open(fdb.Config{
-		Path:            path,
-		Permissions:     storePermissions,
-		PermissionsPath: "conf/perm",
-	})
+	dbCfg := fdb.Config{
+		Path: path,
+	}
+	if !isNeutered {
+		dbCfg.Permissions = storePermissions
+		dbCfg.PermissionsPath = "conf/perm"
+	}
+
+	db, err := fdb.Open(dbCfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open fdb: %v", err)
 	}
 
 	s := &fdbStore{

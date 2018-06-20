@@ -71,6 +71,7 @@ var (
 	redirectorReadTimeout    = redirectorCmd.Flag("read-timeout", "Maximum duration before timing out read of the request (default: '10s')").Default("10s").Duration()
 	redirectorWriteTimeout   = redirectorCmd.Flag("write-timeout", "Maximum duration before timing out write of the request (default: '20s')").Default("20s").Duration()
 	redirectorStatusCodeFlag = redirectorCmd.Flag("status-code", "HTTP status code to use when redirecting (default '308')").Default("308").Int()
+	redirectorBindFlag       = redirectorCmd.Flag("bind", "Bind address for redirectory (default ':80')").Default(":80").String()
 
 	testNotifyCmd = kingpin.Command("test-notify", "Test-execute notification hooks as though given hostnames were updated")
 	testNotifyArg = testNotifyCmd.Arg("hostname", "hostnames which have been updated").Strings()
@@ -381,10 +382,11 @@ func cmdUnwant() {
 }
 
 func cmdRunRedirector() {
+	// redirector process is internet-facing and must never touch private keys
+	storage.Neuter()
+
 	rpath := *redirectorPathFlag
 	if rpath == "" {
-		// redirector process is internet-facing and must never touch private keys
-		storage.Neuter()
 		rpath = determineWebroot()
 	}
 
@@ -394,7 +396,7 @@ func cmdRunRedirector() {
 		DefaultChroot: rpath,
 		NewFunc: func() (service.Runnable, error) {
 			return redirector.New(redirector.Config{
-				Bind:          ":80",
+				Bind:          *redirectorBindFlag,
 				ChallengePath: rpath,
 				ChallengeGID:  *redirectorGIDFlag,
 				ReadTimeout:   *redirectorReadTimeout,

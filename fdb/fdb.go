@@ -136,9 +136,11 @@ func (db *DB) Verify() error {
 		return err
 	}
 
-	err = db.conformPermissions()
-	if err != nil {
-		return err
+	if len(db.cfg.Permissions) > 0 {
+		err = db.conformPermissions()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
