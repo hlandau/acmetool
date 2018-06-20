@@ -8,61 +8,90 @@ import (
 	"net/mail"
 )
 
-// Using the given client and interactor (or interaction.Auto if nil), register
-// the client account if it does not already exist.
+// Using the given client, account and interactor (or interaction.Auto if nil),
+// register the client account if it does not already exist. Does not do anything
+// and does NOT update the registration if the account is already registered.
 //
 // The interactor is used to prompt for terms of service agreement, if
 // agreement has not already been obtained. An e. mail address is prompted for.
-func AssistedUpsertRegistration(cl *acmeapi.Client, interactor interaction.Interactor, ctx context.Context) error {
+func AssistedRegistration(ctx context.Context, cl *acmeapi.RealmClient, acct *acmeapi.Account, interactor interaction.Interactor) error {
 	interactor = defaultInteraction(interactor)
 
-	email := ""
+	// We know for a fact the account has already been registered because we know
+	// its URL. Don't do anything.
+	if acct.URL != "" {
+		return nil
+	}
 
-	reg := &acmeapi.Registration{}
-	agreementURIs := map[string]struct{}{}
-	for {
-		err := cl.AgreeRegistration(reg, agreementURIs, ctx)
-		if err != nil {
-			if e, ok := err.(*acmeapi.AgreementError); ok {
-				res, err := interactor.Prompt(&interaction.Challenge{
-					Title:        "Terms of Service Agreement Required",
-					YesLabel:     "I Agree",
-					NoLabel:      "Cancel",
-					ResponseType: interaction.RTYesNo,
-					UniqueID:     "acme-agreement:" + e.URI,
-					Prompt:       "Do you agree to the Terms of Service?",
-					Body: fmt.Sprintf(`You must agree to the terms of service at the following URL to continue:
+	// See if the account has already been registered. If so, the URL gets stored
+	// in acct.URL and we're done.
+	err := cl.LocateAccount(ctx, acct)
+	if err == nil {
+		return nil
+	}
+
+	// Check that the error that occured was a not found error.
+	he, ok := err.(*acmeapi.HTTPError)
+	if !ok {
+		return err
+	}
+	if he.Problem == nil || he.Problem.Type != "urn:ietf:params:acme:error:accountDoesNotExist" {
+		return err
+	}
+
+	// Get the directory metadata so we can get the terms of service URL.
+	meta, err := cl.GetMeta(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Prompt for ToS agreement if required.
+	acct.TermsOfServiceAgreed = false
+	if meta.TermsOfServiceURL != "" {
+		res, err := interactor.Prompt(&interaction.Challenge{
+			Title:        "Terms of Service Agreement Required",
+			YesLabel:     "I Agree",
+			NoLabel:      "Cancel",
+			ResponseType: interaction.RTYesNo,
+			UniqueID:     "acme-agreement:" + meta.TermsOfServiceURL,
+			Prompt:       "Do you agree to the Terms of Service?",
+			Body: fmt.Sprintf(`You must agree to the terms of service at the following URL to continue:
 
 %s
 
-Do you agree to the terms of service set out in the above document?`, e.URI),
-				})
-				if err != nil {
-					return err
-				}
-				if !res.Cancelled {
-					if email == "" {
-						email, err = getEmail(interactor)
-						if err != nil {
-							return err
-						}
-						if email == "-" {
-							return fmt.Errorf("e. mail input cancelled")
-						}
-					}
-
-					reg.AgreementURI = e.URI
-					agreementURIs[e.URI] = struct{}{}
-					if email != "" {
-						reg.ContactURIs = []string{"mailto:" + email}
-					}
-					continue
-				}
-			}
+Do you agree to the terms of service set out in the above document?`, meta.TermsOfServiceURL),
+		})
+		if err != nil {
+			return err
 		}
 
+		if res.Cancelled {
+			return fmt.Errorf("terms of service agreement is required, but user declined")
+		}
+
+		acct.TermsOfServiceAgreed = true
+	}
+
+	// Get e. mail.
+	email, err := getEmail(interactor)
+	if err != nil {
 		return err
 	}
+	if email == "-" {
+		return fmt.Errorf("e. mail input cancelled")
+	}
+
+	if email != "" {
+		acct.ContactURIs = []string{"mailto:" + email}
+	}
+
+	// Do the registration.
+	err = cl.RegisterAccount(ctx, acct)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getEmail(interactor interaction.Interactor) (string, error) {
