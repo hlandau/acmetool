@@ -267,18 +267,3 @@ func normalizeNames(names []string) error {
 
 	return nil
 }
-
-// Used to return multiple errors, for example when several targets cannot be
-// reconciled. This prevents one failing target from blocking others.
-type MultiError []error
-
-func (merr MultiError) Error() string {
-	s := ""
-	for _, e := range merr {
-		if s != "" {
-			s += "; \n"
-		}
-		s += e.Error()
-	}
-	return "the following errors occurred:\n" + s
-}
