@@ -53,6 +53,10 @@ func New(cfg Config) (*Redirector, error) {
 		},
 	}
 
+	if r.cfg.StatusCode == 0 {
+		r.cfg.StatusCode = 308
+	}
+
 	// Try and make the challenge path if it doesn't exist.
 	err := os.MkdirAll(r.cfg.ChallengePath, 0755)
 	if err != nil {
