@@ -98,6 +98,12 @@ func orderProcess(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Ac
 		if err != nil {
 			return shouldRetry, err
 		}
+
+		// Get a fresh picture of the order status. orderAuthorizeAll doesn't refresh it.
+		err = rc.LoadOrder(ctx, order)
+		if err != nil {
+			return true, err
+		}
 	}
 
 	// TODO: REMOVE LET'S ENCRYPT WORKAROUND once they fix this
@@ -147,10 +153,11 @@ func orderAuthorizeAll(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 
 	ch := make(chan result, len(order.AuthorizationURLs))
 
-	for _, authURL := range order.AuthorizationURLs {
+	for i := range order.AuthorizationURLs {
+		authURL := order.AuthorizationURLs[i]
 		go func() {
 			ctxAuth := ctx // TODO
-			isFatal, err := orderAuthorizeOne(ctxAuth, rc, acct, order, authURL, ccfg, bl)
+			isFatal, err := orderAuthorizeOne(ctxAuth, rc, acct, authURL, ccfg, bl)
 			ch <- result{isFatal, err}
 		}()
 	}
@@ -193,7 +200,7 @@ func orderAuthorizeAll(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 //       Authorization process failed and it has been determined that no
 //       corresponding successor authorization in a subsequent order could ever
 //       succeed either. Give up.
-func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Account, order *acmeapi.Order, authURL string, ccfg *responder.ChallengeConfig, bl *blacklist) (isFatal bool, err error) {
+func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Account, authURL string, ccfg *responder.ChallengeConfig, bl *blacklist) (isFatal bool, err error) {
 	authz := &acmeapi.Authorization{
 		URL: authURL,
 	}
@@ -265,15 +272,15 @@ func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 		preferenceOrder := SortChallenges(authz, PreferFast)
 
 		// Initiate most preferred non-invalid challenge.
-		preferred := -1
-		secondBestPreferred := -1
+		preferred := ""
+		secondBestPreferred := ""
 		for _, i := range preferenceOrder {
 			ch := &authz.Challenges[i]
 			if !bl.Check(authz.Identifier.Value, ch.Type) && !ch.Status.IsFinal() {
-				if preferred < 0 {
-					preferred = i
-				} else if secondBestPreferred < 0 {
-					secondBestPreferred = i
+				if preferred == "" {
+					preferred = ch.URL
+				} else if secondBestPreferred == "" {
+					secondBestPreferred = ch.URL
 				} else {
 					break
 				}
@@ -281,7 +288,7 @@ func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 		}
 
 		// If we've blacklisted all challenges, return FATAL.
-		if preferred < 0 {
+		if preferred == "" {
 			err = util.NewWrapError(challengeErrors, "exhausted all possible challenges in authorization %q", authz.URL)
 			isFatal = true
 			return
@@ -294,9 +301,13 @@ func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 		// success. In failure cases (err != nil), the authorization may or may not
 		// have entered a final-invalid state as a result of this, so don't assume
 		// the authorization has become final-invalid.
-		ch := &authz.Challenges[preferred]
+		ch, ok := findChallengeByURL(authz, preferred)
+		if !ok {
+			panic("challenge disappeared")
+		}
+
 		var authWasLoaded bool
-		authWasLoaded, err = orderCompleteChallenge(ctx, rc, acct, order, authz, ch.URL, ccfg)
+		authWasLoaded, err = orderCompleteChallenge(ctx, rc, acct, authz, ch.URL, ccfg)
 		if err != nil {
 			// This (hostname, challengeType) failed, so blacklist it so we don't try
 			// it again for the duration of this ordering process.
@@ -309,7 +320,7 @@ func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 			// all possible challenges" above. We can avoid this unnecessary creation
 			// of an unused order by checking if this is the last non-blacklisted
 			// challenge we're blacklisting.
-			outOfChallenges = (secondBestPreferred < 0)
+			outOfChallenges = (secondBestPreferred == "")
 
 			// Record the error.
 			challengeErrors = append(challengeErrors, err)
@@ -358,9 +369,9 @@ func orderAuthorizeOne(ctx context.Context, rc *acmeapi.RealmClient, acct *acmea
 // As an optimization, we return whether we reloaded the authorization after
 // any possible status changes, which means the caller doesn't need to reload
 // it again.
-func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Account, order *acmeapi.Order, authz *acmeapi.Authorization, challengeURL string, ccfg *responder.ChallengeConfig) (authWasLoaded bool, err error) {
-	oldCh := findChallengeByURL(authz, challengeURL)
-	if oldCh == nil {
+func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Account, authz *acmeapi.Authorization, challengeURL string, ccfg *responder.ChallengeConfig) (authWasLoaded bool, err error) {
+	oldCh, ok := findChallengeByURL(authz, challengeURL)
+	if !ok {
 		err = fmt.Errorf("challenge %q does not appear in authorization %q", challengeURL, authz.URL)
 		return
 	}
@@ -370,7 +381,7 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 	// wait for a challenge to complete, we count the number of errors listed for
 	// the challenge by the server. When the number of errors increase (or the
 	// challenge goes valid), we consider that to be one attempt and stop.
-	oldCount := countErrors(oldCh)
+	oldCount := countErrors(&oldCh)
 
 	// Get responder ready.
 	r, err := responder.New(responder.Config{
@@ -394,7 +405,7 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 	defer r.Stop()
 
 	// RESPOND
-	err = rc.RespondToChallenge(ctx, acct, oldCh, r.Validation()) //r.ValidationSigningKey()
+	err = rc.RespondToChallenge(ctx, acct, &oldCh, r.Validation()) //r.ValidationSigningKey()
 	if err != nil {
 		return
 	}
@@ -407,21 +418,21 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 	for {
 		// Wait until we have some suspicion that the challenge may have been
 		// completed.
-		log.Debug("waiting to poll challenge")
+		log.Debugf("challenge %q (%q): waiting to poll", oldCh.URL, oldCh.Type)
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()
 			return
 		case <-r.RequestDetectedChan():
-			log.Debug("request detected")
+			log.Debugf("challenge %q (%q): request detected", oldCh.URL, oldCh.Type)
 		case <-time.After(b.NextDelay()):
-			log.Debug("periodically checking challenge")
+			log.Debugf("challenge %q (%q): periodically checking", oldCh.URL, oldCh.Type)
 		}
 
 		// We could reload just the challenge, but there's not much point, since
 		// the challenges are embedded inline in the authorization, and this keeps
 		// the authorization object up-to-date too.
-		log.Debug("querying challenge status")
+		log.Debugf("challenge %q (%q): querying status", oldCh.URL, oldCh.Type)
 		err = rc.WaitLoadAuthorization(ctx, acct, authz)
 		if err != nil {
 			return
@@ -429,8 +440,8 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 
 		authWasLoaded = true
 
-		updatedCh := findChallengeByURL(authz, challengeURL)
-		if updatedCh == nil {
+		updatedCh, ok := findChallengeByURL(authz, challengeURL)
+		if !ok {
 			err = fmt.Errorf("challenge %q has disappeared from authorization %q", challengeURL, authz.URL)
 			return
 		}
@@ -450,20 +461,20 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 
 		// TODO: allow number of error-tries to be tolerated before bailing to be
 		// configured; currently fix it at 1.
-		if countErrors(updatedCh) != oldCount {
+		if countErrors(&updatedCh) != oldCount {
 			err = util.NewWrapError(updatedCh.Error, "authorization %q challenge %q failed", authz.URL, challengeURL)
 			return
 		}
 	}
 }
 
-func findChallengeByURL(authz *acmeapi.Authorization, challengeURL string) *acmeapi.Challenge {
+func findChallengeByURL(authz *acmeapi.Authorization, challengeURL string) (acmeapi.Challenge, bool) {
 	for i := range authz.Challenges {
 		if authz.Challenges[i].URL == challengeURL {
-			return &authz.Challenges[i]
+			return authz.Challenges[i], true
 		}
 	}
-	return nil
+	return acmeapi.Challenge{}, false
 }
 
 func countErrors(ch *acmeapi.Challenge) int {
