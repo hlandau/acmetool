@@ -1,4 +1,11 @@
 pipeline:
+  doc:
+    image: asciidoctor/docker-asciidoctor
+    secrets: [ rsync_password ]
+    commands:
+      - apk add --no-cache libxslt docbook-xsl rsync
+      - "(cd _doc/guide && make && make deploy; )"
+
   test:
     image: golang:latest
     commands:
@@ -6,8 +13,3 @@ pipeline:
       - export CGO_ENABLED=0
       - export PEBBLE_VA_ALWAYS_VALID=1
       - .drone/script
-  doc:
-    image: asciidoctor/docker-asciidoctor
-    commands:
-      - apk add --no-cache libxslt docbook-xsl
-      - "(cd _doc/guide && make;)"

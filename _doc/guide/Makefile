@@ -11,6 +11,9 @@ all: out/index.xhtml
 clean:
 	rm -rf tmp out
 
+deploy:
+	rsync -rltv --perms=D755,F644 out/ drone@rem.devever.net::doc/acmetool/
+
 out/index.xhtml: out/index.docbook
 	xsltproc \
 	  --nonet --output "$@" \
