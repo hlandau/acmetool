@@ -49,6 +49,7 @@ func newHTTP(rcfg Config) (Responder, error) {
 		serveMux:            http.NewServeMux(),
 		requestDetectedChan: make(chan struct{}, 1),
 		notifySupported:     true,
+		validation:          []byte("{}"),
 	}
 
 	if rcfg.Hostname == "" {
@@ -64,12 +65,6 @@ func newHTTP(rcfg Config) (Responder, error) {
 	}
 
 	s.ka = []byte(ka)
-
-	s.validation, err = acmeutils.ChallengeResponseJSON(rcfg.AccountKey, rcfg.Token, "http-01")
-	if err != nil {
-		return nil, err
-	}
-
 	return s, nil
 }
 

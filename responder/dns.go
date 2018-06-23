@@ -20,7 +20,8 @@ type dnsResponder struct {
 
 func newDNSResponder(rcfg Config) (Responder, error) {
 	s := &dnsResponder{
-		rcfg: rcfg,
+		rcfg:       rcfg,
+		validation: []byte("{}"),
 	}
 
 	if rcfg.Hostname == "" {
@@ -28,11 +29,6 @@ func newDNSResponder(rcfg Config) (Responder, error) {
 	}
 
 	var err error
-	s.validation, err = acmeutils.ChallengeResponseJSON(rcfg.AccountKey, rcfg.Token, "dns-01")
-	if err != nil {
-		return nil, err
-	}
-
 	s.dnsString, err = acmeutils.DNSKeyAuthorization(rcfg.AccountKey, rcfg.Token)
 	if err != nil {
 		return nil, err
