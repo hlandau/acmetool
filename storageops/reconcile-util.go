@@ -3,7 +3,7 @@ package storageops
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/hlandau/acmetool/storage"
+	"git.devever.net/hlandau/acmetool/storage"
 )
 
 func HaveUncachedCertificates(s storage.Store) bool {

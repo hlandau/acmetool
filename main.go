@@ -1,6 +1,6 @@
 package main
 
-import "github.com/hlandau/acmetool/cli"
+import "git.devever.net/hlandau/acmetool/cli"
 
 func main() {
 	cli.Main()

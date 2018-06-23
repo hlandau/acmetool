@@ -7,7 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
-	"github.com/hlandau/acmetool/storage"
+	"git.devever.net/hlandau/acmetool/storage"
 	"time"
 )
 

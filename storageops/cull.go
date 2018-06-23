@@ -1,6 +1,6 @@
 package storageops
 
-import "github.com/hlandau/acmetool/storage"
+import "git.devever.net/hlandau/acmetool/storage"
 
 func Cull(s storage.Store, simulate bool) error {
 	certificatesToCull := map[string]*storage.Certificate{}

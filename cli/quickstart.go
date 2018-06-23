@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"git.devever.net/hlandau/acmeapi"
 	"git.devever.net/hlandau/acmeapi/acmeendpoints"
-	"github.com/hlandau/acmetool/hooks"
-	"github.com/hlandau/acmetool/interaction"
-	"github.com/hlandau/acmetool/storage"
-	"github.com/hlandau/acmetool/storageops"
+	"git.devever.net/hlandau/acmetool/hooks"
+	"git.devever.net/hlandau/acmetool/interaction"
+	"git.devever.net/hlandau/acmetool/storage"
+	"git.devever.net/hlandau/acmetool/storageops"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
 	"gopkg.in/hlandau/svcutils.v1/passwd"
 	"io/ioutil"
@@ -654,7 +654,7 @@ func promptGettingStarted() {
 		"Quickstart Complete",
 		fmt.Sprintf(`The quickstart process is complete.
 
-Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation: https://github.com/hlandau/acmetool/blob/master/_doc/WSCONFIG.md
+Ensure your chosen challenge conveyance method is configured properly before attempting to request certificates. You can find more information about how to configure your system for each method in the acmetool documentation: https://git.devever.net/hlandau/acmetool/blob/master/_doc/WSCONFIG.md
 
 To request a certificate, run:
     

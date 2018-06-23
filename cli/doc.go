@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"github.com/hlandau/acmetool/storage"
+	"git.devever.net/hlandau/acmetool/storage"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -52,7 +52,7 @@ const manPageTemplate = `{{define "FormatFlags"}}\
 .SH "SEE ALSO"
 Documentation: <https://github.com/hlandau/acme>
 
-Report bugs at: <https://github.com/hlandau/acmetool/issues>
+Report bugs at: <https://git.devever.net/hlandau/acmetool/issues>
 `
 
 var helpText = fmt.Sprintf(`acmetool is a utility for the automated retrieval, management and renewal of
