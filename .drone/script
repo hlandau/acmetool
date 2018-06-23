@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ACMEAPI="$GOPATH/src/git.devever.net/hlandau/acmeapi"
+
+go get ./... github.com/letsencrypt/pebble/cmd/pebble
+go install ./... github.com/letsencrypt/pebble/cmd/pebble
+
+"$ACMEAPI/.drone/with-pebble" go test -tags integration ./...

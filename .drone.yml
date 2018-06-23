@@ -1,0 +1,6 @@
+pipeline:
+  test:
+    image: golang:latest
+    commands:
+      - export GOPATH=/drone
+      - .drone/script
