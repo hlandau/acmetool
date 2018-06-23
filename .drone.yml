@@ -4,4 +4,5 @@ pipeline:
     commands:
       - export GOPATH=/drone
       - export CGO_ENABLED=0
+      - export PEBBLE_VA_ALWAYS_VALID=1
       - .drone/script
