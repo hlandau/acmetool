@@ -2,13 +2,7 @@
 set -euxo pipefail
 ACMEAPI="$GOPATH/src/git.devever.net/hlandau/acmeapi"
 
-apt update
-apt install net-tools
-netstat -ntlp
-
 go get ./... github.com/letsencrypt/pebble/cmd/pebble
 go install ./... github.com/letsencrypt/pebble/cmd/pebble
-
-"$ACMEAPI/.drone/with-pebble" netstat -ntlp
 
 "$ACMEAPI/.drone/with-pebble" go test -tags integration ./...
