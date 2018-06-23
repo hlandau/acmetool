@@ -9,7 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/base32"
 	"fmt"
-	"github.com/hlandau/acmeapi/acmeutils"
+	"git.devever.net/hlandau/acmeapi/acmeutils"
 	"io"
 	"math/big"
 	"net/url"

@@ -3,7 +3,7 @@ package solver
 import (
 	"context"
 	"fmt"
-	"github.com/hlandau/acmeapi"
+	"git.devever.net/hlandau/acmeapi"
 	"github.com/hlandau/acmetool/responder"
 	"github.com/hlandau/acmetool/util"
 	denet "github.com/hlandau/goutils/net"

@@ -4,7 +4,7 @@ import (
 	"crypto"
 	"encoding/base32"
 	"fmt"
-	"github.com/hlandau/acmeapi"
+	"git.devever.net/hlandau/acmeapi"
 	"github.com/satori/go.uuid"
 	"strings"
 )

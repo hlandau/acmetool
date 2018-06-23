@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/hlandau/acmeapi"
-	"github.com/hlandau/acmeapi/acmeutils"
+	"git.devever.net/hlandau/acmeapi"
+	"git.devever.net/hlandau/acmeapi/acmeutils"
 	"github.com/hlandau/acmetool/hooks"
 	"github.com/hlandau/acmetool/interaction"
 	"github.com/hlandau/acmetool/redirector"
