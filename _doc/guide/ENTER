@@ -1,0 +1,4 @@
+#!/bin/sh
+set -euo pipefail
+exec nix-shell -p ruby libxslt libxml2 docbook5_xsl plantuml
+#asciidoctor
