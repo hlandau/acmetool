@@ -121,18 +121,6 @@ func orderProcess(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Ac
 		return false, err
 	}
 
-	// TODO: We now wait for finalisation to complete in the reconcile process.
-	// Remove this once this approach is confirmed working.
-	//// Wait for order to exit the processing state.
-	//err = rc.WaitForOrder(ctx, order)
-	//if err != nil {
-	//	return false, err
-	//}
-	//
-	//if order.Status != acmeapi.OrderValid {
-	//	return false, fmt.Errorf("finished order processing but state is %q", order.Status)
-	//}
-
 	return false, nil
 }
 
