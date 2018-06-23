@@ -113,6 +113,9 @@ func (s *httpResponder) selfTest() error {
 		Host:   s.rcfg.Hostname,
 		Path:   "/.well-known/acme-challenge/" + s.rcfg.Token,
 	}
+	if InternalHTTPPort != 80 {
+		u.Host = net.JoinHostPort(u.Host, fmt.Sprintf("%d", InternalHTTPPort))
+	}
 
 	trans := &http.Transport{
 		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
