@@ -18,6 +18,7 @@ import (
 	"github.com/hlandau/acmetool/util"
 	"github.com/hlandau/xlog"
 	"github.com/jmhodges/clock"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -27,6 +28,9 @@ var log, Log = xlog.New("acmetool.storageops")
 
 // Internal use only. Used for testing purposes. Do not change.
 var InternalClock = clock.Default()
+
+// Internal use only. Used for testing purposes. Do not change.
+var InternalHTTPClient *http.Client
 
 type reconcile struct {
 	store storage.Store
@@ -282,6 +286,7 @@ func (r *reconcile) getGenericClient() (*acmeapi.RealmClient, error) {
 func (r *reconcile) getClientForDirectoryURL(directoryURL string) (*acmeapi.RealmClient, error) {
 	return acmeapi.NewRealmClient(acmeapi.RealmClientConfig{
 		DirectoryURL: directoryURL,
+		HTTPClient:   InternalHTTPClient,
 	})
 }
 
