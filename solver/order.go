@@ -444,6 +444,7 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 			// The challenge is final but not valid; there is no further prospect of
 			// completing this challenge.
 			err = util.NewWrapError(updatedCh.Error, "authorization %q challenge %q failed into final non-valid status %v", authz.URL, challengeURL, updatedCh.Status)
+			log.Infoe(err, "unsuccessful challenge")
 			return
 		}
 
@@ -451,6 +452,7 @@ func orderCompleteChallenge(ctx context.Context, rc *acmeapi.RealmClient, acct *
 		// configured; currently fix it at 1.
 		if countErrors(&updatedCh) != oldCount {
 			err = util.NewWrapError(updatedCh.Error, "authorization %q challenge %q failed", authz.URL, challengeURL)
+			log.Infoe(err, "unsuccessful challenge")
 			return
 		}
 	}

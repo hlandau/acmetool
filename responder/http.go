@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"git.devever.net/hlandau/acmeapi/acmeutils"
+	"git.devever.net/hlandau/acmetool/responder/reshttp"
 	denet "github.com/hlandau/goutils/net"
 	deos "github.com/hlandau/goutils/os"
-	"gopkg.in/tylerb/graceful.v1"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -19,9 +19,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
+
+// For testing use only. Determines the HTTP port which is listened on. This is
+// used because Pebble tries to talk to the client's HTTP responder on a
+// different HTTP port than the standard one. This use of non-privileged ports
+// eases testing.
+var InternalHTTPPort = 80
 
 type HTTPChallengeInfo struct {
 	Hostname string
@@ -32,10 +37,9 @@ type HTTPChallengeInfo struct {
 type httpResponder struct {
 	rcfg Config
 
-	serveMux            *http.ServeMux
 	response            []byte
 	requestDetectedChan chan struct{}
-	stopFuncs           []func()
+	portClaims          []reshttp.PortClaim
 	ka                  []byte
 	validation          []byte
 	filePath            string
@@ -46,7 +50,6 @@ type httpResponder struct {
 func newHTTP(rcfg Config) (Responder, error) {
 	s := &httpResponder{
 		rcfg:                rcfg,
-		serveMux:            http.NewServeMux(),
 		requestDetectedChan: make(chan struct{}, 1),
 		notifySupported:     true,
 		validation:          []byte("{}"),
@@ -56,9 +59,6 @@ func newHTTP(rcfg Config) (Responder, error) {
 		return nil, fmt.Errorf("must provide a hostname")
 	}
 
-	// Configure the HTTP server
-	s.serveMux.HandleFunc("/.well-known/acme-challenge/"+rcfg.Token, s.handle)
-
 	ka, err := acmeutils.KeyAuthorization(rcfg.AccountKey, rcfg.Token)
 	if err != nil {
 		return nil, err
@@ -66,14 +66,6 @@ func newHTTP(rcfg Config) (Responder, error) {
 
 	s.ka = []byte(ka)
 	return s, nil
-}
-
-// HTTP handler.
-func (s *httpResponder) handle(rw http.ResponseWriter, req *http.Request) {
-	// Send the precomputed response.
-	rw.Header().Set("Content-Type", "text/plain")
-	rw.Write(s.ka)
-	s.notify()
 }
 
 func (s *httpResponder) notify() {
@@ -92,10 +84,10 @@ func (s *httpResponder) Start() error {
 	}
 
 	if !s.rcfg.ChallengeConfig.HTTPNoSelfTest {
-		log.Debug("http-01 self test")
+		log.Debugf("http-01 self test for %q", s.rcfg.Hostname)
 		err = s.selfTest()
 		if err != nil {
-			log.Infoe(err, "http-01 self test failed")
+			log.Infoe(err, "http-01 self test failed: ", s.rcfg.Hostname)
 			s.Stop()
 			return err
 		}
@@ -139,7 +131,7 @@ func (s *httpResponder) selfTest() error {
 
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		return fmt.Errorf("non-200 status code when doing self-test")
+		return fmt.Errorf("hostname %q: non-200 status code when doing self-test", s.rcfg.Hostname)
 	}
 
 	b, err := ioutil.ReadAll(denet.LimitReader(res.Body, 1*1024*1024))
@@ -149,7 +141,7 @@ func (s *httpResponder) selfTest() error {
 
 	b = bytes.TrimSpace(b)
 	if !bytes.Equal(b, s.ka) {
-		return fmt.Errorf("got 200 response when doing self-test, but with the wrong data")
+		return fmt.Errorf("hostname %q: got 200 response when doing self-test, but with the wrong data", s.rcfg.Hostname)
 	}
 
 	// If we detected a request, we support notifications, otherwise we don't.
@@ -300,8 +292,8 @@ func (a addrSorter) Less(i, j int) bool {
 func determineListenAddrs(userAddrs []string) []string {
 	// Here's our brute force method: listen on everything that might work.
 	addrs := parseListenAddrs(userAddrs)
-	addrs["[::]:80"] = struct{}{} // OpenBSD
-	addrs[":80"] = struct{}{}
+	addrs[fmt.Sprintf("[::]:%d", InternalHTTPPort)] = struct{}{} // OpenBSD
+	addrs[fmt.Sprintf(":%d", InternalHTTPPort)] = struct{}{}
 	addrs["[::1]:402"] = struct{}{}
 	addrs["127.0.0.1:402"] = struct{}{}
 	addrs["[::1]:4402"] = struct{}{}
@@ -324,7 +316,10 @@ func (s *httpResponder) startActual() error {
 	addrs := determineListenAddrs(s.rcfg.ChallengeConfig.HTTPPorts)
 
 	for _, a := range addrs {
-		s.startListener(a)
+		pc, err := reshttp.AcquirePort(a, s.rcfg.Token, s.ka, s.notify)
+		if err == nil {
+			s.portClaims = append(s.portClaims, pc)
+		}
 	}
 
 	// Even if none of the listeners managed to start, the webroot or redirector
@@ -344,52 +339,12 @@ func (s *httpResponder) startActual() error {
 	return nil
 }
 
-func (s *httpResponder) startListener(addr string) error {
-	svr := &graceful.Server{
-		NoSignalHandling: true,
-		Server: &http.Server{
-			Addr:    addr,
-			Handler: s.serveMux,
-		},
-	}
-
-	l, err := net.Listen("tcp", svr.Addr)
-	if err != nil {
-		log.Debuge(err, "failed to listen on ", svr.Addr)
-		return err
-	}
-
-	log.Debugf("listening on %v", svr.Addr)
-
-	go func() {
-		defer l.Close()
-		svr.Serve(l)
-	}()
-
-	stopFunc := func() {
-		svr.Stop(10 * time.Millisecond)
-		<-svr.StopChan()
-	}
-
-	s.stopFuncs = append(s.stopFuncs, stopFunc)
-	return nil
-}
-
 // Stop handling HTTP requests.
 func (s *httpResponder) Stop() error {
-	var wg sync.WaitGroup
-	wg.Add(len(s.stopFuncs))
-
-	call := func(f func()) {
-		defer wg.Done()
-		f()
+	for _, pc := range s.portClaims {
+		pc.Close()
 	}
-
-	for _, f := range s.stopFuncs {
-		go call(f)
-	}
-	wg.Wait()
-	s.stopFuncs = nil
+	s.portClaims = nil
 
 	// Try and remove challenges.
 	webrootRemoveChallenge(s.getWebroots(), s.rcfg.Token)

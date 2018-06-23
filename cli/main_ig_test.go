@@ -61,6 +61,7 @@ func TestCLI(t *testing.T) {
 	*stateFlag = filepath.Join(tmpDir, "state")
 	*hooksFlag = filepath.Join(tmpDir, "hooks")
 
+	responder.InternalHTTPPort = 5002
 	//responder.InternalTLSSNIPort = 5001
 	cmdQuickstart()
 
