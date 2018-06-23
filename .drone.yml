@@ -3,4 +3,5 @@ pipeline:
     image: golang:latest
     commands:
       - export GOPATH=/drone
+      - export CGO_ENABLED=0
       - .drone/script
