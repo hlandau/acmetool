@@ -114,6 +114,10 @@ parameters of a new certificate request made to satisfy the target.
     to their equivalent ASCII form. (All text files in a State Directory must be
     UTF-8 encoded.)
 
+  - `margin`: Optional positive integer. If set, expresses the number of days
+    before expiry at which a certificate should be replaced. The default value
+    is implementation-dependent.
+
 (The lumping of hostnames into different target files controls when separate
 certificates are issued, and when single certificates with multiple SANs are
 issued. For example, creating two empty files, `example.com` and
