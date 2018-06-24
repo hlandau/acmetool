@@ -14,7 +14,7 @@ func mkdirAllWithOwner(absPath string, perm os.FileMode, uid, gid int) error {
 		if dir.IsDir() {
 			return nil
 		}
-		return &os.PathError{"mkdir", absPath, syscall.ENOTDIR}
+		return &os.PathError{Op: "mkdir", Path: absPath, Err: syscall.ENOTDIR}
 	}
 
 	// Slow path: make sure parent exists and then call Mkdir for path.
