@@ -6,7 +6,7 @@ else
   DOCBOOK_XSL := $(shell echo /usr/share/xml/docbook/xsl-stylesheets-*)
 endif
 
-all: out/index.xhtml out/man.xhtml out/index.pdf out/man.pdf
+all: out/index.xhtml out/img out/style.css
 
 clean:
 	rm -rf tmp out
@@ -14,15 +14,23 @@ clean:
 deploy:
 	rsync -rltv --perms=D755,F644 out/ drone@rem.devever.net::doc/acmetool/
 
-out/%.xhtml: out/%.docbook
+out/img: img
+	rsync -a "$<"/ "$@"/
+
+out/style.css: style.css out/index.xhtml
+	cat out/docbook.css style.css > "$@"
+
+out/index.xhtml: out/index.docbook tmp/acmetool.8.docbook include-man.xsl to-xhtml.xsl
+	rm -f docbook-xsl
+	ln -s "$(DOCBOOK_XSL)" docbook-xsl
 	xsltproc \
+	  --stringparam html.stylesheet style.css \
 	  --nonet --output "$@" \
-	  $(DOCBOOK_XSL)/xhtml5/docbook.xsl "$<"
+	  to-xhtml.xsl "$<"
 
-out/%.docbook: %.adoc
-	mkdir -p out
+out/index.docbook: tmp/index.docbook tmp/acmetool.8.docbook include-man.xsl to-xhtml.xsl
+	xsltproc --xinclude --xincludestyle --nonet --output "$@" include-man.xsl "$<"
+
+tmp/%.docbook: %.adoc
+	mkdir -p tmp
 	asciidoctor -r asciidoctor-diagram -b docbook5 -o "$@" "$<"
-
-out/%.pdf: %.adoc
-	mkdir -p out
-	asciidoctor -r asciidoctor-pdf -b pdf -o "$@" "$<"

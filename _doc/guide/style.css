@@ -1,0 +1,24 @@
+/* RESET */
+a img { border: none; }
+
+/* LOGO */
+#logo { text-align: center; margin-top: 1em; }
+html#index #logo { margin-top: 10em; }
+
+/* TOP-LEVEL HEADING */
+h1 { text-align: center; margin: 0 auto; }
+
+/* MID-LEVEL HEADING */
+h2 { margin-top: 2em; }
+h2::before { content: "█ "; color: #000; margin-left: 0; }
+
+/* NAV */
+nav#tnav > ul { list-style: none; text-align: center; }
+nav#tnav > ul > li { display: inline-block; padding: 0; margin: 0; }
+nav#tnav > ul > li:not(:first-child)::before { content: "·"; padding: 0.2em; }
+a:link { color: #00a; text-decoration: none; }
+
+/* TABLE OF CONTENTS */
+.toc { background-color: #e0e0e0; padding: 0.5em; margin: 0.5em; margin-bottom: 2em; }
+.toc > ul { list-style: none; margin: 0; padding: 0; }
+.toc-title { font-weight: bold; }

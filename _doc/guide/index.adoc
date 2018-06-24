@@ -692,9 +692,7 @@ acmetool and should be your first troubleshooting strategy.
 == FAQ
 
 [[ive-selected-the-webrootproxyredirectorlistener-challenge-method-but-im-seeing-log-entries-for-other-methods-or-for-webroots-other-than-the-one-i-configured.]]
-=== I’ve selected the (webroot/proxy/redirector/listener) challenge method,
-but I’m seeing log entries for other methods, or for webroots other than
-the one I configured.
+=== I’ve selected the (webroot/proxy/redirector/listener) challenge method, but I’m seeing log entries for other methods, or for webroots other than the one I configured.
 
 This is normal. By design, acmetool always tries anything which might
 work, and these errors are nonfatal as long as _something_ works. The
@@ -830,8 +828,3 @@ https://github.com/hlandau/acme/wiki/ThirdPartyResources[in the wiki].
 
 * *https://github.com/hlandau/acme/wiki/ThirdPartyResources[List of
 third party resources]*
-
-= Manuals
-
-== NAME
-ok
