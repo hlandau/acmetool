@@ -300,7 +300,7 @@ func StatusString(s storage.Store) string {
 		}
 
 		renewStr := ""
-		if storageops.CertificateNeedsRenewing(c) {
+		if storageops.CertificateNeedsRenewing(c, t) {
 			renewStr = " needs-renewing"
 		}
 

@@ -54,6 +54,9 @@ type TargetSatisfy struct {
 	// doesn't support those yet.
 	Names []string `yaml:"names,omitempty"`
 
+	// N. Renewal margin in days. Defaults to 30.
+	Margin int `yaml:"margin,omitempty"`
+
 	// D. Reduced name set, after disjunction operation. Derived from Names.
 	ReducedNames []string `yaml:"-"`
 }

@@ -145,7 +145,7 @@ func CertificateBetterThan(a, b *storage.Certificate) (bool, error) {
 	return isAfter, nil
 }
 
-func CertificateNeedsRenewing(c *storage.Certificate) bool {
+func CertificateNeedsRenewing(c *storage.Certificate, t *storage.Target) bool {
 	if len(c.Certificates) == 0 {
 		log.Debugf("%v: not renewing because it has no actual certificates (???)", c)
 		return false
@@ -157,7 +157,7 @@ func CertificateNeedsRenewing(c *storage.Certificate) bool {
 		return false
 	}
 
-	renewTime := renewTime(cc.NotBefore, cc.NotAfter)
+	renewTime := renewTime(cc.NotBefore, cc.NotAfter, t)
 	needsRenewing := !InternalClock.Now().Before(renewTime)
 
 	log.Debugf("%v needsRenewing=%v notAfter=%v", c, needsRenewing, cc.NotAfter)

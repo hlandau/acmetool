@@ -310,7 +310,7 @@ func (r *reconcile) processTargets() error {
 	r.store.VisitTargets(func(t *storage.Target) error {
 		c, err := FindBestCertificateSatisfying(r.store, t)
 		log.Debugf("%v: best certificate satisfying is %v, err=%v", t, c, err)
-		if err == nil && !CertificateNeedsRenewing(c) {
+		if err == nil && !CertificateNeedsRenewing(c, t) {
 			log.Debugf("%v: have best certificate which does not need renewing, skipping target", t)
 			return nil // continue
 		}
