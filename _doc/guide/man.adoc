@@ -1,0 +1,248 @@
+ACMETOOL(8)
+===========
+Hugo Landau
+:doctype: manpage
+:manmanual: ACMETOOL
+:mansource: ACMETOOL
+
+NAME
+----
+acmetool - request certificates from ACME servers automatically
+
+SYNOPSIS
+--------
+*acmetool* ['flags'] 'command' ['args']
+
+[[description]]
+DESCRIPTION
+-----------
+
+acmetool is a utility for the automated retrieval, management and renewal of
+PKI certificates from ACME servers such as those provided by Let's Encrypt. The
+tool emphasises automation, idempotency and the minimisation of state.
+
+You use acmetool by configuring targets (typically using the "want" command).
+acmetool then requests certificates as necessary to satisfy the configured
+targets. New certificates are requested where existing ones are soon to expire.
+
+acmetool stores its state in a state directory. It can be specified on
+invocation via the *--state* option; otherwise, the path in environment
+variable *ACME_STATE_DIR* is used, or, failing that, the path '/var/lib/acme'
+(recommended).
+
+The '--xlog' options control the logging. The '--service' options control
+privilege dropping and daemonization and are applicable only to the
+'redirector' subcommand.
+
+[[global-options]]
+GLOBAL OPTIONS
+--------------
+
+### FUNDAMENTAL OPTIONS
+
+*--state=/var/lib/acme*::
+  Path to the state directory (defaults to environment variable
+  *ACME_STATE_DIR*, or, failing that, '/var/lib/acme'.)
+*--hooks=/usr/lib/acme/hooks*::
+  Path to the notification hooks directory (defaults to environment variable
+  *ACME_HOOKS_DIR* or, failing that, '/usr/lib/acme/hooks' or
+  '/usr/libexec/acme/hooks', depending on your system.) You may disable hooks
+  by setting this to '/var/empty'.
+
+### INFORMATION OPTIONS
+
+*--help*::
+  Show context-sensitive help (also try --help-long).
+*--version*::
+  Print version information.
+
+### INTERACTION OPTIONS
+
+*--batch*::
+  Never attempt interaction; useful for cron jobs. If it is impossible to
+  continue without interaction, exits unsuccessfully. (acmetool can still
+  obtain responses from a response file, if one was provided.)
+*--stdio*::
+  Don't attempt to use console dialogs for interaction; fall back to stdio prompts.
+*--response-file=RESPONSE-FILE*::
+  Read dialog responses from the given YAML file. (Defaults to
+  '$ACME_STATE_DIR/conf/responses', if it exists.)
+
+### LOGGING OPTIONS
+
+*--xlog.facility=daemon*::
+  Syslog facility to use.
+*--xlog.syslog*::
+  Log to syslog? Defaults to false.
+*--xlog.syslogseverity=DEBUG*::
+  Syslog severity limit.
+*--xlog.journal*::
+  Log to systemd journal? Defaults to false.
+*--xlog.journalseverity=DEBUG*::
+  Systemd journal severity limit.
+*--xlog.severity=NOTICE*::
+  Log severity (any syslog severity name or number).
+*--xlog.file=""*::
+  Log to filename. Disabled by default.
+*--xlog.fileseverity=TRACE*::
+  File logging severity limit.
+*--xlog.stderr*::
+  Log to stderr?
+*--xlog.stderrseverity=TRACE*::
+  Stderr logging severity limit.
+
+### REDIRECTOR OPTIONS
+
+*--service.cpuprofile=""*::
+  Redirector mode: Write CPU profile to file.
+*--service.debugserveraddr=""*::
+  Redirector mode: Address for debug server to listen on (insecure, do not
+  specify a public address). Disabled by default.
+*--service.uid=""*::
+  Redirector mode: UID to run as. If not specified, doesn't drop privileges.
+  Note: On Linux, this option is only available if acmetool was built with cgo.
+  You can find out whether this is the case by running 'acmetool --version'.
+  Note: Regardless of platform, this value can only be specified by name rather
+  than numerically if acmetool was built with cgo.
+*--service.gid=""*::
+  Redirector mode: GID to run as. If not specified, doesn't drop privileges.
+  See --service.uid for caveats.
+*--service.daemon*::
+  Redirector mode: Run as a daemon? (Doesn't fork.)
+*--service.stderr*::
+  Redirector mode: Keep stderr open when daemonizing.
+*--service.chroot=""*::
+  Redirector mode: Chroot to a directory. If you set this, you must set a UID and GID. Set to '/' to disable.
+*--service.pidfile=""*::
+  Redirector mode: Write PID to file with given filename and hold a write lock.
+*--service.fork*::
+  Redirector mode: Fork? Implies --service.daemon. Not recommended.
+
+[[subcommands]]
+SUBCOMMANDS
+-----------
+
+[[fbquickstart_ltflagsgtfr]]
+*quickstart [<flags>]*
+~~~~~~~~~~~~~~~~~~~~~~
+
+Interactively ask some getting started questions and install default hooks
+(recommended).
+
+*--expert*::
+  Ask more questions in quickstart wizard
+
+[[fbreconcilefr]]
+*reconcile*
+~~~~~~~~~~~
+
+Reconcile ACME state, idempotently requesting and renewing certificates
+to satisfy configured targets.
+
+This is the default command.
+
+[[fbwant_ltflagsgt_lthostnamegtfr]]
+*want [<flags>] <hostname>...*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add a target with one or more hostnames
+
+*--no-reconcile*::
+  Do not reconcile automatically after adding the target.
+
+[[fbunwant_lthostnamegtfr]]
+*unwant <hostname>...*
+~~~~~~~~~~~~~~~~~~~~~~
+
+Modify targets to remove any mentions of the given hostnames
+
+[[fbcull_ltflagsgtfr]]
+*cull [<flags>]*
+~~~~~~~~~~~~~~~~
+
+Delete expired, unused certificates
+
+*-n, --simulate*::
+  Show which certificates would be deleted without deleting any.
+
+[[fbstatusfr]]
+*status*
+~~~~~~~~
+
+Show active configuration
+
+[[fbaccountthumbprintfr]]
+*account-thumbprint*
+~~~~~~~~~~~~~~~~~~~~
+
+Prints account thumbprints.
+
+[[fbrevoke_ltcertificateidorpathgtfr]]
+*revoke [<certificate-id-or-path>]*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Revoke a certificate.
+
+[[fbredirector_ltflagsgtfr]]
+*redirector [<flags>]*
+~~~~~~~~~~~~~~~~~~~~~~
+
+HTTP to HTTPS redirector with challenge response support.
+
+*--path=PATH*::
+  Path to serve challenge files from. Defaults to '/var/run/acme/acme-challenge'.
+*--challenge-gid=CHALLENGE-GID*::
+  GID to chgrp the challenge path to. Optional.
+*--read-timeout=10s*::
+  Maximum duration before timing out read of the request. Defaults to '10s'.
+*--write-timeout=20s*::
+  Maximum duration before timing out write of the request. Defaults to '20s'.
+*--status-code=308*::
+  HTTP status code to use when redirecting. Defaults to '308'.
+*--bind=":80"*::
+  Bind address for redirector. Defaults to ':80'.
+
+[[fbtestnotify_lthostnamegtfr]]
+*test-notify [<hostname>...]*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Test-execute notification hooks as though given hostnames were updated.
+
+[[fbimportjwkaccount_ltproviderurlgt_ltpri]]
+*import-jwk-account <provider-url> <private-key-file>*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Import a JWK account key.
+
+[[fbimportpemaccount_ltproviderurlgt_ltpri]]
+*import-pem-account <provider-url> <private-key-file>*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Import a PEM account key.
+
+[[fbimportkey_ltprivatekeyfilegtfr]]
+*import-key <private-key-file>*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Import a certificate private key.
+
+[[fbhelp_ltcommandgtfr]]
+*help [<command>...]*
+~~~~~~~~~~~~~~~~~~~~~
+
+Show help.
+
+
+[[author]]
+AUTHOR
+------
+
+© 2015—2018 Hugo Landau <hlandau@devever.net> MIT License
+
+[[see_also]]
+SEE ALSO
+--------
+
+Documentation: <https://doc.devever.net/acmetool/>
+
+Report bugs at: <https://git.devever.net/hlandau/acmetool/issues>
