@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"git.devever.net/hlandau/acmeapi"
@@ -36,10 +37,10 @@ var (
 			String()
 
 	hooksFlag = kingpin.Flag("hooks", "Path to the notification hooks directory (env: ACME_HOOKS_DIR)").
-			Default(hooks.RecommendedPath).
+			Default(hooks.RecommendedPaths...).
+			PlaceHolder(hooks.RecommendedPaths[0]).
 			Envar("ACME_HOOKS_DIR").
-			PlaceHolder(hooks.RecommendedPath).
-			String()
+			Strings()
 
 	batchFlag = kingpin.Flag("batch", "Do not attempt interaction; useful for cron jobs. (acmetool can still obtain responses from a response file, if one was provided.)").
 			Bool()
@@ -118,10 +119,14 @@ func Main() {
 	var err error
 	*stateFlag, err = filepath.Abs(*stateFlag)
 	log.Fatale(err, "state directory path")
-	*hooksFlag, err = filepath.Abs(*hooksFlag)
-	log.Fatale(err, "hooks directory path")
 
-	hooks.DefaultPath = *hooksFlag
+	hooksSlice := *hooksFlag
+	for i := range hooksSlice {
+		hooksSlice[i], err = filepath.Abs(hooksSlice[i])
+		log.Fatale(err, "hooks directory path")
+	}
+
+	hooks.DefaultPaths = hooksSlice
 	acmeapi.UserAgent = "acmetool"
 	dexlogconfig.Init()
 
@@ -268,7 +273,7 @@ func StatusString(s storage.Store) string {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "Settings:\n")
 	fmt.Fprintf(&buf, "  ACME_STATE_DIR: %s\n", s.Path())
-	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", hooks.DefaultPath)
+	fmt.Fprintf(&buf, "  ACME_HOOKS_DIR: %s\n", strings.Join(hooks.DefaultPaths, "; "))
 	fmt.Fprintf(&buf, "  Default directory URL: %s\n", s.DefaultTarget().Request.Provider)
 	fmt.Fprintf(&buf, "  Preferred key type: %v\n", &s.DefaultTarget().Request.Key)
 	fmt.Fprintf(&buf, "  Additional webroots:\n")
@@ -421,7 +426,7 @@ func determineWebroot() string {
 
 func cmdRunTestNotify() {
 	ctx := &hooks.Context{
-		HooksDir: *hooksFlag,
+		HookDirs: *hooksFlag,
 		StateDir: *stateFlag,
 	}
 	err := hooks.NotifyLiveUpdated(ctx, *testNotifyArg)

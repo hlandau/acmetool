@@ -122,7 +122,6 @@ func (r *reconcile) Relink() error {
 	}
 
 	ctx := &hooks.Context{
-		HooksDir: "",
 		StateDir: r.store.Path(),
 	}
 
@@ -410,7 +409,6 @@ func (r *reconcile) requestCertificateForTarget(t *storage.Target) error {
 func (r *reconcile) targetToChallengeConfig(t *storage.Target) *responder.ChallengeConfig {
 	trc := &t.Request.Challenge
 	hctx := &hooks.Context{
-		HooksDir: "",
 		StateDir: r.store.Path(),
 		Env:      map[string]string{},
 	}

@@ -15,19 +15,24 @@ import (
 // Log site.
 var log, Log = xlog.New("acme.hooks")
 
-// The recommended hook path is the path at which executable hooks are looked
-// for. On POSIX-like systems, this is usually "/usr/lib/acme/hooks" (or
-// "/usr/libexec/acme/hooks" if /usr/libexec exists).
-var RecommendedPath string
+// The recommended hook paths are the paths at which executable hooks are
+// looked for. On POSIX-like systems, this is usually "/usr/lib/acme/hooks" and
+// "/usr/libexec/acme/hooks".
+var RecommendedPaths []string
 
-// The default hook path defaults to the recommended hook path but could be
+// The default hook paths default to the recommended hook paths but could be
 // changed at runtime.
+var DefaultPaths []string
+
+// Do not use. For build-time use by distributions only. If set to a non-empty
+// string at build time, DefaultPaths is set to a slice containing only this
+// value.
 var DefaultPath string
 
 // Provides contextual configuration information when executing a hook.
 type Context struct {
-	// The hook directory to use. May be "" for the default.
-	HooksDir string
+	// The hook directories to use. If zero-length, uses DefaultPaths.
+	HookDirs []string
 
 	// The state directory to report. Required.
 	StateDir string
@@ -38,17 +43,27 @@ type Context struct {
 
 func init() {
 	// Allow overriding at build time.
-	p := DefaultPath
-	if p == "" {
-		p = "/usr/lib/acme/hooks"
+	if DefaultPath != "" {
+		DefaultPaths = []string{DefaultPath}
+		RecommendedPaths = DefaultPaths
+		return
 	}
 
-	if _, err := os.Stat("/usr/libexec"); strings.HasPrefix(p, "/usr/lib/") && err == nil {
-		p = "/usr/libexec" + p[8:]
+	DefaultPaths = []string{"/usr/libexec/acme/hooks", "/usr/lib/acme/hooks"}
+
+	// Put the preferred directory first.
+	prefDir, err := preferredHookDir(DefaultPaths)
+	if err == nil {
+		newDefaultPaths := []string{prefDir}
+		for _, dp := range DefaultPaths {
+			if dp != prefDir {
+				newDefaultPaths = append(newDefaultPaths, dp)
+			}
+		}
+		DefaultPaths = newDefaultPaths
 	}
 
-	DefaultPath = p
-	RecommendedPath = p
+	RecommendedPaths = DefaultPaths
 }
 
 // Notifies hook programs that a live symlink has been updated.
@@ -141,31 +156,41 @@ func mergeEnv(envs ...[]string) []string {
 // Implements functionality similar to the "run-parts" command on many distros.
 // Implementations vary, so it is reimplemented here.
 func runParts(ctx *Context, stdinData []byte, args ...string) (anySucceeded bool, err error) {
-	directory := ctx.HooksDir
-	if directory == "" {
-		directory = DefaultPath
+	dirs := ctx.HookDirs
+	if len(dirs) == 0 {
+		dirs = DefaultPaths
 	}
 
-	fi, err := os.Stat(directory)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Not an error if the directory doesn't exist; nothing to do.
-			return false, nil
-		}
+	var dirs2 []string
+	for _, directory := range dirs {
+		fi, err := os.Stat(directory)
+		if err == nil {
+			// Do not execute a world-writable directory.
+			if (fi.Mode() & 02) != 0 {
+				return false, fmt.Errorf("refusing to execute hooks, directory is world-writable: %s", directory)
+			}
 
-		return false, err
+			dirs2 = append(dirs2, directory)
+		} else if !os.IsNotExist(err) {
+			return false, err
+		}
+	}
+
+	if len(dirs2) == 0 {
+		// None of the directories exist; nothing to do.
+		return false, nil
 	}
 
 	env := mergeEnv(os.Environ(), flattenEnvMap(ctx.Env), []string{"ACME_STATE_DIR=" + ctx.StateDir})
 
-	// Do not execute a world-writable directory.
-	if (fi.Mode() & 02) != 0 {
-		return false, fmt.Errorf("refusing to execute hooks, directory is world-writable: %s", directory)
-	}
+	var ms []string
+	for _, directory := range dirs2 {
+		m, err := filepath.Glob(filepath.Join(directory, "*"))
+		if err != nil {
+			return false, err
+		}
 
-	ms, err := filepath.Glob(filepath.Join(directory, "*"))
-	if err != nil {
-		return false, err
+		ms = append(ms, m...)
 	}
 
 	for _, m := range ms {

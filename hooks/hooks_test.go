@@ -45,15 +45,17 @@ func TestNotify(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	notifyDir := filepath.Join(dir, "notify")
+	notify1 := filepath.Join(dir, "notify1")
+	notify2 := filepath.Join(dir, "notify2")
+	notifyDirs := []string{notify1, notify2}
 
 	for i := 0; i < 2; i++ {
-		err = Replace(notifyDir, "alpha", fmt.Sprintf(fileTpl, "", i*2+0))
+		err = Replace(notifyDirs, "alpha", fmt.Sprintf(fileTpl, "", i*2+0))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = Replace(notifyDir, "beta", fmt.Sprintf(fileTpl, "#!acmetool-managed!#", i*2+1))
+		err = Replace(notifyDirs, "beta", fmt.Sprintf(fileTpl, "#!acmetool-managed!#", i*2+1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -61,7 +63,7 @@ func TestNotify(t *testing.T) {
 		os.Remove(filepath.Join(dir, "log"))
 
 		ctx := &Context{
-			HooksDir: notifyDir,
+			HookDirs: notifyDirs,
 			StateDir: dir,
 		}
 		err = NotifyLiveUpdated(ctx, []string{"a.b", "c.d", "e.f.g"})

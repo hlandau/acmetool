@@ -15,9 +15,9 @@ pursing reproducible builds.)
 
 ```sh
 $ go build -ldflags "
-    -X github.com/hlandau/acme/storage.RecommendedPath=\"/var/lib/acme\"
-    -X github.com/hlandau/acme/hooks.DefaultPath=\"/usr/lib/acme/hooks\"
-    -X github.com/hlandau/acme/responder.StandardWebrootPath=\"/var/run/acme/acme-challenge\"
-    $($GOPATH/src/github.com/hlandau/buildinfo/gen github.com/hlandau/acme/cmd/acmetool)
-  " github.com/hlandau/acme/cmd/acmetool
+    -X git.devever.net/hlandau/acmetool/storage.RecommendedPath=\"/var/lib/acme\"
+    -X git.devever.net/hlandau/acmetool/hooks.DefaultPath=\"/usr/lib/acme/hooks\"
+    -X git.devever.net/hlandau/acmetool/responder.StandardWebrootPath=\"/var/run/acme/acme-challenge\"
+    $($GOPATH/src/github.com/hlandau/buildinfo/gen git.devever.net/hlandau/acmetool)
+  " git.devever.net/hlandau/acmetool
 ```

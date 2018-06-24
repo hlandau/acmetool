@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -330,8 +331,10 @@ func formulateCron(root bool) string {
 	if *stateFlag != storage.RecommendedPath {
 		s += fmt.Sprintf(`--state="%s" `, *stateFlag)
 	}
-	if *hooksFlag != hooks.RecommendedPath {
-		s += fmt.Sprintf(`--hooks="%s" `, *hooksFlag)
+	if !reflect.DeepEqual(*hooksFlag, hooks.RecommendedPaths) {
+		for _, hookDir := range *hooksFlag {
+			s += fmt.Sprintf(`--hooks="%s" `, hookDir)
+		}
 	}
 
 	s += "reconcile\n"
@@ -433,12 +436,12 @@ func setUserCron(b []byte) error {
 
 func promptInstallCombinedHooks() bool {
 	// Always install if the hook is already installed.
-	hooksPath := *hooksFlag
-	if hooksPath == "" {
-		hooksPath = hooks.DefaultPath
+	hooksPaths := *hooksFlag
+	if len(hooksPaths) == 0 {
+		hooksPaths = hooks.DefaultPaths
 	}
 
-	if _, err := os.Stat(filepath.Join(hooksPath, "haproxy")); err == nil {
+	if hooks.Exists(hooksPaths, "haproxy") {
 		return true
 	}
 
