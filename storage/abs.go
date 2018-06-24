@@ -51,4 +51,5 @@ type Store interface {
 	WriteMiscellaneousConfFile(filename string, data []byte) error
 }
 
+// Return this sentinel value to stop visitation.
 var StopVisiting = errors.New("[stop visiting]")

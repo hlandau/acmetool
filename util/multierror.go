@@ -23,6 +23,7 @@ type WrapError struct {
 	Sub error
 }
 
+// Create a new error that wraps another error.
 func NewWrapError(sub error, msg string, args ...interface{}) *WrapError {
 	return &WrapError{
 		Msg: fmt.Sprintf(msg, args...),
@@ -40,10 +41,13 @@ type PertError struct {
 	temporary bool
 }
 
+// Create an error that knows whether it's temporary or not.
 func NewPertError(isTemporary bool, sub error) error {
 	return &PertError{sub, isTemporary}
 }
 
+// Returns true iff the error is temporary. Compatible with the Temporary
+// method of the "net" package's OpError type.
 func (e *PertError) Temporary() bool {
 	return e.temporary
 }

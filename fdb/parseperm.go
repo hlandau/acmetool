@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var re_permissionLine = regexp.MustCompile(`^(?P<path>[^\s]+)\s+(?P<value>inherit|(?P<fileMode>[0-7]{3,4})\s+(?P<dirMode>[0-7]{3,4})(\s+(?P<uid>[^\s]+)\s+(?P<gid>[^\s]+))?)$`)
+var rePermissionLine = regexp.MustCompile(`^(?P<path>[^\s]+)\s+(?P<value>inherit|(?P<fileMode>[0-7]{3,4})\s+(?P<dirMode>[0-7]{3,4})(\s+(?P<uid>[^\s]+)\s+(?P<gid>[^\s]+))?)$`)
 
 func parsePermissions(r io.Reader) (ps []Permission, erasePaths map[string]struct{}, err error) {
 	br := bufio.NewReader(r)
@@ -36,7 +36,7 @@ func parsePermissions(r io.Reader) (ps []Permission, erasePaths map[string]struc
 		}
 
 		// keys/*/privkey 0640 0750 - -
-		m := re_permissionLine.FindStringSubmatch(L)
+		m := rePermissionLine.FindStringSubmatch(L)
 		if m == nil {
 			return nil, nil, fmt.Errorf("line %d: badly formatted line: %q", Lnum, L)
 		}

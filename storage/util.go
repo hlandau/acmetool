@@ -173,6 +173,7 @@ func (ppk *psuedoPrivateKey) Sign(io.Reader, []byte, crypto.SignerOpts) ([]byte,
 	return []byte{0}, nil
 }
 
+// Given a public key, returns the key ID.
 func DetermineKeyIDFromPublicKey(pubk crypto.PublicKey) (string, error) {
 	// Trick crypto/x509 into creating a certificate so we can grab the
 	// subjectPublicKeyInfo by giving it a fake private key generating an invalid
@@ -220,12 +221,12 @@ func determineCertificateID(url string) string {
 	return strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 }
 
-var re_certID = regexp.MustCompile(`^[a-z0-9]{52}$`)
+var reCertID = regexp.MustCompile(`^[a-z0-9]{52}$`)
 
 // Returns true iff the given string could (possibly) be a valid certificate
 // (or key) ID.
 func IsWellFormattedCertificateOrKeyID(certificateID string) bool {
-	return re_certID.MatchString(certificateID)
+	return reCertID.MatchString(certificateID)
 }
 
 func targetGt(a *Target, b *Target) bool {

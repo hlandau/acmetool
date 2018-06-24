@@ -39,6 +39,8 @@ func (a *Account) String() string {
 	return fmt.Sprintf("Account(%v)", a.ID())
 }
 
+// Convert storage Account object to a new acmeapi.Account suitable for making
+// requests.
 func (a *Account) ToAPI() *acmeapi.Account {
 	return &acmeapi.Account{
 		PrivateKey: a.PrivateKey,
@@ -164,8 +166,8 @@ func (t *Target) Validate() error {
 	return nil
 }
 
-func (tgt *Target) ensureFilename() {
-	if tgt.Filename != "" {
+func (t *Target) ensureFilename() {
+	if t.Filename != "" {
 		return
 	}
 
@@ -174,14 +176,14 @@ func (tgt *Target) ensureFilename() {
 	// We have to use a random name.
 
 	nprefix := ""
-	if len(tgt.Satisfy.Names) > 0 {
-		nprefix = tgt.Satisfy.Names[0] + "-"
+	if len(t.Satisfy.Names) > 0 {
+		nprefix = t.Satisfy.Names[0] + "-"
 	}
 
 	b := uuid.Must(uuid.NewV4()).Bytes()
 	str := strings.ToLower(strings.TrimRight(base32.StdEncoding.EncodeToString(b), "="))
 
-	tgt.Filename = nprefix + str
+	t.Filename = nprefix + str
 }
 
 // Returns a copy of the target.
