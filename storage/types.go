@@ -2,6 +2,8 @@ package storage
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"encoding/base32"
 	"fmt"
 	"git.devever.net/hlandau/acmeapi"
@@ -57,8 +59,19 @@ type TargetSatisfy struct {
 	// N. Renewal margin in days. Defaults to 30.
 	Margin int `yaml:"margin,omitempty"`
 
-	// D. Reduced name set, after disjunction operation. Derived from Names.
-	ReducedNames []string `yaml:"-"`
+	// D. Reduced name set, after disjunction operation. Derived from Names for
+	// each label (or label "").
+	//ReducedNamesByLabel map[string][]string `yaml:"-"`
+
+	// N. Key configuration items which are required to satisfy a target.
+	Key TargetSatisfyKey `yaml:"key,omitempty"`
+}
+
+// Represents the "satisfy": "key" section of a target file.
+type TargetSatisfyKey struct {
+	// N. Type of key to require. "" means do not require any specific type of
+	// key.
+	Type string `yaml:"type,omitempty"`
 }
 
 // Represents the "request" section of a target file.
@@ -143,8 +156,11 @@ type Target struct {
 	// Specifies parameters used when requesting certificates.
 	Request TargetRequest `yaml:"request,omitempty"`
 
-	// N. Priority. See state storage specification.
+	// N. Priority. Controls symlink generation. See state storage specification.
 	Priority int `yaml:"priority,omitempty"`
+
+	// N. Label. Controls symlink generation. See state storage specification.
+	Label string `yaml:"label,omitempty"`
 
 	// LEGACY. Names to be satisfied. Moved to Satisfy.Names.
 	LegacyNames []string `yaml:"names,omitempty"`
@@ -217,7 +233,7 @@ func (t *Target) CopyGeneric() *Target {
 
 func (t *Target) genericise() {
 	t.Satisfy.Names = nil
-	t.Satisfy.ReducedNames = nil
+	//t.Satisfy.ReducedNamesByLabel = nil
 	t.Request.Names = nil
 	t.LegacyNames = nil
 }
@@ -272,4 +288,16 @@ type Key struct {
 // Returns a string summary of the key.
 func (k *Key) String() string {
 	return fmt.Sprintf("Key(%v)", k.ID)
+}
+
+// Returns the type name of the key ("rsa" or "ecdsa").
+func (k *Key) Type() string {
+	switch k.PrivateKey.(type) {
+	case *rsa.PrivateKey:
+		return "rsa"
+	case *ecdsa.PrivateKey:
+		return "ecdsa"
+	default:
+		return ""
+	}
 }

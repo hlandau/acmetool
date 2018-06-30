@@ -142,21 +142,32 @@ func (r *reconcile) disjoinTargets() (hostnameTargetMapping map[string]*storage.
 	sort.Stable(sort.Reverse(targetSorter(targets)))
 
 	// Hostname-target mapping.
+	//
+	// N.B. The 'Reduced Names'/'Reduced Names By Label' data isn't actually used
+	// for anything currently, so we disable computation of it currently.
 	hostnameTargetMapping = map[string]*storage.Target{}
 	for _, tgt := range targets {
-		tgt.Satisfy.ReducedNames = nil
+		//tgt.Satisfy.ReducedNamesByLabel = nil
 		for _, name := range tgt.Satisfy.Names {
-			_, exists := hostnameTargetMapping[name]
+			key := name
+			if tgt.Label != "" {
+				key += ":" + tgt.Label
+			}
+			_, exists := hostnameTargetMapping[key]
 			if !exists {
-				hostnameTargetMapping[name] = tgt
-				tgt.Satisfy.ReducedNames = append(tgt.Satisfy.ReducedNames, name)
+				hostnameTargetMapping[key] = tgt
+				//if tgt.Satisfy.ReducedNamesByLabel == nil {
+				//	tgt.Satisfy.ReducedNamesByLabel = map[string][]string{}
+				//}
+				//reducedNames, _ := tgt.Satisfy.ReducedNamesByLabel[tgt.Label]
+				//tgt.Satisfy.ReducedNamesByLabel[tgt.Label] = append(reducedNames, name)
 			}
 		}
 	}
 
 	// Debugging information.
 	for name, tgt := range hostnameTargetMapping {
-		log.Debugf("disjoint hostname mapping: %s -> %v", name, tgt)
+		log.Debugf("disjoint hostname mapping: %q -> %v", name, tgt)
 	}
 
 	return

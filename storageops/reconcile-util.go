@@ -47,6 +47,10 @@ func ensureConceivablySatisfiable(t *storage.Target) {
 	for _, n := range excludedNames {
 		t.Request.Names = append(t.Request.Names, n)
 	}
+
+	if t.Satisfy.Key.Type != "" {
+		t.Request.Key.Type = t.Satisfy.Key.Type
+	}
 }
 
 func DoesCertificateSatisfy(c *storage.Certificate, t *storage.Target) bool {
@@ -83,6 +87,11 @@ func DoesCertificateSatisfy(c *storage.Certificate, t *storage.Target) bool {
 			log.Debugf("%v cannot satisfy %v because required hostname %q is not listed on it: %#v", c, t, name, cc.DNSNames)
 			return false
 		}
+	}
+
+	if t.Satisfy.Key.Type != "" && t.Satisfy.Key.Type != c.Key.Type() {
+		log.Debugf("%v cannot satisfy %v because required key type (%q) does not match (%q)", c, t, t.Satisfy.Key.Type, c.Key.Type())
+		return false
 	}
 
 	log.Debugf("%v satisfies %v", c, t)

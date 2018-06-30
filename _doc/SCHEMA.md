@@ -114,6 +114,9 @@ parameters of a new certificate request made to satisfy the target.
     to their equivalent ASCII form. (All text files in a State Directory must be
     UTF-8 encoded.)
 
+  - `key`: `type`: Optional string containing "", "rsa" or "ecdsa". If set to a
+    non-empty value, only satisfied by keys with a public key of that type.
+
   - `margin`: Optional positive integer. If set, expresses the number of days
     before expiry at which a certificate should be replaced. The default value
     is implementation-dependent.
@@ -142,6 +145,9 @@ and if present, move them to the "satisfy" and "request" sections respectively.
 **Target set disjunction priority.** The "priority" value is special. It is an
 integer defaulting to 0.
 
+**Target set label.** The "label" value is an optional string value and
+defaults to "".
+
 **Target set disjunction procedure.** In order to ensure consistent and
 deterministic behaviour, and to minimise the number of certificate requests
 which need to be made in regard of overlapping name sets, the sets of names to
@@ -149,7 +155,7 @@ be satisfied by each target are modified to ensure that the sets are fully
 disjoint. That is, any given hostname must appear in at most one target's list
 of names to be satisfied.
 
-The procedure operates as follows:
+The procedure operates as follows for all targets with a given label:
 
 - Take the list of targets and sort it in descending order of priority value.
   For targets with equal priority, tiebreak using the number of hostnames to be
@@ -374,7 +380,9 @@ be written in the certificate subdirectory:
 An ACME State Directory MUST contain a subdirectory "live". It contains zero or
 more relative symlinks, each of which MUST link to a subdirectory of the
 "certs" directory. The name of each symlink MUST be a hostname which is
-expressed, or was previously expressed by one or more targets.
+expressed, or was previously expressed by one or more targets, followed by a
+colon and the label of the target. If the label of the target is "", the colon
+is omitted.
 
 The "live" directory MUST point to the Most Preferred Certificate for each
 target, as specified below.  Thus an application requiring a certificate for a
