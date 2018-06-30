@@ -1,5 +1,5 @@
-PROJNAME=github.com/hlandau/acme
-BINARIES=$(PROJNAME)/cmd/acmetool
+PROJNAME=git.devever.net/hlandau/acmetool
+BINARIES=$(PROJNAME)
 
 ###############################################################################
 # v1.12  NNSC:github.com/hlandau/degoutils/_stdenv/Makefile.ref

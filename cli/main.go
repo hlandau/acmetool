@@ -49,7 +49,8 @@ var (
 
 	responseFileFlag = kingpin.Flag("response-file", "Read dialog responses from the given file (default: $ACME_STATE_DIR/conf/responses)").ExistingFile()
 
-	reconcileCmd = kingpin.Command("reconcile", reconcileHelp).Default()
+	reconcileCmd     = kingpin.Command("reconcile", reconcileHelp).Default()
+	reconcileSpecArg = reconcileCmd.Arg("target-filenames", "optionally, specify one or more target file paths or filenames to reconcile only those targets").Strings()
 
 	cullCmd          = kingpin.Command("cull", "Delete expired, unused certificates")
 	cullSimulateFlag = cullCmd.Flag("simulate", "Show which certificates would be deleted without deleting any").Short('n').Bool()
@@ -232,7 +233,9 @@ func cmdReconcile() {
 	s, err := storage.NewFDB(*stateFlag)
 	log.Fatale(err, "storage")
 
-	err = storageops.Reconcile(s)
+	err = storageops.Reconcile(s, storageops.ReconcileConfig{
+		Targets: *reconcileSpecArg,
+	})
 	log.Fatale(err, "reconcile")
 }
 
@@ -514,6 +517,6 @@ func revokeByCertificateID(certID string) {
 	err = storageops.RevokeByCertificateOrKeyID(s, certID)
 	log.Fatale(err, "revoke")
 
-	err = storageops.Reconcile(s)
+	err = storageops.Reconcile(s, storageops.ReconcileConfig{})
 	log.Fatale(err, "reconcile")
 }

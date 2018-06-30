@@ -19,6 +19,7 @@ import (
 	"github.com/hlandau/xlog"
 	"github.com/jmhodges/clock"
 	"net/http"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -32,22 +33,33 @@ var InternalClock = clock.Default()
 // Internal use only. Used for testing purposes. Do not change.
 var InternalHTTPClient *http.Client
 
+// Optional configuration for the Reconcile operation.
+type ReconcileConfig struct {
+	// If non-empty, a set of target names/paths to limit reconciliation to.
+	// Essentially, the reconciliation engine acts as if only these targets
+	// exist. Otherwise all targets are used.
+	Targets []string
+}
+
 type reconcile struct {
 	store storage.Store
+
+	cfg ReconcileConfig
 
 	// Cache of account clients to avoid duplicated directory lookups.
 	accountClients map[*storage.Account]*acmeapi.RealmClient
 }
 
-func makeReconcile(store storage.Store) *reconcile {
+func makeReconcile(store storage.Store, cfg ReconcileConfig) *reconcile {
 	return &reconcile{
 		store:          store,
+		cfg:            cfg,
 		accountClients: map[*storage.Account]*acmeapi.RealmClient{},
 	}
 }
 
 func EnsureRegistration(store storage.Store) error {
-	return makeReconcile(store).EnsureRegistration()
+	return makeReconcile(store, ReconcileConfig{}).EnsureRegistration()
 }
 
 func (r *reconcile) EnsureRegistration() error {
@@ -64,8 +76,8 @@ func (r *reconcile) EnsureRegistration() error {
 	return solver.AssistedRegistration(context.TODO(), cl, a.ToAPI(), nil)
 }
 
-func Reconcile(store storage.Store) error {
-	r := makeReconcile(store)
+func Reconcile(store storage.Store, cfg ReconcileConfig) error {
+	r := makeReconcile(store, cfg)
 
 	reconcileErr := r.Reconcile()
 	log.Errore(reconcileErr, "failed to reconcile")
@@ -88,7 +100,7 @@ func Reconcile(store storage.Store) error {
 }
 
 func Relink(store storage.Store) error {
-	err := makeReconcile(store).Relink()
+	err := makeReconcile(store, ReconcileConfig{}).Relink()
 	log.Errore(err, "failed to relink")
 	return err
 }
@@ -315,10 +327,53 @@ func (r *reconcile) getClientForAccount(a *storage.Account) (*acmeapi.RealmClien
 	return cl, nil
 }
 
+func (r *reconcile) targetIsSelected(t *storage.Target) (selected bool, err error) {
+	if len(r.cfg.Targets) == 0 {
+		selected = true
+		return
+	}
+
+	for _, spec := range r.cfg.Targets {
+		// If the spec is just a one-component path ("foo"), treat it as a match on
+		// a name inside the "desired" directory.
+		if spec == t.Filename {
+			selected = true
+			return
+		}
+
+		// Get absolute path of target filename and absolute path of provided
+		// pathspec, interpreting it as a path, and see if they match.
+		var tgtFilename string
+		tgtFilename, err = filepath.Abs(filepath.Join(r.store.Path(), "desired", t.Filename))
+		if err != nil {
+			return
+		}
+
+		var absSpec string
+		absSpec, err = filepath.Abs(spec)
+		if err != nil {
+			return
+		}
+
+		if absSpec == tgtFilename {
+			selected = true
+			return
+		}
+	}
+
+	log.Debugf("target not selected: %q", t.Filename)
+	return
+}
+
 func (r *reconcile) processTargets() error {
 	var merr util.MultiError
 
 	r.store.VisitTargets(func(t *storage.Target) error {
+		selected, err := r.targetIsSelected(t)
+		if err != nil || !selected {
+			return err
+		}
+
 		c, err := FindBestCertificateSatisfying(r.store, t)
 		log.Debugf("%v: best certificate satisfying is %v, err=%v", t, c, err)
 		if err == nil && !CertificateNeedsRenewing(c, t) {
