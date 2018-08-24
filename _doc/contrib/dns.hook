@@ -7,10 +7,10 @@
 # The script is ready to use, but to use it you must create
 # /etc/default/acme-dns or /etc/conf.d/acme-dns and set the following options:
 #
-#   # Needed if using TKIP for updates. If authenticating updates by source IP,
+#   # Needed if using TSIG for updates. If authenticating updates by source IP,
 #   # not necessary.
-#   TKIP_KEY_NAME="hmac-sha256:tk1"
-#   TKIP_KEY="a base64-encoded TKIP key"
+#   TSIG_KEY_NAME="hmac-sha256:tk1"
+#   TSIG_KEY="a base64-encoded TSIG key"
 #
 #   # DNS synchronization timeout in seconds. Default is 60.
 #   DNS_SYNC_TIMEOUT=60
@@ -63,7 +63,7 @@ updns() {
   local op="$1"
   (
     declare -f nsupdate_cmds >/dev/null && nsupdate_cmds "$APEX"
-    [ -n "$TKIP_KEY" ] && echo key "$TKIP_KEY_NAME" "$TKIP_KEY"
+    [ -n "$TSIG_KEY" ] && echo key "$TSIG_KEY_NAME" "$TSIG_KEY"
     echo update $op "_acme-challenge.${CH_HOSTNAME}." 60 IN TXT "\"${CH_TXT_VALUE}\""
     echo send
   ) | nsupdate $NSUPDATE_ARGS
@@ -72,14 +72,24 @@ updns() {
 [ -e "/etc/default/acme-dns" ] && . /etc/default/acme-dns
 [ -e "/etc/conf.d/acme-dns" ] && . /etc/conf.d/acme-dns
 # e.g.
-#   TKIP_KEY_NAME="hmac-sha256:tk1"
-#   TKIP_KEY="base64-key-value"
+#   TSIG_KEY_NAME="hmac-sha256:tk1"
+#   TSIG_KEY="base64-key-value"
 
 EVENT_NAME="$1"
 CH_HOSTNAME="$2"
 CH_TARGET_FILENAME="$3"
 CH_TXT_VALUE="$4"
 [ -z "$DNS_SYNC_TIMEOUT" ] && DNS_SYNC_TIMEOUT=60
+
+# Older versions of this script used TKIP_KEY{,_NAME} instead of
+# TSIG_KEY{,_NAME}. Brainfart — TKIP is part of Wi-Fi's WPA2 and has nothing to
+# do with DNS's TSIG. Support the old naming.
+if [ -n "$TKIP_KEY" ]; then
+  TSIG_KEY="$TKIP_KEY"
+fi
+if [ -n "$TKIP_KEY_NAME" ]; then
+  TSIG_KEY_NAME="$TKIP_KEY_NAME"
+fi
 
 case "$EVENT_NAME" in
   challenge-dns-start)
