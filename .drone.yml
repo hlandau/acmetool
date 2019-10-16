@@ -1,10 +1,10 @@
 pipeline:
-  doc:
-    image: asciidoctor/docker-asciidoctor
-    secrets: [ rsync_password ]
-    commands:
-      - apk add --no-cache libxslt docbook-xsl rsync
-      - "(cd _doc/guide && make && make deploy; )"
+  #doc:
+  #  image: asciidoctor/docker-asciidoctor
+  #  secrets: [ rsync_password ]
+  #  commands:
+  #    - apk add --no-cache libxslt docbook-xsl rsync
+  #    - "(cd _doc/guide && make && make deploy; )"
 
   test:
     image: golang:latest
