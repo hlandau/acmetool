@@ -79,11 +79,11 @@ var (
 	testNotifyArg = testNotifyCmd.Arg("hostname", "hostnames which have been updated").Strings()
 
 	importJWKAccountCmd = kingpin.Command("import-jwk-account", "Import a JWK account key")
-	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
+	importJWKURLArg     = importJWKAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v02.api.letsencrypt.org/directory)").Required().String()
 	importJWKPathArg    = importJWKAccountCmd.Arg("private-key-file", "Path to private_key.json").Required().ExistingFile()
 
 	importPEMAccountCmd = kingpin.Command("import-pem-account", "Import a PEM account key")
-	importPEMURLArg     = importPEMAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v01.api.letsencrypt.org/directory)").Required().String()
+	importPEMURLArg     = importPEMAccountCmd.Arg("provider-url", "Provider URL (e.g. https://acme-v02.api.letsencrypt.org/directory)").Required().String()
 	importPEMPathArg    = importPEMAccountCmd.Arg("private-key-file", "Path to private key PEM file").Required().ExistingFile()
 
 	importKeyCmd = kingpin.Command("import-key", "Import a certificate private key")
