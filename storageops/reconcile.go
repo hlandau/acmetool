@@ -563,13 +563,13 @@ func (r *reconcile) createCSR(t *storage.Target) ([]byte, error) {
 
 	pk, err := r.generateOrGetKey(&t.Request.Key)
 	if err != nil {
-		log.Errore(err, "could not generate key while generating CSR for %v", t)
+		log.Errore(err, "could not generate key while generating CSR for", t)
 		return nil, err
 	}
 
 	_, err = r.store.ImportKey(pk)
 	if err != nil {
-		log.Errore(err, "could not import freshly generated key while generating CSR for %v", t)
+		log.Errore(err, "could not import freshly generated key while generating CSR for", t)
 		return nil, err
 	}
 
@@ -675,7 +675,7 @@ func (r *reconcile) downloadCertificateAdaptive(c *storage.Certificate) error {
 
 	err = r.store.SaveCertificate(c)
 	if err != nil {
-		log.Errore(err, "failed to save certificate after retrieval: %v", c)
+		log.Errore(err, "failed to save certificate after retrieval", c)
 		return err
 	}
 
