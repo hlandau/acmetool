@@ -1,4 +1,4 @@
-# <div align="center"><img src="https://hlandau.github.io/acme/img/acmetool-logo-black.png" alt="acmetool" /></div>
+# <div align="center"><img src="https://hlandau.github.io/acmetool/img/acmetool-logo-black.png" alt="acmetool" /></div>
 
 <p align="center"><a
 href="https://webchat.freenode.net/?channels=%23acmetool"><img
@@ -53,7 +53,7 @@ certificates are available to meet those names. Certificates which will expire
 soon are renewed. acmetool is thus idempotent and minimises the use of state.
 
 acmetool can optionally be used [without running it as
-root.](https://hlandau.github.io/acme/userguide#annex-root-configured-non-root-operation) If you have
+root.](https://hlandau.github.io/acmetool/userguide#annex-root-configured-non-root-operation) If you have
 existing certificates issued using the official client, acmetool can import
 those certificates, keys and account keys (`acmetool import-le`).
 
@@ -156,7 +156,7 @@ $ make && sudo make install
 $ sudo acmetool quickstart
 
 # Configure your webserver to serve challenges if necessary.
-# See https://hlandau.github.io/acme/userguide#web-server-configuration
+# See https://hlandau.github.io/acmetool/userguide#web-server-configuration
 $ ...
 
 # Request the hostnames you want:
@@ -191,21 +191,21 @@ You can increase logging severity for debugging purposes by passing
 web server to serve them. The files must be served from the path you specify at
 `/.well-known/acme-challenge/`.
 
-[Information on configuring your web server.](https://hlandau.github.io/acme/userguide#web-server-configuration-challenges)
+[Information on configuring your web server.](https://hlandau.github.io/acmetool/userguide#web-server-configuration-challenges)
 
 **Proxy:** acmetool can respond to validation challenges by serving them on port 402. In
 order for this to be useful, you must configure your webserver to proxy
 requests under `/.well-known/acme-challenge/` to
 `http://127.0.0.1:402/.well-known/acme-challenge`.
 
-[Information on configuring your web server.](https://hlandau.github.io/acme/userguide#web-server-configuration-challenges)
+[Information on configuring your web server.](https://hlandau.github.io/acmetool/userguide#web-server-configuration-challenges)
 
 **Stateless:** You configure your webserver to respond statelessly to
 challenges for a given account key without consulting acmetool. This requires
 nothing more than a one-time web server configuration change and no "moving
 parts". [Information on
 configuring stateless
-challenges.](https://hlandau.github.io/acme/userguide#web-server-configuration-challenges)
+challenges.](https://hlandau.github.io/acmetool/userguide#web-server-configuration-challenges)
 
 **Redirector:** `acmetool redirector` starts an HTTP server on port 80 which redirects all
 requests to HTTPS, as well as serving any necessary validation responses. The
@@ -222,7 +222,7 @@ really useful for development purposes.
 
 **Hook:** You can write custom shell scripts (or binary executables) which
 acmetool invokes to provision challenge files at the desired location. For
-example, you could rsync challenge files to a directory on a remote server. [More information.](https://hlandau.github.io/acme/userguide#challenge-hooks)
+example, you could rsync challenge files to a directory on a remote server. [More information.](https://hlandau.github.io/acmetool/userguide#challenge-hooks)
 
 ## Renewal
 
@@ -277,13 +277,13 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Automatic renewal</td><td>Yes</td><td>Not yet</td><td>No</td><td>No</td></tr>
 <tr><td>SAN support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>ECC support</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
-<tr><td>OCSP Must Staple support</td><td><a href="https://hlandau.github.io/acme/userguide#the-state-storage-schema">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>OCSP Must Staple support</td><td><a href="https://hlandau.github.io/acmetool/userguide#the-state-storage-schema">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Revocation support</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 <tr><td>State management</td><td>Yes†</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Single-file binary</td><td>Yes</td><td>No</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Quickstart wizard</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
 <tr><td>Modifies webserver config</td><td>No</td><td>By default</td><td>No</td><td>No</td></tr>
-<tr><td>Non-root support</td><td><a href="https://hlandau.github.io/acme/userguide#annex-root-configured-non-root-operation">Optional</a></td><td>Optional</td><td>Optional</td><td>—</td></tr>
+<tr><td>Non-root support</td><td><a href="https://hlandau.github.io/acmetool/userguide#annex-root-configured-non-root-operation">Optional</a></td><td>Optional</td><td>Optional</td><td>—</td></tr>
 <tr><td>Supports Apache</td><td>Yes</td><td>Yes</td><td>—</td><td>—</td></tr>
 <tr><td>Supports nginx</td><td>Yes</td><td>Experimental</td><td>—</td><td>—</td></tr>
 <tr><td>Supports HAProxy</td><td>Yes</td><td>No</td><td>—</td><td>—</td></tr>
@@ -293,8 +293,8 @@ short lifetime of certificates issued by Let's Encrypt.
 <tr><td>Authorization via port 80 redirector</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via proxy</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Authorization via listener§</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
-<tr><td>Authorization via DNS</td><td><a href="https://hlandau.github.io/acme/userguide#dns-hook-scripts">Hook only</a></td><td>No</td><td>Yes</td><td>No</td></tr>
-<tr><td>Authorization via custom hook</td><td><a href="https://hlandau.github.io/acme/userguide#challenge-hooks">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Authorization via DNS</td><td><a href="https://hlandau.github.io/acmetool/userguide#dns-hook-scripts">Hook only</a></td><td>No</td><td>Yes</td><td>No</td></tr>
+<tr><td>Authorization via custom hook</td><td><a href="https://hlandau.github.io/acmetool/userguide#challenge-hooks">Yes</a></td><td>No</td><td>No</td><td>No</td></tr>
 <tr><td>Import state from official client</td><td>Yes</td><td>—</td><td>—</td><td>—</td></tr>
 <tr><td>Windows (basic) support</td><td>No</td><td>No</td><td>Yes</td><td>—</td></tr>
 <tr><td>Windows integration support</td><td>No</td><td>No</td><td>No</td><td>—</td></tr>
@@ -320,10 +320,10 @@ a notice of correction here:
 ## Documentation & Support
 
 For more documentation see:
-- [User Guide](https://hlandau.github.io/acme/userguide)
-- [Troubleshooting](https://hlandau.github.io/acme/userguide#troubleshooting)
-- [FAQ](https://hlandau.github.io/acme/userguide#faq)
-- [manpage](https://hlandau.github.io/acme/acmetool.8)
+- [User Guide](https://hlandau.github.io/acmetool/userguide)
+- [Troubleshooting](https://hlandau.github.io/acmetool/userguide#troubleshooting)
+- [FAQ](https://hlandau.github.io/acmetool/userguide#faq)
+- [manpage](https://hlandau.github.io/acmetool/acmetool.8)
 
 If your question or issue isn't resolved by any of the above, file an issue.
 
