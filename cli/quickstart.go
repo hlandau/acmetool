@@ -117,7 +117,7 @@ set -e
 EVENT_NAME="$1"
 [ "$EVENT_NAME" = "live-updated" ] || exit 42
 
-SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch quassel quasselcore freeswitch"
+SERVICES="httpd apache2 apache nginx tengine lighttpd postfix dovecot exim exim4 haproxy hitch quassel quasselcore opensmtpd freeswitch"
 [ -e "/etc/default/acme-reload" ] && . /etc/default/acme-reload
 [ -e "/etc/conf.d/acme-reload" ] && . /etc/conf.d/acme-reload
 [ -z "$ACME_STATE_DIR" ] && ACME_STATE_DIR="@@ACME_STATE_DIR@@"
