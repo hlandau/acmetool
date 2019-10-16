@@ -38,6 +38,7 @@ that shown below is used.
           chain             ; Contains the necessary chaining certificates
           fullchain         ; Contains the certificate and the necessary chaining certificates
           privkey           ; Symlink to a key privkey file
+          account           ; Symlink to an account directory (required for ACMEv2)
           url               ; URL of the finalised order resource
           revoke            ; Empty file indicating certificate should be revoked
           revoked           ; Empty file indicating certificate has been revoked
@@ -329,7 +330,12 @@ protocol prior to the addition of orders), the URL contained in the "url" file
 was the URL to the certificate. Such certificates may still exist in a state
 directory; it is recommended that implementations be able to detect whether an
 URL leads to a certificate or order via the Content-Type of the response
-yielded when dereferencing the URL.
+yielded when dereferencing the URL. These old certificate directories (and some
+older new certificate directories) will also lack an "account" symlink.
+
+Each certificate subdirectory MUST contain a relative symlink "account" to an
+account directory used to request the certificate. (Old certificate directories
+may lack this symlink.)
 
 A client SHOULD automatically delete any certificate directory if the
 certificate it contains is expired AND is not referenced by the "live"
