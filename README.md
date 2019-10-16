@@ -12,8 +12,9 @@ src="https://img.shields.io/github/release/hlandau/acme.svg" alt="[version]"
 /></a><br/> <a
 href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages"><img
 src="https://img.shields.io/badge/ppa-debian%2Fubuntu-lightgrey.svg" alt="[ppa
-debian/ubuntu]"/></a> <a href="https://travis-ci.org/hlandau/acme"><img
-src="https://travis-ci.org/hlandau/acme.svg?branch=master" alt="Build Status"
+debian/ubuntu]"/></a> 
+<a href="https://drone.io/hlandau/acmetool"><img
+src="https://img.shields.io/drone/build/hlandau/acmetool" alt="Build Status"
 /></a></p>
 
 acmetool is an easy-to-use command line tool for automatically acquiring
