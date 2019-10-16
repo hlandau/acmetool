@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euxo pipefail
-ACMEAPI="$GOPATH/src/git.devever.net/hlandau/acmeapi"
+ACMEAPI="$GOPATH/src/gopkg.in/hlandau/acmeapi.v2"
 
 go get ./... github.com/letsencrypt/pebble/cmd/pebble
 go install ./... github.com/letsencrypt/pebble/cmd/pebble
