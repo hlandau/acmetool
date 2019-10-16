@@ -306,6 +306,13 @@ func (r *reconcile) getGenericClient() (*acmeapi.RealmClient, error) {
 }
 
 func (r *reconcile) getClientForDirectoryURL(directoryURL string) (*acmeapi.RealmClient, error) {
+	// Upgrade old directory URLs.
+	endp, err := acmeendpoints.ByDirectoryURL(directoryURL)
+	if err == nil {
+		directoryURL = endp.DirectoryURL
+	}
+
+	// Create client.
 	return acmeapi.NewRealmClient(acmeapi.RealmClientConfig{
 		DirectoryURL: directoryURL,
 		HTTPClient:   InternalHTTPClient,
