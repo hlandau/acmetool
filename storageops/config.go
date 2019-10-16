@@ -1,6 +1,6 @@
 package storageops
 
-import "git.devever.net/hlandau/acmetool/storage"
+import "github.com/hlandau/acmetool/storage"
 
 // Update targets to remove any mention of hostname from all targets. The
 // targets are resaved to disk.

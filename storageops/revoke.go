@@ -2,8 +2,8 @@ package storageops
 
 import (
 	"fmt"
-	"git.devever.net/hlandau/acmetool/storage"
-	"git.devever.net/hlandau/acmetool/util"
+	"github.com/hlandau/acmetool/storage"
+	"github.com/hlandau/acmetool/util"
 )
 
 func RevokeByCertificateOrKeyID(s storage.Store, id string) error {

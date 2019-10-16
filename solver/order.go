@@ -3,9 +3,9 @@ package solver
 import (
 	"context"
 	"fmt"
-	"git.devever.net/hlandau/acmeapi"
-	"git.devever.net/hlandau/acmetool/responder"
-	"git.devever.net/hlandau/acmetool/util"
+	"github.com/hlandau/acmeapi"
+	"github.com/hlandau/acmetool/responder"
+	"github.com/hlandau/acmetool/util"
 	denet "github.com/hlandau/goutils/net"
 	"github.com/hlandau/xlog"
 	"sync"

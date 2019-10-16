@@ -4,11 +4,11 @@ package cli
 
 import (
 	"fmt"
-	//"git.devever.net/hlandau/acmeapi"
-	"git.devever.net/hlandau/acmeapi/pebbletest"
-	"git.devever.net/hlandau/acmetool/interaction"
-	"git.devever.net/hlandau/acmetool/responder"
-	"git.devever.net/hlandau/acmetool/storageops"
+	//"github.com/hlandau/acmeapi"
+	"github.com/hlandau/acmeapi/pebbletest"
+	"github.com/hlandau/acmetool/interaction"
+	"github.com/hlandau/acmetool/responder"
+	"github.com/hlandau/acmetool/storageops"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
