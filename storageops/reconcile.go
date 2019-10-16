@@ -9,8 +9,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"fmt"
-	"github.com/hlandau/acmeapi"
-	"github.com/hlandau/acmeapi/acmeendpoints"
 	"github.com/hlandau/acmetool/hooks"
 	"github.com/hlandau/acmetool/responder"
 	"github.com/hlandau/acmetool/solver"
@@ -18,6 +16,8 @@ import (
 	"github.com/hlandau/acmetool/util"
 	"github.com/hlandau/xlog"
 	"github.com/jmhodges/clock"
+	"gopkg.in/hlandau/acmeapi.v2"
+	"gopkg.in/hlandau/acmeapi.v2/acmeendpoints"
 	"net/http"
 	"path/filepath"
 	"sort"
@@ -458,7 +458,7 @@ func (r *reconcile) requestCertificateForTarget(t *storage.Target) error {
 		return err
 	}
 
-	c, err := r.store.ImportCertificate(order.URL)
+	c, err := r.store.ImportCertificate(acct, order.URL)
 	if err != nil {
 		log.Errore(err, "could not import certificate")
 		return err
@@ -590,14 +590,26 @@ func (r *reconcile) generateOrGetKey(trk *storage.TargetRequestKey) (crypto.Priv
 func (r *reconcile) downloadCertificateAdaptive(c *storage.Certificate) error {
 	log.Debugf("downloading certificate %v", c)
 
-	cl, err := r.getGenericClient()
+	if c.Account == nil {
+		return fmt.Errorf("cannot download certificate because it is unknown which account requested it: %v", c)
+	}
+
+	cl, err := r.getClientForDirectoryURL(c.Account.DirectoryURL)
 	if err != nil {
 		return err
 	}
 
+	acctAPI := c.Account.ToAPI()
+	if acctAPI.URL == "" {
+		err = cl.LocateAccount(context.TODO(), acctAPI)
+		if err != nil {
+			return err
+		}
+	}
+
 	order := &acmeapi.Order{}
 	cert := &acmeapi.Certificate{}
-	isCert, err := cl.LoadOrderOrCertificate(context.TODO(), c.URL, order, cert)
+	isCert, err := cl.LoadOrderOrCertificate(context.TODO(), c.URL, acctAPI, order, cert)
 	if err != nil {
 		return err
 	}
@@ -621,7 +633,7 @@ func (r *reconcile) downloadCertificateAdaptive(c *storage.Certificate) error {
 				return err
 			}
 
-			err = cl.WaitLoadOrder(context.TODO(), order)
+			err = cl.WaitLoadOrder(context.TODO(), acctAPI, order)
 			if err != nil {
 				return err
 			}
@@ -640,7 +652,7 @@ func (r *reconcile) downloadCertificateAdaptive(c *storage.Certificate) error {
 			URL: order.CertificateURL,
 		}
 
-		err = cl.LoadCertificate(context.TODO(), cert)
+		err = cl.LoadCertificate(context.TODO(), acctAPI, cert)
 		if err != nil {
 			return err
 		}

@@ -4,11 +4,11 @@ package cli
 
 import (
 	"fmt"
-	//"github.com/hlandau/acmeapi"
-	"github.com/hlandau/acmeapi/pebbletest"
+	//"gopkg.in/hlandau/acmeapi.v2"
 	"github.com/hlandau/acmetool/interaction"
 	"github.com/hlandau/acmetool/responder"
 	"github.com/hlandau/acmetool/storageops"
+	"gopkg.in/hlandau/acmeapi.v2/pebbletest"
 	"io/ioutil"
 	"path/filepath"
 	"strings"

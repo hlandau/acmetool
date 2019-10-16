@@ -4,7 +4,7 @@ import (
 	"crypto"
 	"encoding/json"
 	"fmt"
-	"github.com/hlandau/acmeapi/acmeutils"
+	"gopkg.in/hlandau/acmeapi.v2/acmeutils"
 )
 
 type DNSChallengeInfo struct {

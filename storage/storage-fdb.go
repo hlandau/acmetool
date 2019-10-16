@@ -6,11 +6,11 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
-	"github.com/hlandau/acmeapi"
-	"github.com/hlandau/acmeapi/acmeutils"
 	"github.com/hlandau/acmetool/fdb"
 	"github.com/hlandau/acmetool/util"
 	"github.com/hlandau/xlog"
+	"gopkg.in/hlandau/acmeapi.v2"
+	"gopkg.in/hlandau/acmeapi.v2/acmeutils"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
@@ -491,6 +491,18 @@ func (s *fdbStore) validateCert(certID string, c *fdb.Collection) error {
 		crt.Cached = true
 	}
 
+	acctLink, err := c.ReadLink("account")
+	if err == nil {
+		if !strings.HasPrefix(acctLink.Target, "accounts/") {
+			return fmt.Errorf("malformed certificate account symlink: %q %q", certID, acctLink.Target)
+		}
+
+		crt.Account = s.AccountByID(acctLink.Target[9:])
+		if crt.Account == nil {
+			log.Warnf("certificate directory %#v contains account reference %#v but no such account was found", certID, acctLink.Target)
+		}
+	}
+
 	s.certs[certID] = crt
 
 	return nil
@@ -775,20 +787,27 @@ func (s *fdbStore) ImportKey(privateKey crypto.PrivateKey) (*Key, error) {
 // Given a certificate URL, imports the certificate into the store. The
 // certificate will be retrieved on the next reconcile. If a certificate with
 // that URL already exists, this is a no-op and returns nil.
-func (s *fdbStore) ImportCertificate(url string) (*Certificate, error) {
+func (s *fdbStore) ImportCertificate(acct *Account, url string) (*Certificate, error) {
 	certID := determineCertificateID(url)
 	c, ok := s.certs[certID]
 	if ok {
 		return c, nil
 	}
 
-	err := fdb.WriteBytes(s.db.Collection("certs/"+certID), "url", []byte(url))
+	coll := s.db.Collection("certs/" + certID)
+	err := coll.WriteLink("account", fdb.Link{"accounts/" + acct.ID()})
+	if err != nil {
+		return nil, err
+	}
+
+	err = fdb.WriteBytes(coll, "url", []byte(url))
 	if err != nil {
 		return nil, err
 	}
 
 	c = &Certificate{
-		URL: url,
+		URL:     url,
+		Account: acct,
 	}
 
 	s.certs[certID] = c

@@ -6,8 +6,8 @@ import (
 	"crypto/rsa"
 	"encoding/base32"
 	"fmt"
-	"github.com/hlandau/acmeapi"
 	"github.com/satori/go.uuid"
+	"gopkg.in/hlandau/acmeapi.v2"
 	"strings"
 )
 
@@ -249,6 +249,11 @@ type Certificate struct {
 
 	// N (for now). Whether this certificate has been revoked.
 	Revoked bool
+
+	// N. Now required due to need to support POST-as-GET. The account under
+	// which the certificate was requested. nil if this is unknown due to being a
+	// legacy certificate directory.
+	Account *Account
 
 	// D. Certificate data retrieved from URL, plus chained certificates.
 	// The end certificate comes first, the root last, etc.

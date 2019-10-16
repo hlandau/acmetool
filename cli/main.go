@@ -10,8 +10,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/hlandau/acmeapi"
-	"github.com/hlandau/acmeapi/acmeutils"
 	"github.com/hlandau/acmetool/hooks"
 	"github.com/hlandau/acmetool/interaction"
 	"github.com/hlandau/acmetool/redirector"
@@ -21,6 +19,8 @@ import (
 	"github.com/hlandau/dexlogconfig"
 	"github.com/hlandau/xlog"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/hlandau/acmeapi.v2"
+	"gopkg.in/hlandau/acmeapi.v2/acmeutils"
 	"gopkg.in/hlandau/easyconfig.v1/adaptflag"
 	"gopkg.in/hlandau/service.v2"
 	"gopkg.in/square/go-jose.v1"

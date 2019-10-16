@@ -3,11 +3,11 @@ package solver
 import (
 	"context"
 	"fmt"
-	"github.com/hlandau/acmeapi"
 	"github.com/hlandau/acmetool/responder"
 	"github.com/hlandau/acmetool/util"
 	denet "github.com/hlandau/goutils/net"
 	"github.com/hlandau/xlog"
+	"gopkg.in/hlandau/acmeapi.v2"
 	"sync"
 	"time"
 )
@@ -100,7 +100,7 @@ func orderProcess(ctx context.Context, rc *acmeapi.RealmClient, acct *acmeapi.Ac
 		}
 
 		// Get a fresh picture of the order status. orderAuthorizeAll doesn't refresh it.
-		err = rc.LoadOrder(ctx, order)
+		err = rc.LoadOrder(ctx, acct, order)
 		if err != nil {
 			return true, err
 		}

@@ -44,7 +44,7 @@ type Store interface {
 
 	ImportKey(privateKey crypto.PrivateKey) (*Key, error)                              // Imports the key if it isn't already imported.
 	ImportAccount(directoryURL string, privateKey crypto.PrivateKey) (*Account, error) // Imports an account key if it isn't already imported.
-	ImportCertificate(url string) (*Certificate, error)                                // Imports a certificate if it isn't already imported.
+	ImportCertificate(acct *Account, url string) (*Certificate, error)                 // Imports a certificate if it isn't already imported.
 
 	SetPreferredCertificateForHostname(hostname string, c *Certificate) error
 
