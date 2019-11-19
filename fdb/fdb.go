@@ -764,6 +764,12 @@ func (c *Collection) WriteLink(name string, target Link) error {
 		return err
 	}
 
+	// if the link already exists, do nothing
+	existingTo, err := os.Readlink(from)
+	if err == nil && existingTo == toRel {
+		return nil
+	}
+	
 	tmpName, err := tempSymlink(toRel, filepath.Join(c.db.path, "tmp"))
 	if err != nil {
 		return err
