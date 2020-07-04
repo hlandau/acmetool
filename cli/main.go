@@ -104,6 +104,9 @@ var (
 	revokeArg = revokeCmd.Arg("certificate-id-or-path", "Certificate ID to revoke").String()
 
 	accountThumbprintCmd = kingpin.Command("account-thumbprint", "Prints account thumbprints")
+
+
+	forceRenewFlag = kingpin.Flag("forceRenew", "Force renewal of certificate").Bool()
 )
 
 const reconcileHelp = `Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets.
@@ -150,6 +153,10 @@ func Main() {
 		err := loadResponseFile(*responseFileFlag)
 		log.Errore(err, "cannot load response file, continuing anyway")
 	}
+
+    if *forceRenewFlag {
+        storageops.ForceRenew = true
+    }
 
 	switch cmd {
 	case "reconcile":

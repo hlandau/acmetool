@@ -33,6 +33,8 @@ var InternalClock = clock.Default()
 // Internal use only. Used for testing purposes. Do not change.
 var InternalHTTPClient *http.Client
 
+var ForceRenew = false
+
 // Optional configuration for the Reconcile operation.
 type ReconcileConfig struct {
 	// If non-empty, a set of target names/paths to limit reconciliation to.
