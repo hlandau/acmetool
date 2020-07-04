@@ -167,7 +167,7 @@ func CertificateNeedsRenewing(c *storage.Certificate, t *storage.Target) bool {
 	}
 
 	renewTime := renewTime(cc.NotBefore, cc.NotAfter, t)
-	needsRenewing := !InternalClock.Now().Before(renewTime)
+	needsRenewing := !InternalClock.Now().Before(renewTime) || ForceRenew
 
 	log.Debugf("%v needsRenewing=%v notAfter=%v", c, needsRenewing, cc.NotAfter)
 	return needsRenewing
