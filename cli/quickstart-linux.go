@@ -4,9 +4,9 @@ package cli
 
 import (
 	"fmt"
-	sddbus "github.com/coreos/go-systemd/dbus"
-	sdunit "github.com/coreos/go-systemd/unit"
 	"github.com/hlandau/acmetool/interaction"
+	sddbus "github.com/hlandauf/go-systemd/dbus"
+	sdunit "github.com/hlandauf/go-systemd/unit"
 	"gopkg.in/hlandau/svcutils.v1/exepath"
 	"gopkg.in/hlandau/svcutils.v1/systemd" // coreos/go-systemd/util requires cgo
 	"io"
