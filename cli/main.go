@@ -104,6 +104,8 @@ var (
 	revokeArg = revokeCmd.Arg("certificate-id-or-path", "Certificate ID to revoke").String()
 
 	accountThumbprintCmd = kingpin.Command("account-thumbprint", "Prints account thumbprints")
+
+	accountURLCmd = kingpin.Command("account-url", "Show account URL")
 )
 
 const reconcileHelp = `Reconcile ACME state, idempotently requesting and renewing certificates to satisfy configured targets.
@@ -181,6 +183,8 @@ func Main() {
 		cmdImportPEMAccount()
 	case "revoke":
 		cmdRevoke()
+	case "account-url":
+		cmdAccountURL()
 	}
 }
 
@@ -255,6 +259,16 @@ func cmdStatus() {
 	log.Fatale(err, "status")
 
 	fmt.Print(info)
+}
+
+func cmdAccountURL() {
+	s, err := storage.NewFDB(*stateFlag)
+	log.Fatale(err, "storage")
+
+	url, err := storageops.GetAccountURL(s)
+	log.Fatale(err, "get account URL")
+
+	fmt.Print(url)
 }
 
 func importKey(s storage.Store, filename string) error {

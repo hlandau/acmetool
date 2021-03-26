@@ -62,6 +62,10 @@ func EnsureRegistration(store storage.Store) error {
 	return makeReconcile(store, ReconcileConfig{}).EnsureRegistration()
 }
 
+func GetAccountURL(store storage.Store) (string, error) {
+	return makeReconcile(store, ReconcileConfig{}).GetAccountURL()
+}
+
 func (r *reconcile) EnsureRegistration() error {
 	a, err := r.getAccountByDirectoryURL("")
 	if err != nil {
@@ -74,6 +78,28 @@ func (r *reconcile) EnsureRegistration() error {
 	}
 
 	return solver.AssistedRegistration(context.TODO(), cl, a.ToAPI(), nil)
+}
+
+func (r *reconcile) GetAccountURL() (string, error) {
+	a, err := r.getAccountByDirectoryURL("")
+	if err != nil {
+		return "", err
+	}
+
+	cl, err := r.getClientForAccount(a)
+	if err != nil {
+		return "", err
+	}
+
+	aapi := a.ToAPI()
+	if aapi.URL == "" {
+		err = cl.LocateAccount(context.TODO(), aapi)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return aapi.URL, nil
 }
 
 func Reconcile(store storage.Store, cfg ReconcileConfig) error {
