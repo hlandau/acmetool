@@ -4,11 +4,11 @@
 href="https://webchat.freenode.net/?channels=%23acmetool"><img
 src="https://img.shields.io/badge/webchat-freenode%20%23acmetool-blue.svg"
 alt="[webchat: freenode #acmetool]" /></a> <br/> <a
-href="https://github.com/hlandau/acme/releases"><img
-src="https://img.shields.io/github/downloads/hlandau/acme/total.svg"
+href="https://github.com/hlandau/acmetool/releases"><img
+src="https://img.shields.io/github/downloads/hlandau/acmetool/total.svg"
 alt="[download count]" /></a> <a
-href="https://github.com/hlandau/acme/releases"><img
-src="https://img.shields.io/github/release/hlandau/acme.svg" alt="[version]"
+href="https://github.com/hlandau/acmetool/releases"><img
+src="https://img.shields.io/github/release/hlandau/acmetool.svg" alt="[version]"
 /></a><br/> <a
 href="https://launchpad.net/~hlandau/+archive/ubuntu/rhea/+packages"><img
 src="https://img.shields.io/badge/ppa-debian%2Fubuntu-lightgrey.svg" alt="[ppa
@@ -45,7 +45,7 @@ acmetool to reload your webserver automatically when it renews a certificate.
 
 acmetool is intended to be "magic-free". All of acmetool's state is stored in a
 simple, comprehensible directory of flat files. [The schema for this directory
-is documented.](https://github.com/hlandau/acme/blob/master/_doc/SCHEMA.md)
+is documented.](https://github.com/hlandau/acmetool/blob/master/_doc/SCHEMA.md)
 
 acmetool is intended to work like "make". The state directory expresses target
 domain names, and whenever acmetool is invoked, it ensures that valid
@@ -65,7 +65,7 @@ other servers or for other purposes.
 
 ## Getting Started
 
-**Binary releases:** [Binary releases are available.](https://github.com/hlandau/acme/releases)
+**Binary releases:** [Binary releases are available.](https://github.com/hlandau/acmetool/releases)
 
 Download the release appropriate for your platform and simply copy the
 `acmetool` binary to `/usr/bin`.
@@ -145,7 +145,7 @@ $ make && sudo make install
 
   # (People familiar with Go with a GOPATH setup can alternatively use go get/go install:)
   $ git config --global http.followRedirects true
-  $ go get github.com/hlandau/acme/cmd/acmetool
+  $ go get github.com/hlandau/acmetool
 ```
 
 ### After installation
@@ -239,7 +239,7 @@ running `acmetool` (possibly with `--xlog.severity=debug` for verbose logging).
 
 ## Library
 
-The [client library which these utilities use](https://github.com/hlandau/acme/tree/master/acmeapi) can be used independently by any Go code. [README and source code.](https://github.com/hlandau/acme/tree/master/acmeapi) [Godoc.](https://godoc.org/github.com/hlandau/acme/acmeapi)
+The [client library which these utilities use](https://github.com/hlandau/acmeapi) can be used independently by any Go code. [README and source code.](https://github.com/hlandau/acmeapi) [Godoc.](https://godocs.io/gopkg.in/hlandau/acmeapi.v2)
 
 ## Comparison with...
 
