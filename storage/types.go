@@ -6,7 +6,7 @@ import (
 	"crypto/rsa"
 	"encoding/base32"
 	"fmt"
-	"github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
 	"gopkg.in/hlandau/acmeapi.v2"
 	"strings"
 )
