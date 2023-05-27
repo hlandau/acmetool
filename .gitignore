@@ -1,4 +1,4 @@
 acmetool
-_doc/guide/out
-_doc/guide/tmp
-_doc/guide/docbook-xsl
+_doc/build
+_doc/web/build
+_doc/web/scheme-lib

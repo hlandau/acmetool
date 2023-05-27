@@ -1,0 +1,59 @@
+name: Documentation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  build-documentation:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Build
+        run: |
+          nix-shell --run .github/build-docs -p guile libxml2 libxslt rnv xmlstarlet zip groff \
+            mandoc gnumake ghostscript sass 'python3.withPackages(p: [p.lxml p.html5-parser])'
+      - name: Upload Website Artifacts
+        uses: actions/upload-pages-artifact@v1
+        # We don't actually use GH pages, but this allows the website files to
+        # be downloaded and inspected
+        with:
+          path: gh-pages
+          retention-days: 14
+          name: website
+  publish-documentation:
+    name: Publish Documentation
+    needs: build-documentation
+    if: github.event_name == 'push' && github.ref_name == 'new-docs'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      # Environment to use.
+      name: website
+      # This just allowos a link to the site to be shown on the GitHub deployments page.
+      url: https://www.devever.net/~hl/acmetool/
+    steps:
+      - name: Download website files
+        uses: actions/download-artifact@v3
+        with:
+          name: website
+          path: website-artifacts
+      - name: Deploy to web server
+        env:
+          SSH_KEY: ${{secrets.SSH_KEY}}
+        run: |
+          mkdir website
+          (cd website; tar xvf ../website-artifacts/artifact.tar;)
+          mkdir -p ~/.ssh
+          echo 'triton.devever.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGC+Ii5sJSxYI4SOEhswtAExFz77qzGYz4nhhWJgwP2s' >> ~/.ssh/known_hosts
+          umask 077
+          rm -f ssh_key
+          echo "$SSH_KEY" > ssh_key
+          rsync -e 'ssh -i ssh_key' -av --delete website/ acmetoolweb@triton.devever.net:./
+          shred -u ssh_key

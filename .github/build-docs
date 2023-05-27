@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -eo pipefail
+echo ::group::Environment
+export
+echo ::endgroup::
+echo "::group::Building documentation"
+.github/build-dedoc
+echo ::endgroup::
+echo "::group::Building website"
+ln -s "$(pwd)/_doc/dedoc/schema" _doc/web/scheme-lib
+ls -lR
+make -C _doc/web
+echo ::endgroup::
+echo "::group::Collecting artifacts"
+mv _doc/web/build/out gh-pages
+echo
+echo "Final GitHub pages output:"
+(cd gh-pages; find . -type f;)
+echo
+echo ::endgroup::

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -eo pipefail
+cd _doc
+if [ -z "$DEDOC_INST_DIR" ]; then
+  [ -e ~/.config/dedoc/inst-dir ] && DEDOC_INST_DIR="$(cat ~/.config/dedoc/inst-dir)"
+fi
+if [ -z "$DEDOC_INST_DIR" ]; then
+  DEDOC_INST_DIR=`pwd`/dedoc
+  if [ ! -e "$DEDOC_INST_DIR" ]; then
+    echo >&2 Installing dedoc...
+    wget -O dedoc.tar.gz "https://github.com/hlandau/dedoc/archive/refs/heads/master.tar.gz"
+    mkdir dedoc.unpack
+    (cd dedoc.unpack; tar xvf ../dedoc.tar.gz;)
+    mv dedoc.unpack/* "$DEDOC_INST_DIR"
+    rmdir dedoc.unpack
+    rm dedoc.tar.gz
+  fi
+fi
+"$DEDOC_INST_DIR/bin/dedoc"

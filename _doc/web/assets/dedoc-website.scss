@@ -1,0 +1,143 @@
+// TODO dark mode browser
+$media_big: "only screen and (width >= 45em)";
+$media_small: "only screen and (width < 45em)";
+$media_vsmall: "only screen and (width < 25em)";
+
+$nav_bg: #d0d0d0;
+$footer_text_color: #666;
+$swipe_bg: #88dd88;
+$swipe_text: #005500;
+
+$small_nav_rhs_bg: #dadada;
+$small_nav_rhs_shadow: #a0a0a0;
+
+// General resets
+* { box-sizing: border-box; }
+html { font-family: "Helvetica", sans-serif; }
+body { margin: 0; padding: 0; }
+p { text-align: justify; }
+
+// Debug borders
+@if false {
+  .main-wrap { border: dotted 2px purple; }
+  main { border: solid 2px #ff0000; }
+  article { border: solid 1px #00ff00; }
+  .prealign { border: dotted 1px #0000ff; }
+  nav.top-nav > .lhs { border: dashed 1px #800000; }
+  nav.top-nav > .rhs { border: dashed 1px #000080; }
+  nav.rhs { border: solid 1px #00ff00; }
+  footer {
+    border: solid 1px #ff0000; }}
+
+// Unit: Top Nav
+.top-nav {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  background-color: $nav_bg;
+  padding: 0 1rem;
+  justify-content: space-between;
+  > ul {
+    list-style: none; padding: 0; margin: 0;
+    > li {
+      display: inline-block; padding: 0; margin: 0;
+      > a:link, > a:visited { display: block; padding: 0.5rem 0; color: #000; }}
+    &.lhs { flex-grow: 1;
+      > li:not(:first-child) { padding-left: 0.5rem; }}}}
+
+@media #{$media_vsmall} {
+  .top-nav > ul {
+    > li { display: block; > a:link, > a:visited { padding-left: 0; }}
+    &.lhs > li:not(:first-child) { padding-left: 0; }}}
+
+// Unit: Main Body
+main { padding: 0 1rem; }
+
+// Unit: Footer
+footer {
+  font-size: 0.8rem; color: $footer_text_color; padding-bottom: 0.5rem; padding-right: 1rem;
+  > ul {
+    list-style: none; margin: 0; padding: 0; text-align: right;
+    > li {
+      display: inline;
+      &:not(.nodot):not(:first-child)::before { content: " · "; }}}}
+
+// Unit: Insignia
+.cross-slash-icon-link {
+  vertical-align: bottom;
+  color: #000 !important;
+  > span {
+    vertical-align: bottom;
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    margin-left: 10px;
+    display: inline-block;
+    background-image: url('slash.svg');
+    background-color: #000;
+    background-repeat: no-repeat;
+    background-position: center left; }}
+footer .cross-slash-icon-link { text-decoration: none; }
+
+// Unit: RHS Nav
+nav.rhs {
+  ul, li { list-style: none; margin: 0; padding: 0; }
+  ul ul { padding-left: 1rem; }
+  a:link, a:visited {
+    display: block; text-decoration: none;
+    padding: 0.2rem 0.5rem; padding-right: 1rem; }}
+
+// Unit: Article-Heading Logo
+.logo-img { text-align: center; margin-top: 3rem; margin-bottom: 0; }
+article.has-logo > p:first-child { margin-top: 0.2rem; }
+
+// Unit: Logotext
+.logotext { font-weight: bold; text-decoration: none; }
+
+// Unit: Slogan
+.slogan { text-align: center; font-style: italic; }
+
+// Main Grid
+@media #{$media_big} {
+  .main-wrap { display: grid; grid-template-columns: [lpad] 4rem [lhs] minmax(auto, max-content) [rhs] auto; grid-template-rows: [topnav] auto [a] auto [b] auto [c] auto; }
+  .top-nav {
+    display: contents;
+    > ul.lhs { grid-column: lpad / span 2; grid-row: topnav; background-color: $nav_bg; padding-left: 5rem; }
+    > ul.rhs { grid-column: rhs; grid-row: topnav; background-color: $nav_bg; margin-right: 0; }}
+  main { max-width: 37rem; grid-column: lhs; grid-row: b; }
+  nav.rhs { grid-column: rhs; grid-row: b; }
+  footer { grid-row: c; grid-column: lhs / span 2; }
+  .prealign { grid-row: a; grid-column: lhs; max-width: 37rem; padding: 0 1rem; }
+}
+
+@media #{$media_small} {
+  .swipe-reminder { display: block; visibility: visible; background-color: $swipe_bg;
+    padding: 0.2rem 1rem;
+    font-size: 0.9rem; padding: 0.3rem 1rem;
+    p { margin: 0; text-align: center; } color: $swipe_text;
+  }
+  .main-wrap { display: grid; grid-template-columns: [l] 100vw [r] max-content; grid-template-rows: [topnav] auto [a] min-content [b] auto; }
+  .top-nav { grid-row: topnav; grid-column: l; }
+  .swipe-reminder, .prealign, main, footer { grid-column: l; }
+  nav.rhs {
+    background-color: $small_nav_rhs_bg;
+    box-shadow: inset 3px 0 3px $small_nav_rhs_shadow;
+    grid-column: r; grid-row: topnav / span 10;
+    padding-top: 2.5rem;
+    > ul { position: sticky; top: 0; bottom: 0; }
+    > ul > li { padding-left: 0.5rem; }
+  }
+}
+
+// DEDOC Specific: Examples Table
+.examples { width: 100%; }
+.examples td { vertical-align: top; padding: 0.33rem 0.5rem 0.5rem 0.5rem; }
+.examples tr:nth-child(odd) { background-color: lighten($nav_bg, 6%);
+  td {
+    border-top: solid 1px darken($nav_bg, 22%);
+  }
+  th, td {
+    border-bottom: solid 1px darken($nav_bg, 22%);
+  }
+}
+.examples .outputs { list-style: none; padding: 0; margin: 0; font-size: small; padding-left: 1rem; }
